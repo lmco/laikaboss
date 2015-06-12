@@ -1,2 +1,3 @@
-# laikaboss
-Laika BOSS: Object Scanning System
+## Laika BOSS: Object Scanning System
+
+Code coming soon.
