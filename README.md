@@ -10,7 +10,7 @@ Laika is an object scanner and intrusion detection system that strives to achiev
 	+ Tactical code insertion (without needing restart)
 + **Verbose**
 	+ Generate more metadata than you know what to do with
-    
+
 Each scan does three main actions on each object:
 
 + **Explode children**
@@ -57,18 +57,24 @@ Laika BOSS has been tested on the latest versions of CentOS and Ubuntu LTS
 
 ##### Installing on Ubuntu
 + Install framework dependencies:
-	+ \# apt-get install yara python-yara python-progressbar
-	+ \# pip install interruptingcow
+```shell
+apt-get install yara python-yara python-progressbar
+pip install interruptingcow
+```
 + Install network client and server dependencies:
-	+ \# apt-get install libzmq3 python-zmq python-gevent python-pexpect
+```shell
+apt-get install libzmq3 python-zmq python-gevent python-pexpect
+```
 + Install module dependencies:
-	+ \# apt-get install python-ipy python-m2crypto python-pefile python-pyclamd liblzma5 libimage-exiftool-perl python-msgpack libfuzzy-dev python-cffi python-dev unrar
-	+ \# pip install fluent-logger olefile ssdeep py-unrar2 pylzma
-	+ \# wget https://github.com/smarnach/pyexiftool/archive/master.zip
-	+ \# unzip master.zip
-	+ \# cd pyexiftool-master
-	+ \# python setup.py build
-	+ \# python setup.py install
+```shell
+apt-get install python-ipy python-m2crypto python-pefile python-pyclamd liblzma5 libimage-exiftool-perl python-msgpack libfuzzy-dev python-cffi python-dev unrar
+pip install fluent-logger olefile ssdeep py-unrar2 pylzma
+wget https://github.com/smarnach/pyexiftool/archive/master.zip
+unzip master.zip
+cd pyexiftool-master
+python setup.py build
+python setup.py install
+```
 
 We recommend using installing [jq](http://stedolan.github.io/jq/) to parse Laika output.
 #### Standalone instance
