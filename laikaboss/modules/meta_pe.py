@@ -289,6 +289,6 @@ class META_PE(SI_MODULE):
                 result['id'] = [x[0] for x in res]
                 result['version'] = [x[1] for x in res]
                 result['count'] = [x[2] for x in res]
-                result['hash'] = hashlib.md5(str(res)).hexdigest()
+                result['hash'] = hashlib.sha512(str(res)).hexdigest()[0:32]
 
         return result
