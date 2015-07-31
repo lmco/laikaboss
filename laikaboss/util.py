@@ -92,15 +92,15 @@ def listToSSV(alist):
 
 def getObjectHash(buffer):
     '''
-    Uses hashlib to get an md5 of the raw object buffer
+    Uses hashlib to get a truncated prefix hash from SHA512 of the raw object buffer
 
     Arguments:
     buffer -- raw object buffer
 
     Returns:
-    string containing the md5 digest of the buffer
+    string containing the truncated prefix hash from SHA512 digest of the buffer
     '''
-    return hashlib.md5(buffer).hexdigest()
+    return hashlib.sha512(buffer).hexdigest()[0:32]
 
 def log_result(result, returnOutput=False):
     '''
