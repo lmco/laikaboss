@@ -10,7 +10,7 @@ Laika is an object scanner and intrusion detection system that strives to achiev
 	+ Tactical code insertion (without needing restart)
 + **Verbose**
 	+ Generate more metadata than you know what to do with
-    
+
 Each scan does three main actions on each object:
 
 + **Explode children**
@@ -54,6 +54,30 @@ Laika is composed of the following pieces:
 
 ## Getting Started
 Laika BOSS has been tested on the latest versions of CentOS and Ubuntu LTS
+
+##### Clone the repo
++ `git clone https://github.com/lmco/laikaboss.git` to `~/Code`
+
+##### Running with Docker
++ Install [Docker](https://www.docker.com/) using [Kitematic](https://kitematic.com/)
+	+ [Download](https://kitematic.com/download) and install Kitematic
+	+ Open Kitmatic and select from the menu "File" -> "Open Docker Commandline Utility"
+	+ Put files you want to analyze in `~/Code/laikaboss/test_files/` or similar folder
+	+ Run using the public image with the test_files/ mounted
+	```shell
+	docker run -i -v ~/Code/laikaboss/test_files/:/home/root/test_files/ --entrypoint /bin/bash -t jloveland/laikaboss
+	```
+	+ You can also run the container as a system command to analyze a specific file
+		that you have mounted at ~/test_files/
+	```shell
+	docker run -i -v ~/Code/laikaboss/test_files/:/home/root/test_files/ -t jloveland/laikaboss ~/test_files/testfile.cws.swf | jq '.scan_result[] | { "file type" : .fileType, "flags" : .flags, "md5" : .objectHash }'
+	```
+	+ Build and run the docker container from this repo
+	```shell
+	cd laikaboss
+	# build and run your build
+	docker-compose up -d
+	```
 
 ##### Installing on Ubuntu
 + Install framework dependencies:
