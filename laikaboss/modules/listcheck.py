@@ -37,7 +37,7 @@ class LISTCHECK(SI_MODULE):
                 
             
             
-            if scanObject.objectHash in self.lists[args['list']]['list']['type']['md5']:
+            if scanObject.objectHash in self.lists[args['list']]['list']['type']['sha512']:
                 scanObject.addMetadata(self.module_name, 'list', args['list'])
                 scanObject.addFlag(self.lists[args['list']]['flagPrefix']+scanObject.objectHash)
                 
