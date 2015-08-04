@@ -22,14 +22,10 @@ class META_HASH(SI_MODULE):
     def _run(self, scanObject, result, depth, args):
         moduleResult = [] 
         metaDict = {}
-        metaDict['md5']    = hashlib.md5(scanObject.buffer).hexdigest()
-        metaDict['SHA1']   = hashlib.sha1(scanObject.buffer).hexdigest()
         #metaDict['SHA224'] = hashlib.sha224(scanObject.buffer).hexdigest()
         metaDict['SHA256'] = hashlib.sha256(scanObject.buffer).hexdigest()
         #metaDict['SHA384'] = hashlib.sha384(scanObject.buffer).hexdigest()
-        metaDict['SHA512'] = hashlib.sha512(scanObject.buffer).hexdigest()
+        metaDict['SHA512'] = hashlib.sha512(scanObject.buffer).hexdigest()[0:32]
         metaDict['ssdeep'] = ssdeep.hash(scanObject.buffer)
-        
         scanObject.addMetadata(self.module_name, "HASHES", metaDict)
-        
         return moduleResult
