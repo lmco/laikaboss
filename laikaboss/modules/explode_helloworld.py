@@ -142,7 +142,7 @@ class EXPLODE_HELLOWORLD(SI_MODULE):
                 # Take the module buffer and trim the first helloworld_param size bytes.
                 buff = buffer[helloworld_param:]
 
-                object_name = 'e_helloworld_%s_%s' % (len(buff), hashlib.md5(buff).hexdigest())
+                object_name = 'e_helloworld_%s_%s' % (len(buff), hashlib.sha512(buff).hexdigest()[0:32])
 
                 logging.debug('HELLOWORLD - New object: %s', object_name)
                 
