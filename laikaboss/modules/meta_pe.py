@@ -48,8 +48,8 @@ class META_PE(SI_MODULE):
                 secData = { 'Virtual Address' : '0x%08X' % section.VirtualAddress,
                             'Virtual Size' : section.Misc_VirtualSize,
                             'Raw Size' : section.SizeOfRawData,
-                            'MD5' : section.get_hash_md5() }
-                if secData['MD5'] != scanObject.objectHash: 
+                            'SHA512' : section.get_hash_sha512() }
+                if secData['SHA512'] != scanObject.objectHash: 
                     moduleResult.append(ModuleObject(buffer=section.get_data(), 
                                                      externalVars=ExternalVars(filename=secName)))
     
