@@ -220,7 +220,7 @@ def main():
         try:
             if os.path.exists(options.ext_metadata):
               with open(options.ext_metadata) as metafile:
-                ext_metadata = json.loads(str(metafile.read()).replace("'","\""))
+                ext_metadata = json.loads(metafile.read())
             else:
               ext_metadata = json.loads(options.ext_metadata)
             assert isinstance(ext_metadata, dict)
