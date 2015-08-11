@@ -45,6 +45,7 @@ default_configs = {
     'source' : 'CLI',
     'ext_metadata' : {},
     'log_result' : 'false',
+    'log_static' : '',
     'ephID' : '',
     'dev_config_path' : 'etc/framework/laikaboss.conf',
     'sys_config_path' : '/usr/local/laikaboss/etc/laikaboss.conf'
@@ -93,6 +94,10 @@ def main():
                       action="store_true",
                       dest="log_result",
                       help="enable logging to syslog")
+    parser.add_option("-q", "--log-static",
+                      action="store", type="string",
+                      dest="log_static",
+                      help="enable logging to static file")
     parser.add_option("-m", "--module",
                       action="store", type="string",
                       dest="scan_modules",
@@ -173,6 +178,12 @@ def main():
     else:
         LOG_RESULT = strtobool(getConfig('log_result'))
     logging.debug("LOG_RESULT: %s" % (LOG_RESULT))
+    
+    global LOG_STATIC
+    if options.log_static:
+        LOG_STATIC = options.log_static
+    else:
+        LOG_STATIC = getConfig('log_static')
 
     global NUM_PROCS
     if options.num_procs:
@@ -426,6 +437,12 @@ class Consumer(multiprocessing.Process):
                 
                 if LOG_RESULT:
                     log_result(result)            
+                    
+                if LOG_STATIC:
+                    LOCAL_PATH = LOG_STATIC
+                    with open(LOCAL_PATH, "ab") as f:
+                        f.write(resultJSON + "\n")
+                
             except:
                 logging.exception("Scan worker died, shutting down")
                 ret_value = 1
