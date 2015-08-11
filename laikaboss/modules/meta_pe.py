@@ -81,6 +81,11 @@ class META_PE(SI_MODULE):
                 logging.debug('No export entries')
     
             try:
+                scanObject.addMetadata(self.module_name, 'Imphash', pe.get_imphash())
+            except:
+                logging.debug('Unable to identify imphash')
+    
+            try:
                 for entry in pe.DIRECTORY_ENTRY_IMPORT:
                     api = []
                     for imp in entry.imports:
