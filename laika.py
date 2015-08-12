@@ -45,6 +45,7 @@ default_configs = {
     'source' : 'CLI',
     'ext_metadata' : {},
     'log_result' : 'false',
+    'log_json' : '',
     'ephID' : '',
     'dev_config_path' : 'etc/framework/laikaboss.conf',
     'sys_config_path' : '/usr/local/laikaboss/etc/laikaboss.conf'
@@ -93,6 +94,10 @@ def main():
                       action="store_true",
                       dest="log_result",
                       help="enable logging to syslog")
+    parser.add_option("-j", "--log-json",
+                      action="store", type="string",
+                      dest="log_json",
+                      help="enable logging JSON results to file")
     parser.add_option("-m", "--module",
                       action="store", type="string",
                       dest="scan_modules",
@@ -173,6 +178,12 @@ def main():
     else:
         LOG_RESULT = strtobool(getConfig('log_result'))
     logging.debug("LOG_RESULT: %s" % (LOG_RESULT))
+
+    global LOG_JSON
+    if options.log_json:
+        LOG_JSON = options.log_json
+    else:
+        LOG_JSON = getConfig('log_json')
 
     global NUM_PROCS
     if options.num_procs:
@@ -425,7 +436,12 @@ class Consumer(multiprocessing.Process):
                         f.write(resultJSON)
                 
                 if LOG_RESULT:
-                    log_result(result)            
+                    log_result(result)   
+                    
+                if LOG_JSON:
+                    LOCAL_PATH = LOG_JSON
+                    with open(LOCAL_PATH, "ab") as f:
+                        f.write(resultJSON + "\n")
             except:
                 logging.exception("Scan worker died, shutting down")
                 ret_value = 1
