@@ -80,7 +80,7 @@ class META_PE(SI_MODULE):
             except:
                 logging.debug('No export entries')
   
-              try:
+            try:
                 scanObject.addMetadata(self.module_name, 'Imphash', pe.get_imphash())
             except:
                 logging.debug('Unable to identify imphash')
