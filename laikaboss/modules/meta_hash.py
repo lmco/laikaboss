@@ -58,6 +58,7 @@ class META_HASH(SI_MODULE):
         if "ssdeep" in args:
             #only import ssdeep if dispatched.
             #Prevents import error if you don't have/want the package
+            #python should keep handing you the original, minimal/no overhead
             import ssdeep
             metaDict['ssdeep'] = ssdeep.hash(scanObject.buffer)
 
