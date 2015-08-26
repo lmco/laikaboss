@@ -30,7 +30,7 @@ class META_HASH(SI_MODULE):
         Assumes:
             there is a string like object in scanObject.buffer
         Ensures:
-            hash values added to
+            hash values added using scanObject.addMetadata
         :param scanObject:<laikaboss.objectmodel.ScanObject>
         :param result:<laikaboss.objectmodel.ScanResult>
         :param depth:<int>
