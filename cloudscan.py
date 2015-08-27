@@ -219,10 +219,10 @@ def main():
     if options.ext_metadata:
         try:
             if os.path.exists(options.ext_metadata):
-              with open(options.ext_metadata) as metafile:
-                ext_metadata = json.loads(metafile.read())
+                with open(options.ext_metadata) as metafile:
+                    ext_metadata = json.loads(metafile.read())
             else:
-              ext_metadata = json.loads(options.ext_metadata)
+                ext_metadata = json.loads(options.ext_metadata)
             assert isinstance(ext_metadata, dict)
         except:
             print "External Metadata must be a dictionary!"
