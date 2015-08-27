@@ -29,6 +29,8 @@ from laikaboss.clientLib import getJSON, getRootObject, get_scanObjectUID
 from ast import literal_eval
 from distutils.util import strtobool
 import zlib
+import json
+
 
 # Variable to store configs from file
 configs = {}
