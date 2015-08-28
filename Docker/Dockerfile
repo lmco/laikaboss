@@ -1,9 +1,9 @@
-#
-# This Docker image encapsulates the Laika BOSS: Object Scanning System by 
+# Docker image encapsulates the Laika BOSS: Object Scanning System by 
 # Lockheed Martin Corporation from https://github.com/lmco/laikaboss 
 #
-# To run this image after installing Docker using a standalone instance, use a command like this, 
-# replacing “~/laikaboss-workdir" with the path to the location of your Laika BOSS directory:
+# To run this image after installing Docker using a standalone instance, use a command like 
+# the following, replacing “~/laikaboss-workdir" with the path to the location of your 
+# Laika BOSS working directory:
 #
 # sudo docker run --rm -it -v ~/laikaboss-workdir:/home/nonroot/workdir wzod/laikaboss
 #
@@ -13,6 +13,18 @@
 #
 # Before running Laika BOSS, create the  ~/laikaboss-workdir and make it world-accessible
 # (“chmod a+xwr").
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+#     http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 #
 
 FROM ubuntu:14.04
@@ -110,4 +122,5 @@ USER nonroot
 ENV HOME /home/nonroot
 ENV USER nonroot
 WORKDIR /home/nonroot/laikaboss
-ENTRYPOINT echo "To run the standalone scanner, execute laika.py against a file like so:" && printf "\n""./laika.py <filename> | jq -C . | less -r" && printf "\n\n""To run the networked instance, first execute laikad.py and use cloudscan against like so:" && printf "\n\n""./laikad.py &" && printf "\n\n""./cloudscan.py <filename> | jq -C . | less -r" && printf "\n\n" && bash
+
+ENTRYPOINT echo "To run the standalone scanner, execute laika.py against a file like so:" && printf "\n""./laika.py <filename> | jq -C . | less -r" && printf "\n\n""To run the networked instance, first execute laikad.py and use cloudscan against like so:" && printf "\n\n""./laikad.py &" && printf "\n\n""./cloudscan.py <filename> | jq -C . | less -r" && printf "\n\n" && /bin/bash
