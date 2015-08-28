@@ -1,0 +1,4 @@
+laikaboss:
+  build: .
+  volumes:
+   - .:/home/root/Code
