@@ -2,14 +2,14 @@
 # This Docker image encapsulates the Laika BOSS: Object Scanning System by 
 # Lockheed Martin Corporation from https://github.com/lmco/laikaboss 
 #
-# To run this image after installing Docker using a standalone instnace, use a command like this, 
+# To run this image after installing Docker using a standalone instance, use a command like this, 
 # replacing “~/laikaboss-workdir" with the path to the location of your Laika BOSS directory:
 #
-# sudo docker run --rm -it -v ~/laikaboss-workdir:/home/nonroot/workdir laikaboss
+# sudo docker run --rm -it -v ~/laikaboss-workdir:/home/nonroot/workdir wzod/laikaboss
 #
 # To run this image using a networked instance, use a command like this:
 #
-# sudo docker run --rm -it -p 5558:5558 -v ~/laikaboss-workdir:/home/nonroot/workdir laikaboss
+# sudo docker run --rm -it -p 5558:5558 -v ~/laikaboss-workdir:/home/nonroot/workdir wzod/laikaboss
 #
 # Before running Laika BOSS, create the  ~/laikaboss-workdir and make it world-accessible
 # (“chmod a+xwr").
