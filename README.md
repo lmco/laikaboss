@@ -13,9 +13,9 @@ Laika is an object scanner and intrusion detection system that strives to achiev
     
 Each scan does three main actions on each object:
 
-+ **Explode children**
++ **Extract child objects**
 
-	Some objects are archives, some are wrappers, and others are obfuscators. Whatever the case may be, find children objects that should be scanned recursively by exploding them out.
+	Some objects are archives, some are wrappers, and others are obfuscators. Whatever the case may be, find children objects that should be scanned recursively by extracting them out.
 
 
 + **Mark flags**
