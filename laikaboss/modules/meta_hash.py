@@ -25,6 +25,7 @@ class META_HASH(SI_MODULE):
         # prevents need to update default with all possible hash functions.
         # could set and forget this value while adding additional functions in _run
         self.module_defaults = set(["md5", #md5.hexdigest
+                                    "SHA1", #sha1.hexdigest
                                     "SHA256",#sha256.hexdigest
                                     #"ssdeep", #ssdeep is not a standard package
                                     "SHA512",#sha512.hexdigest
