@@ -97,6 +97,9 @@ RUN pip install fluent-logger \
   py-unrar2 \
   ssdeep
 
+# fix error condition caused by older pefile in dockerbuild
+RUN pip install pefile --upgrade 
+
 # Add nonroot user, clone repo and setup environment
 RUN groupadd -r nonroot && \
   useradd -r -g nonroot -d /home/nonroot -s /sbin/nologin -c "Nonroot User" nonroot && \
