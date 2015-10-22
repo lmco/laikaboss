@@ -52,7 +52,6 @@ RUN apt-get -y install software-properties-common && \
   python-ipy \
   python-m2crypto \
   python-msgpack \
-  python-pefile \
   python-pexpect \
   python-pip \
   python-progressbar \
@@ -93,6 +92,7 @@ RUN cd /tmp && \
 RUN pip install fluent-logger \
   interruptingcow \
   olefile \
+  pefile \
   pylzma \
   py-unrar2 \
   ssdeep
