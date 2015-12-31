@@ -273,14 +273,12 @@ class SyncBroker(Process):
 
         # Connection for workers
         backend = context.socket(zmq.ROUTER)
-        backend.setsockopt(zmq.IPV4ONLY, 0)
         backend.bind(self.broker_backend_address)
         backend_poller = zmq.Poller()
         backend_poller.register(backend, zmq.POLLIN)
 
         # Connection for clients
         frontend = context.socket(zmq.ROUTER)
-        frontend.setsockopt(zmq.IPV4ONLY, 0)
         frontend.bind(self.broker_frontend_address)
         frontend_poller = zmq.Poller()
         frontend_poller.register(frontend, zmq.POLLIN)
