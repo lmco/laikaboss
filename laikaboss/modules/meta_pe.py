@@ -39,12 +39,12 @@ class META_PE(SI_MODULE):
         imports = {}
         sections = {}
         exports = []
-        imageMagic = ''
 
         try:
             pe = pefile.PE(data=scanObject.buffer)
             dump_dict = pe.dump_dict()
 
+            # Parse sections
             for section in dump_dict.get('PE Sections', []):
                 secName = section.get('Name', {}).get('Value', '').strip('\0')
                 ptr = section.get('PointerToRawData', {}).get('Value')
@@ -52,15 +52,17 @@ class META_PE(SI_MODULE):
                 virtSize = section.get('Misc_VirtualSize', {}).get('Value')
                 size = section.get('SizeOfRawData', {}).get('Value')
                 secData = pe.get_data(ptr, size)
-                secInfo = {'Virtual Address': '0x%08X' % virtAddress,
-                           'Virtual Size': virtSize,
-                           'Raw Size': size,
-                           'MD5': section.get('MD5', ''),
-                           'SHA1': section.get('SHA1', ''),
-                           'SHA256': section.get('SHA256', ''),
-                           'Entropy': section.get('Entropy', ''),
-                           'Section Characteristics': section.get('Flags', []),
-                           'Structure': section.get('Structure', ''), }
+                secInfo = {
+                    'Virtual Address': '0x%08X' % virtAddress,
+                    'Virtual Size': virtSize,
+                    'Raw Size': size,
+                    'MD5': section.get('MD5', ''),
+                    'SHA1': section.get('SHA1', ''),
+                    'SHA256': section.get('SHA256', ''),
+                    'Entropy': section.get('Entropy', ''),
+                    'Section Characteristics': section.get('Flags', []),
+                    'Structure': section.get('Structure', ''),
+                }
                 if secInfo['MD5'] != scanObject.objectHash:
                     moduleResult.append(ModuleObject(
                         buffer=secData,
@@ -69,6 +71,7 @@ class META_PE(SI_MODULE):
             sections['Total'] = pe.FILE_HEADER.NumberOfSections
             scanObject.addMetadata(self.module_name, 'Sections', sections)
 
+            # Parse imports and exports
             try:
                 for exp in pe.DIRECTORY_ENTRY_EXPORT.symbols:
                     exports.append(exp.name)
@@ -79,12 +82,6 @@ class META_PE(SI_MODULE):
                 raise
             except:
                 logging.debug('No export entries')
-
-            try:
-                scanObject.addMetadata(self.module_name,
-                                       'Imphash', pe.get_imphash())
-            except:
-                logging.debug('Unable to identify imphash')
 
             for imp_symbol in dump_dict['Imported symbols']:
                 for imp in imp_symbol:
@@ -99,6 +96,49 @@ class META_PE(SI_MODULE):
                             name = imp.get('Name')
                             imports[dll].append(name)
             scanObject.addMetadata(self.module_name, 'Imports', imports)
+
+            # Parse resources
+            try:
+                for resource in pe.DIRECTORY_ENTRY_RESOURCE.entries:
+                    res_type = pefile.RESOURCE_TYPE.get(resource.id, 'Unknown')
+                    for entry in resource.directory.entries:
+                        for e_entry in entry.directory.entries:
+                            sublang = pefile.get_sublang_name_for_lang(
+                                e_entry.data.lang,
+                                e_entry.data.sublang,
+                            )
+                            offset = e_entry.data.struct.OffsetToData
+                            size = e_entry.data.struct.Size
+                            r_data = pe.get_data(offset, size)
+                            language = pefile.LANG.get(
+                                e_entry.data.lang, 'Unknown')
+                            data = {
+                                'Type': res_type,
+                                'Id': e_entry.id,
+                                'Name': e_entry.data.struct.name,
+                                'Offset': offset,
+                                'Size': size,
+                                'SHA256': hashlib.sha256(r_data).hexdigest(),
+                                'SHA1': hashlib.sha1(r_data).hexdigest(),
+                                'MD5': hashlib.md5(r_data).hexdigest(),
+                                'Language': language,
+                                'Sub Language': sublang,
+                            }
+                            scanObject.addMetadata(
+                                self.module_name, 'Resources', data)
+            except (QuitScanException,
+                    GlobalScanTimeoutError,
+                    GlobalModuleTimeoutError):
+                raise
+            except:
+                logging.debug('No resources')
+
+            # Gather miscellaneous stuff
+            try:
+                scanObject.addMetadata(self.module_name,
+                                       'Imphash', pe.get_imphash())
+            except:
+                logging.debug('Unable to identify imphash')
 
             imgChars = dump_dict.get('Flags', [])
             scanObject.addMetadata(
@@ -122,7 +162,7 @@ class META_PE(SI_MODULE):
             scanObject.addMetadata(
                 self.module_name,
                 'Image Magic',
-                IMAGE_MAGIC_LOOKUP.get(imageMagic, 'Unknown'))
+                IMAGE_MAGIC_LOOKUP.get(pe.OPTIONAL_HEADER.Magic, 'Unknown'))
 
             dllChars = dump_dict.get('DllCharacteristics', [])
             scanObject.addMetadata(
@@ -133,41 +173,6 @@ class META_PE(SI_MODULE):
             scanObject.addMetadata(self.module_name, 'Subsystem', subName)
 
             # Reference: http://msdn.microsoft.com/en-us/library/windows/desktop/ms648009%28v=vs.85%29.aspx
-
-            try:
-                for resource in pe.DIRECTORY_ENTRY_RESOURCE.entries:
-                    res_type = pefile.RESOURCE_TYPE.get(resource.id, 'Unknown')
-                    for entry in resource.directory.entries:
-                        for e_entry in entry.directory.entries:
-                            sublang = pefile.get_sublang_name_for_lang(
-                                e_entry.data.lang,
-                                e_entry.data.sublang,
-                            )
-                            offset = e_entry.data.struct.OffsetToData
-                            size = e_entry.data.struct.Size
-                            raw_data = pe.get_data(offset, size)
-                            language = pefile.LANG.get(
-                                e_entry.data.lang, 'Unknown')
-                            data = {
-                                'Type': res_type,
-                                'Id': e_entry.id,
-                                'Name': e_entry.data.struct.name,
-                                'Offset': offset,
-                                'Size': size,
-                                'SHA256': hashlib.sha256(raw_data).hexdigest(),
-                                'SHA1': hashlib.sha1(raw_data).hexdigest(),
-                                'MD5': hashlib.md5(raw_data).hexdigest(),
-                                'Language': language,
-                                'Sub Language': sublang,
-                            }
-                            scanObject.addMetadata(
-                                self.module_name, 'Resources', data)
-            except (QuitScanException,
-                    GlobalScanTimeoutError,
-                    GlobalModuleTimeoutError):
-                raise
-            except:
-                logging.debug('No resources')
 
             scanObject.addMetadata(
                 self.module_name,
@@ -241,8 +246,7 @@ class META_PE(SI_MODULE):
 
         return result
 
-    @staticmethod
-    def parseRich(pe):
+    def parseRich(self, pe):
         """
         Parses out Rich header information using pefile.
         """
@@ -253,11 +257,37 @@ class META_PE(SI_MODULE):
                 value = pe.RICH_HEADER.values[x] >> 16
                 version = pe.RICH_HEADER.values[x] & 0xffff
                 count = pe.RICH_HEADER.values[x + 1]
-                data.append({'Id': value,
-                             'Version': version,
-                             'Count': count, })
+                data.append({
+                    'Id': value,
+                    'Version': version,
+                    'Count': count,
+                })
 
             result['Rich Header Values'] = data
             result['Checksum'] = pe.RICH_HEADER.checksum
+            result['Hashes'] = self.richHeaderHashes(pe)
 
         return result
+
+    @staticmethod
+    def richHeaderHashes(pe):
+        """
+        Returns hashes of the Rich PE header
+        """
+        rich_data = pe.get_data(0x80, 0x80)
+        data = list(struct.unpack('<32I', rich_data))
+        checksum = data[1]
+        rich_end = data.index(0x68636952)
+        md5 = hashlib.md5()
+        sha1 = hashlib.sha1()
+        sha256 = hashlib.sha256()
+        for i in range(rich_end):
+            md5.update(struct.pack('<I', (data[i] ^ checksum)))
+            sha1.update(struct.pack('<I', (data[i] ^ checksum)))
+            sha256.update(struct.pack('<I', (data[i] ^ checksum)))
+        data = {
+            'MD5': md5.hexdigest(),
+            'SHA1': sha1.hexdigest(),
+            'SHA256': sha256.hexdigest(),
+        }
+        return data
