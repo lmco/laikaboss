@@ -1,17 +1,17 @@
 # Copyright 2015 Lockheed Martin Corporation
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# 
+#
 import re
 import struct
 import hashlib
@@ -19,10 +19,16 @@ import binascii
 import logging
 import pefile
 from datetime import datetime
-from laikaboss.objectmodel import ModuleObject, ExternalVars, QuitScanException, \
-                                GlobalScanTimeoutError, GlobalModuleTimeoutError
+from laikaboss.objectmodel import (ModuleObject,
+                                   ExternalVars,
+                                   QuitScanException,
+                                   GlobalScanTimeoutError,
+                                   GlobalModuleTimeoutError)
 from laikaboss.si_module import SI_MODULE
 
+IMAGE_MAGIC_LOOKUP = {0x10b: '32_BIT',
+                      0x20b: '64_BIT',
+                      0x107: 'ROM_IMAGE', }
 
 class META_PE(SI_MODULE):
     def __init__(self):
@@ -32,213 +38,171 @@ class META_PE(SI_MODULE):
         moduleResult = []
         imports = {}
         sections = {}
-        dllChars = []
-        imgChars = []
         exports = []
-        cpu = []
-        res_type = ""
+        imageMagic = ''
 
         try:
-            pe = pefile.PE(data = scanObject.buffer)
-            
-            # Reference: http://msdn.microsoft.com/en-us/library/windows/desktop/ms680341%28v=vs.85%29.aspx
-            for section in pe.sections:
-                secAttrs = []
-                secName = section.Name.strip('\0')
-                secData = { 'Virtual Address' : '0x%08X' % section.VirtualAddress,
-                            'Virtual Size' : section.Misc_VirtualSize,
-                            'Raw Size' : section.SizeOfRawData,
-                            'MD5' : section.get_hash_md5() }
-                if secData['MD5'] != scanObject.objectHash: 
-                    moduleResult.append(ModuleObject(buffer=section.get_data(), 
-                                                     externalVars=ExternalVars(filename=secName)))
-    
-                secChar = section.Characteristics
-                if secChar & 0x20: secAttrs.append('CNT_CODE')
-                if secChar & 0x40: secAttrs.append('CNT_INITIALIZED_DATA')
-                if secChar & 0x80: secAttrs.append('CNT_UNINITIALIZED_DATA')
-                if secChar & 0x200: secAttrs.append('LNK_INFO')
-                if secChar & 0x2000000: secAttrs.append('MEM_DISCARDABLE')
-                if secChar & 0x4000000: secAttrs.append('MEM_NOT_CACHED')
-                if secChar & 0x8000000: secAttrs.append('MEM_NOT_PAGED')
-                if secChar & 0x10000000: secAttrs.append('MEM_SHARED')
-                if secChar & 0x20000000: secAttrs.append('MEM_EXECUTE')
-                if secChar & 0x40000000: secAttrs.append('MEM_READ')
-                if secChar & 0x80000000: secAttrs.append('MEM_WRITE')
-                secData['Section Characteristics'] = secAttrs
-    
-                sections[secName] = secData
+            pe = pefile.PE(data=scanObject.buffer)
+            dump_dict = pe.dump_dict()
+
+            for section in dump_dict.get('PE Sections', []):
+                secName = section.get('Name', {}).get('Value', '').strip('\0')
+                ptr = section.get('PointerToRawData', {}).get('Value')
+                virtAddress = section.get('VirtualAddress', {}).get('Value')
+                virtSize = section.get('Misc_VirtualSize', {}).get('Value')
+                size = section.get('SizeOfRawData', {}).get('Value')
+                secData = pe.get_data(ptr, size)
+                secInfo = {'Virtual Address': '0x%08X' % virtAddress,
+                           'Virtual Size': virtSize,
+                           'Raw Size': size,
+                           'MD5': section.get('MD5', ''),
+                           'SHA1': section.get('SHA1', ''),
+                           'SHA256': section.get('SHA256', ''),
+                           'Entropy': section.get('Entropy', ''),
+                           'Section Characteristics': section.get('Flags', []),
+                           'Structure': section.get('Structure', ''), }
+                if secInfo['MD5'] != scanObject.objectHash:
+                    moduleResult.append(ModuleObject(
+                        buffer=secData,
+                        externalVars=ExternalVars(filename=secName)))
+                sections[secName] = secInfo
             sections['Total'] = pe.FILE_HEADER.NumberOfSections
             scanObject.addMetadata(self.module_name, 'Sections', sections)
-    
+
             try:
                 for exp in pe.DIRECTORY_ENTRY_EXPORT.symbols:
                     exports.append(exp.name)
                 scanObject.addMetadata(self.module_name, 'Exports', exports)
-            except (QuitScanException, GlobalScanTimeoutError, GlobalModuleTimeoutError):
+            except (QuitScanException,
+                    GlobalScanTimeoutError,
+                    GlobalModuleTimeoutError):
                 raise
             except:
                 logging.debug('No export entries')
-  
+
             try:
-                scanObject.addMetadata(self.module_name, 'Imphash', pe.get_imphash())
+                scanObject.addMetadata(self.module_name,
+                                       'Imphash', pe.get_imphash())
             except:
                 logging.debug('Unable to identify imphash')
-    
-            try:
-                for entry in pe.DIRECTORY_ENTRY_IMPORT:
-                    api = []
-                    for imp in entry.imports:
-                        api.append(imp.name)
-                    imports[entry.dll] = filter(None, api)
-            except (QuitScanException, GlobalScanTimeoutError, GlobalModuleTimeoutError):
-                raise
-            except:
-                logging.debug('No import entries')
+
+            for imp_symbol in dump_dict['Imported symbols']:
+                for imp in imp_symbol:
+                    if imp.get('DLL'):
+                        dll = imp.get('DLL')
+                        imports.setdefault(dll, [])
+                        # Imports can be identified by ordinal or name
+                        if imp.get('Ordinal'):
+                            ordinal = imp.get('Ordinal')
+                            imports[dll].append(ordinal)
+                        if imp.get('Name'):
+                            name = imp.get('Name')
+                            imports[dll].append(name)
             scanObject.addMetadata(self.module_name, 'Imports', imports)
-    
-            # Reference: http://msdn.microsoft.com/en-us/library/windows/desktop/ms680313%28v=vs.85%29.aspx
-            imgChar = pe.FILE_HEADER.Characteristics
-            if imgChar & 0x1: imgChars.append('RELOCS_STRIPPED')
-            if imgChar & 0x2: imgChars.append('EXECUTABLE_IMAGE')
-            if imgChar & 0x4: imgChars.append('LINE_NUMS_STRIPPED')
-            if imgChar & 0x8: imgChars.append('LOCAL_SYMS_STRIPPED')
-            if imgChar & 0x10: imgChars.append('AGGRESIVE_WS_TRIM')
-            if imgChar & 0x20: imgChars.append('LARGE_ADDRESS_AWARE')
-            if imgChar & 0x80: imgChars.append('BYTES_REVERSED_LO')
-            if imgChar & 0x100: imgChars.append('32BIT_MACHINE')
-            if imgChar & 0x200: imgChars.append('DEBUG_STRIPPED')
-            if imgChar & 0x400: imgChars.append('REMOVABLE_RUN_FROM_SWAP')
-            if imgChar & 0x800: imgChars.append('NET_RUN_FROM_SWAP')
-            if imgChar & 0x1000: imgChars.append('SYSTEM_FILE')
-            if imgChar & 0x2000: imgChars.append('DLL_FILE')
-            if imgChar & 0x4000: imgChars.append('UP_SYSTEM_ONLY')
-            if imgChar & 0x8000: imgChars.append('BYTES_REVERSED_HI')
-    
-            scanObject.addMetadata(self.module_name, 'Image Characteristics', imgChars)
-    
-            scanObject.addMetadata(self.module_name, 'Date', datetime.fromtimestamp(pe.FILE_HEADER.TimeDateStamp).isoformat())
-            scanObject.addMetadata(self.module_name, 'Timestamp', pe.FILE_HEADER.TimeDateStamp)
-    
+
+            imgChars = dump_dict.get('Flags', [])
+            scanObject.addMetadata(
+                self.module_name, 'Image Characteristics', imgChars)
+            # Make a pretty date format
+            date = datetime.fromtimestamp(pe.FILE_HEADER.TimeDateStamp)
+            isoDate = date.isoformat()
+            scanObject.addMetadata(self.module_name, 'Date', isoDate)
+            scanObject.addMetadata(
+                self.module_name, 'Timestamp', pe.FILE_HEADER.TimeDateStamp)
+
             machine = pe.FILE_HEADER.Machine
-            cpu.append(machine)
-    
-            # Reference: http://en.wikibooks.org/wiki/X86_Disassembly/Windows_Executable_Files#COFF_Header
-            if machine == 0x14c: cpu.append('Intel 386')
-            if machine == 0x14d: cpu.append('Intel i860')
-            if machine == 0x162: cpu.append('MIPS R3000')
-            if machine == 0x166: cpu.append('MIPS little endian (R4000)')
-            if machine == 0x168: cpu.append('MIPS R10000')
-            if machine == 0x169: cpu.append('MIPS little endian WCI v2')
-            if machine == 0x183: cpu.append('old Alpha AXP')
-            if machine == 0x184: cpu.append('Alpha AXP')
-            if machine == 0x1a2: cpu.append('Hitachi SH3')
-            if machine == 0x1a3: cpu.append('Hitachi SH3 DSP')
-            if machine == 0x1a6: cpu.append('Hitachi SH4')
-            if machine == 0x1a8: cpu.append('Hitachi SH5')
-            if machine == 0x1c0: cpu.append('ARM little endian')
-            if machine == 0x1c2: cpu.append('Thumb')
-            if machine == 0x1d3: cpu.append('Matsushita AM33')
-            if machine == 0x1f0: cpu.append('PowerPC little endian')
-            if machine == 0x1f1: cpu.append('PowerPC with floating point support')
-            if machine == 0x200: cpu.append('Intel IA64')
-            if machine == 0x266: cpu.append('MIPS16')
-            if machine == 0x268: cpu.append('Motorola 68000 series')
-            if machine == 0x284: cpu.append('Alpha AXP 64-bit')
-            if machine == 0x366: cpu.append('MIPS with FPU')
-            if machine == 0x466: cpu.append('MIPS16 with FPU')
-            if machine == 0xebc: cpu.append('EFI Byte Code')
-            if machine == 0x8664: cpu.append('AMD AMD64')
-            if machine == 0x9041: cpu.append('Mitsubishi M32R little endian')
-            if machine == 0xc0ee: cpu.append('clr pure MSIL')
-    
+            machineData = {
+                'Id': machine,
+                'Type': pefile.MACHINE_TYPE.get(machine)
+            }
+            scanObject.addMetadata(
+                self.module_name, 'Machine Type', machineData)
+
             # Reference: http://msdn.microsoft.com/en-us/library/windows/desktop/ms680339%28v=vs.85%29.aspx
-            magic = pe.OPTIONAL_HEADER.Magic
-            if magic == 0x10b: cpu.append('32_BIT')
-            if magic == 0x20b: cpu.append('64_BIT')
-            if magic == 0x107: cpu.append('ROM_IMAGE')
-    
-            cpu.append("0x%04X" % magic)
-    
-            scanObject.addMetadata(self.module_name, 'CPU', cpu)
-    
-            dllChar = pe.OPTIONAL_HEADER.DllCharacteristics
-            if dllChar & 0x40: dllChars.append('DYNAMIC_BASE')
-            if dllChar & 0x80: dllChars.append('FORCE_INTEGRITY')
-            if dllChar & 0x100: dllChars.append('NX_COMPAT')
-            if dllChar & 0x200: dllChars.append('NO_ISOLATION')
-            if dllChar & 0x400: dllChars.append('NO_SEH')
-            if dllChar & 0x800: dllChars.append('NO_BIND')
-            if dllChar & 0x2000: dllChars.append('WDM_DRIVER')
-            if dllChar & 0x8000: dllChars.append('TERMINAL_SERVER_AWARE')
-    
-            scanObject.addMetadata(self.module_name, 'DLL Characteristics', dllChars)
-    
+            scanObject.addMetadata(
+                self.module_name,
+                'Image Magic',
+                IMAGE_MAGIC_LOOKUP.get(imageMagic, 'Unknown'))
+
+            dllChars = dump_dict.get('DllCharacteristics', [])
+            scanObject.addMetadata(
+                self.module_name, 'DLL Characteristics', dllChars)
+
             subsystem = pe.OPTIONAL_HEADER.Subsystem
-            if subsystem == 0: scanObject.addMetadata(self.module_name, 'Subsystem', 'UNKNOWN')
-            if subsystem == 1: scanObject.addMetadata(self.module_name, 'Subsystem', 'NATIVE')
-            if subsystem == 2: scanObject.addMetadata(self.module_name, 'Subsystem', 'WINDOWS_GUI')
-            if subsystem == 3: scanObject.addMetadata(self.module_name, 'Subsystem', 'WINDOWS_CUI')
-            if subsystem == 5: scanObject.addMetadata(self.module_name, 'Subsystem', 'OS2_CUI')
-            if subsystem == 7: scanObject.addMetadata(self.module_name, 'Subsystem', 'POSIX_CUI')
-            if subsystem == 9: scanObject.addMetadata(self.module_name, 'Subsystem', 'WINDOWS_CE_GUI')
-            if subsystem == 10: scanObject.addMetadata(self.module_name, 'Subsystem', 'EFI_APPLICATION')
-            if subsystem == 11: scanObject.addMetadata(self.module_name, 'Subsystem', 'EFI_BOOT_SERVICE_DRIVER')
-            if subsystem == 12: scanObject.addMetadata(self.module_name, 'Subsystem', 'EFI_RUNTIME_DRIVER')
-            if subsystem == 13: scanObject.addMetadata(self.module_name, 'Subsystem', 'EFI_ROM')
-            if subsystem == 14: scanObject.addMetadata(self.module_name, 'Subsystem', 'XBOX')
-            if subsystem == 16: scanObject.addMetadata(self.module_name, 'Subsystem', 'BOOT_APPLICATION')
-    
+            subName = pefile.SUBSYSTEM_TYPE.get(subsystem)
+            scanObject.addMetadata(self.module_name, 'Subsystem', subName)
+
             # Reference: http://msdn.microsoft.com/en-us/library/windows/desktop/ms648009%28v=vs.85%29.aspx
-    
+
             try:
                 for resource in pe.DIRECTORY_ENTRY_RESOURCE.entries:
-                    if resource.id == 9: res_type = "RT_ACCELERATOR"
-                    if resource.id == 21: res_type = "RT_ANICURSOR"
-                    if resource.id == 22: res_type = "RT_ANIICON"
-                    if resource.id == 2: res_type = "RT_BITMAP"
-                    if resource.id == 1: res_type = "RT_CURSOR"
-                    if resource.id == 5: res_type = "RT_DIALOG"
-                    if resource.id == 17: res_type = "RT_DLGINCLUDE"
-                    if resource.id == 8: res_type = "RT_FONT"
-                    if resource.id == 7: res_type = "RT_FONTDIR"
-                    if resource.id == 12: res_type = "RT_GROUP_CURSOR"
-                    if resource.id == 14: res_type = "RT_GROUP_ICON"
-                    if resource.id == 23: res_type = "RT_HTML"
-                    if resource.id == 3: res_type = "RT_ICON"
-                    if resource.id == 24: res_type = "RT_MANIFEST"
-                    if resource.id == 4: res_type = "RT_MENU"
-                    if resource.id == 11: res_type = "RT_MESSAGETABLE"
-                    if resource.id == 19: res_type = "RT_PLUGPLAY"
-                    if resource.id == 10: res_type = "RT_RCDATA"
-                    if resource.id == 6: res_type = "RT_STRING"
-                    if resource.id == 16: res_type = "RT_VERSION"
-                    if resource.id == 20: res_type = "RT_VXD"
-    
+                    res_type = pefile.RESOURCE_TYPE.get(resource.id, 'Unknown')
                     for entry in resource.directory.entries:
-                        scanObject.addMetadata(self.module_name, 'Resources', res_type + "_%s" % entry.id)
-            except (QuitScanException, GlobalScanTimeoutError, GlobalModuleTimeoutError):
+                        for e_entry in entry.directory.entries:
+                            sublang = pefile.get_sublang_name_for_lang(
+                                e_entry.data.lang,
+                                e_entry.data.sublang,
+                            )
+                            offset = e_entry.data.struct.OffsetToData
+                            size = e_entry.data.struct.Size
+                            raw_data = pe.get_data(offset, size)
+                            language = pefile.LANG.get(
+                                e_entry.data.lang, 'Unknown')
+                            data = {
+                                'Type': res_type,
+                                'Id': e_entry.id,
+                                'Name': e_entry.data.struct.name,
+                                'Offset': offset,
+                                'Size': size,
+                                'SHA256': hashlib.sha256(raw_data).hexdigest(),
+                                'SHA1': hashlib.sha1(raw_data).hexdigest(),
+                                'MD5': hashlib.md5(raw_data).hexdigest(),
+                                'Language': language,
+                                'Sub Language': sublang,
+                            }
+                            scanObject.addMetadata(
+                                self.module_name, 'Resources', data)
+            except (QuitScanException,
+                    GlobalScanTimeoutError,
+                    GlobalModuleTimeoutError):
                 raise
-            except: 
+            except:
                 logging.debug('No resources')
-         
-               
-            scanObject.addMetadata(self.module_name, 'Stack Reserve Size', pe.OPTIONAL_HEADER.SizeOfStackReserve)
-            scanObject.addMetadata(self.module_name, 'Stack Commit Size', pe.OPTIONAL_HEADER.SizeOfStackCommit)
-    
-            scanObject.addMetadata(self.module_name, 'Heap Reserve Size', pe.OPTIONAL_HEADER.SizeOfHeapReserve)
-            scanObject.addMetadata(self.module_name, 'Heap Commit Size', pe.OPTIONAL_HEADER.SizeOfHeapCommit)
-    
-            scanObject.addMetadata(self.module_name, 'EntryPoint', hex(pe.OPTIONAL_HEADER.AddressOfEntryPoint))
-            scanObject.addMetadata(self.module_name, 'ImageBase', hex(pe.OPTIONAL_HEADER.ImageBase))
+
+            scanObject.addMetadata(
+                self.module_name,
+                'Stack Reserve Size',
+                pe.OPTIONAL_HEADER.SizeOfStackReserve)
+            scanObject.addMetadata(
+                self.module_name,
+                'Stack Commit Size',
+                pe.OPTIONAL_HEADER.SizeOfStackCommit)
+            scanObject.addMetadata(
+                self.module_name,
+                'Heap Reserve Size',
+                pe.OPTIONAL_HEADER.SizeOfHeapReserve)
+            scanObject.addMetadata(
+                self.module_name,
+                'Heap Commit Size',
+                pe.OPTIONAL_HEADER.SizeOfHeapCommit)
+            scanObject.addMetadata(
+                self.module_name,
+                'EntryPoint',
+                hex(pe.OPTIONAL_HEADER.AddressOfEntryPoint))
+            scanObject.addMetadata(
+                self.module_name,
+                'ImageBase',
+                hex(pe.OPTIONAL_HEADER.ImageBase))
 
             # Parse RSDS & Rich
-            scanObject.addMetadata(self.module_name, 'RSDS', self.parseRSDS(scanObject))
-            scanObject.addMetadata(self.module_name, 'Rich', self.parseRich(pe))
+            scanObject.addMetadata(
+                self.module_name, 'RSDS', self.parseRSDS(scanObject))
+            scanObject.addMetadata(
+                self.module_name, 'Rich Header', self.parseRich(pe))
 
         except pefile.PEFormatError:
             logging.debug("Invalid PE format")
-
+        logging.error(pe.parse_rich_header())
         return moduleResult
 
     @staticmethod
@@ -262,11 +226,11 @@ class META_PE(SI_MODULE):
 
         http://www.godevtool.com/Other/pdb.htm
         """
-        
-        result = dict()
+
+        result = {}
         rsds = re.compile('RSDS.{24,1024}\.pdb')
         x = rsds.findall(scanObject.buffer)
-        
+
         if x and x[-1]:
             match = x[-1]
             result["guid"] = "%s-%s-%s-%s" % (binascii.hexlify(match[4:8]),
@@ -283,17 +247,18 @@ class META_PE(SI_MODULE):
         """
         Parses out Rich header information using pefile.
         """
-        res = list()
-        result = dict()
-
+        result = {}
+        data = []
         if pe.RICH_HEADER:
             for x in range(0, len(pe.RICH_HEADER.values), 2):
-                res.append((pe.RICH_HEADER.values[x] >> 16, pe.RICH_HEADER.values[x] & 0xffff, pe.RICH_HEADER.values[x+1]))
+                value = pe.RICH_HEADER.values[x] >> 16
+                version = pe.RICH_HEADER.values[x] & 0xffff
+                count = pe.RICH_HEADER.values[x + 1]
+                data.append({'Id': value,
+                             'Version': version,
+                             'Count': count, })
 
-            if res:
-                result['id'] = [x[0] for x in res]
-                result['version'] = [x[1] for x in res]
-                result['count'] = [x[2] for x in res]
-                result['hash'] = hashlib.md5(str(res)).hexdigest()
+            result['Rich Header Values'] = data
+            result['Checksum'] = pe.RICH_HEADER.checksum
 
         return result
