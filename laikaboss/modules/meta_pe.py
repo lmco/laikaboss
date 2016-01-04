@@ -26,9 +26,11 @@ from laikaboss.objectmodel import (ModuleObject,
                                    GlobalModuleTimeoutError)
 from laikaboss.si_module import SI_MODULE
 
-IMAGE_MAGIC_LOOKUP = {0x10b: '32_BIT',
-                      0x20b: '64_BIT',
-                      0x107: 'ROM_IMAGE', }
+IMAGE_MAGIC_LOOKUP = {
+    0x10b: '32_BIT',
+    0x20b: '64_BIT',
+    0x107: 'ROM_IMAGE',
+}
 
 class META_PE(SI_MODULE):
     def __init__(self):
