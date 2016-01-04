@@ -202,7 +202,6 @@ class META_PE(SI_MODULE):
 
         except pefile.PEFormatError:
             logging.debug("Invalid PE format")
-        logging.error(pe.parse_rich_header())
         return moduleResult
 
     @staticmethod
