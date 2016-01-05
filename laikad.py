@@ -129,12 +129,13 @@ class AsyncBroker(Process):
     returned back to the client.
     '''
 
-    def __init__(self, broker_backend_address, broker_frontend_address):
+    def __init__(self, broker_backend_address, broker_frontend_address, use_ipv6):
         '''Main constructor'''
         super(AsyncBroker, self).__init__()
         self.broker_backend_address = broker_backend_address
         self.broker_frontend_address = broker_frontend_address
         self.keep_running = True
+        self.use_ipv6 = use_ipv6
 
     def shutdown(self):
         '''Shutdown method to be called by the signal handler'''
@@ -156,12 +157,26 @@ class AsyncBroker(Process):
 
         # Connection for workers
         backend = context.socket(zmq.ROUTER)
+        if self.use_ipv6:
+            if hasattr(zmq, 'IPV6'):
+                backend.setsockopt(zmq.IPV6, 1)
+            elif hasattr(zmq, 'IPV4ONLY'):
+                backend.setsockopt(zmq.IPV4ONLY, 0)
+            else:
+                logging.error("This version of ZMQ does not support IPv6")
         backend.bind(self.broker_backend_address)
         backend_poller = zmq.Poller()
         backend_poller.register(backend, zmq.POLLIN)
 
         # Connection for clients
         frontend = context.socket(zmq.PULL)
+        if self.use_ipv6:
+            if hasattr(zmq, 'IPV6'):
+                frontend.setsockopt(zmq.IPV6, 1)
+            elif hasattr(zmq, 'IPV4ONLY'):
+                frontend.setsockopt(zmq.IPV4ONLY, 0)
+            else:
+                logging.error("This version of ZMQ does not support IPv6")
         frontend.bind(self.broker_frontend_address)
         frontend_poller = zmq.Poller()
         frontend_poller.register(frontend, zmq.POLLIN)
@@ -247,13 +262,14 @@ class SyncBroker(Process):
     '''
 
     def __init__(self, broker_backend_address, broker_frontend_address,
-        shutdown_grace_timeout=SHUTDOWN_GRACE_TIMEOUT_DEFAULT):
+        use_ipv6, shutdown_grace_timeout=SHUTDOWN_GRACE_TIMEOUT_DEFAULT):
         '''Main constructor'''
         super(SyncBroker, self).__init__()
         self.broker_backend_address = broker_backend_address
         self.broker_frontend_address = broker_frontend_address
         self.shutdown_grace_timeout = shutdown_grace_timeout
         self.keep_running = True
+        self.use_ipv6 = use_ipv6
 
     def shutdown(self):
         '''Shutdown method to be called by the signal handler'''
@@ -273,12 +289,26 @@ class SyncBroker(Process):
 
         # Connection for workers
         backend = context.socket(zmq.ROUTER)
+        if self.use_ipv6:
+            if hasattr(zmq, 'IPV6'):
+                backend.setsockopt(zmq.IPV6, 1)
+            elif hasattr(zmq, 'IPV4ONLY'):
+                backend.setsockopt(zmq.IPV4ONLY, 0)
+            else:
+                logging.error("This version of ZMQ does not support IPv6")
         backend.bind(self.broker_backend_address)
         backend_poller = zmq.Poller()
         backend_poller.register(backend, zmq.POLLIN)
 
         # Connection for clients
         frontend = context.socket(zmq.ROUTER)
+        if self.use_ipv6:
+            if hasattr(zmq, 'IPV6'):
+                frontend.setsockopt(zmq.IPV6, 1)
+            elif hasattr(zmq, 'IPV4ONLY'):
+                frontend.setsockopt(zmq.IPV4ONLY, 0)
+            else:
+                logging.error("This version of ZMQ does not support IPv6")
         frontend.bind(self.broker_frontend_address)
         frontend_poller = zmq.Poller()
         frontend_poller.register(frontend, zmq.POLLIN)
@@ -439,6 +469,7 @@ class Worker(Process):
     '''
 
     def __init__(self, config_location, broker_address, max_scan_items, ttl,
+    use_ipv6,
     logresult=False, 
     poll_timeout=300, 
     shutdown_grace_timeout=SHUTDOWN_GRACE_TIMEOUT_DEFAULT):
@@ -456,6 +487,7 @@ class Worker(Process):
         self.broker_poller = zmq.Poller()
         self.poll_timeout = poll_timeout * 1000 # Poller uses milliseconds
         self.logresult = logresult
+        self.use_ipv6 = use_ipv6
 
     def perform_scan(self, poll_timeout):
         '''
@@ -618,6 +650,13 @@ class Worker(Process):
         context = zmq.Context(1)
         self.broker = context.socket(zmq.DEALER)
         self.broker.setsockopt(zmq.IDENTITY, self.identity)
+        if self.use_ipv6:
+            if hasattr(zmq, 'IPV6'):
+                self.broker.setsockopt(zmq.IPV6, 1)
+            elif hasattr(zmq, 'IPV4ONLY'):
+                self.broker.setsockopt(zmq.IPV4ONLY, 0)
+            else:
+                logging.error("This version of ZMQ does not support IPv6")
         self.broker.connect(self.broker_address)
         self.broker_poller.register(self.broker, zmq.POLLIN)
 
@@ -791,6 +830,10 @@ def main():
                       dest="gracetimeout",
                       help="when shutting down, the timeout to allow workers to"
                       " finish ongoing scans before being killed")
+    parser.add_option("-6", "--ipv6",
+                      action="store_true", default=False,
+                      dest="use_ipv6",
+                      help="Enables listening on IPv6.")
     (options, _) = parser.parse_args()
 
     # Set the configuration file path
@@ -901,16 +944,30 @@ def main():
     broker_proc = None
     if not options.no_broker:
         if async:
-            broker_proc = AsyncBroker(broker_backend_address, broker_frontend_address)
+            broker_proc = AsyncBroker(
+                broker_backend_address,
+                broker_frontend_address,
+                options.use_ipv6)
         else:
-            broker_proc = SyncBroker(broker_backend_address, broker_frontend_address, gracetimeout)
+            broker_proc = SyncBroker(
+                broker_backend_address,
+                broker_frontend_address,
+                options.use_ipv6,
+                gracetimeout)
         broker_proc.start()
 
     # Start the workers
     workers = []
     for _ in range(num_procs):
-        worker_proc = Worker(laikaboss_config_path, worker_connect_address, ttl,
-            time_ttl, logresult, int(get_option('workerpolltimeout')), gracetimeout)
+        worker_proc = Worker(
+            laikaboss_config_path,
+            worker_connect_address,
+            ttl,
+            time_ttl,
+            options.use_ipv6,
+            logresult,
+            int(get_option('workerpolltimeout')),
+            gracetimeout)
         worker_proc.start()
         workers.append(worker_proc)
 
@@ -918,9 +975,15 @@ def main():
         # Ensure we have a broker
         if not options.no_broker and not broker_proc.is_alive():
             if async:
-                broker_proc = AsyncBroker(broker_backend_address, broker_frontend_address)
+                broker_proc = AsyncBroker(
+                    broker_backend_address,
+                    broker_frontend_address,
+                    options.use_ipv6)
             else:
-                broker_proc = SyncBroker(broker_backend_address, broker_frontend_address,
+                broker_proc = SyncBroker(
+                    broker_backend_address,
+                    broker_frontend_address,
+                    options.use_ipv6,
                     gracetimeout)
             broker_proc.start()
 
@@ -932,8 +995,15 @@ def main():
 
         for worker_proc in dead_workers:
             workers.remove(worker_proc)
-            new_proc = Worker(laikaboss_config_path, worker_connect_address, ttl, time_ttl,
-                logresult, int(get_option('workerpolltimeout')), gracetimeout)
+            new_proc = Worker(
+                laikaboss_config_path,
+                worker_connect_address,
+                ttl,
+                time_ttl,
+                options.use_ipv6,
+                logresult,
+                int(get_option('workerpolltimeout')),
+                gracetimeout)
             new_proc.start()
             workers.append(new_proc)
             worker_proc.join()
