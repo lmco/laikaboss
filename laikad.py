@@ -158,11 +158,12 @@ class AsyncBroker(Process):
         # Connection for workers
         backend = context.socket(zmq.ROUTER)
         if self.use_ipv6:
-            try:
+            if hasattr(zmq, 'IPV6'):
                 backend.setsockopt(zmq.IPV6, 1)
-            except AttributeError:
-                # Older version that does not have ZMQ_IPV6
+            elif hasattr(zmq, 'IPV4ONLY'):
                 backend.setsockopt(zmq.IPV4ONLY, 0)
+            else:
+                logging.error("This version of ZMQ does not support IPv6")
         backend.bind(self.broker_backend_address)
         backend_poller = zmq.Poller()
         backend_poller.register(backend, zmq.POLLIN)
@@ -170,11 +171,12 @@ class AsyncBroker(Process):
         # Connection for clients
         frontend = context.socket(zmq.PULL)
         if self.use_ipv6:
-            try:
+            if hasattr(zmq, 'IPV6'):
                 frontend.setsockopt(zmq.IPV6, 1)
-            except AttributeError:
-                # Older version that does not have ZMQ_IPV6
+            elif hasattr(zmq, 'IPV4ONLY'):
                 frontend.setsockopt(zmq.IPV4ONLY, 0)
+            else:
+                logging.error("This version of ZMQ does not support IPv6")
         frontend.bind(self.broker_frontend_address)
         frontend_poller = zmq.Poller()
         frontend_poller.register(frontend, zmq.POLLIN)
@@ -288,11 +290,12 @@ class SyncBroker(Process):
         # Connection for workers
         backend = context.socket(zmq.ROUTER)
         if self.use_ipv6:
-            try:
+            if hasattr(zmq, 'IPV6'):
                 backend.setsockopt(zmq.IPV6, 1)
-            except AttributeError:
-                # Older version that does not have ZMQ_IPV6
+            elif hasattr(zmq, 'IPV4ONLY'):
                 backend.setsockopt(zmq.IPV4ONLY, 0)
+            else:
+                logging.error("This version of ZMQ does not support IPv6")
         backend.bind(self.broker_backend_address)
         backend_poller = zmq.Poller()
         backend_poller.register(backend, zmq.POLLIN)
@@ -300,11 +303,12 @@ class SyncBroker(Process):
         # Connection for clients
         frontend = context.socket(zmq.ROUTER)
         if self.use_ipv6:
-            try:
+            if hasattr(zmq, 'IPV6'):
                 frontend.setsockopt(zmq.IPV6, 1)
-            except AttributeError:
-                # Older version that does not have ZMQ_IPV6
+            elif hasattr(zmq, 'IPV4ONLY'):
                 frontend.setsockopt(zmq.IPV4ONLY, 0)
+            else:
+                logging.error("This version of ZMQ does not support IPv6")
         frontend.bind(self.broker_frontend_address)
         frontend_poller = zmq.Poller()
         frontend_poller.register(frontend, zmq.POLLIN)
