@@ -469,6 +469,7 @@ class Worker(Process):
     '''
 
     def __init__(self, config_location, broker_address, max_scan_items, ttl,
+    use_ipv6,
     logresult=False, 
     poll_timeout=300, 
     shutdown_grace_timeout=SHUTDOWN_GRACE_TIMEOUT_DEFAULT):
@@ -486,6 +487,7 @@ class Worker(Process):
         self.broker_poller = zmq.Poller()
         self.poll_timeout = poll_timeout * 1000 # Poller uses milliseconds
         self.logresult = logresult
+        self.use_ipv6 = use_ipv6
 
     def perform_scan(self, poll_timeout):
         '''
@@ -648,6 +650,13 @@ class Worker(Process):
         context = zmq.Context(1)
         self.broker = context.socket(zmq.DEALER)
         self.broker.setsockopt(zmq.IDENTITY, self.identity)
+        if self.use_ipv6:
+            if hasattr(zmq, 'IPV6'):
+                self.broker.setsockopt(zmq.IPV6, 1)
+            elif hasattr(zmq, 'IPV4ONLY'):
+                self.broker.setsockopt(zmq.IPV4ONLY, 0)
+            else:
+                logging.error("This version of ZMQ does not support IPv6")
         self.broker.connect(self.broker_address)
         self.broker_poller.register(self.broker, zmq.POLLIN)
 
@@ -950,8 +959,15 @@ def main():
     # Start the workers
     workers = []
     for _ in range(num_procs):
-        worker_proc = Worker(laikaboss_config_path, worker_connect_address, ttl,
-            time_ttl, logresult, int(get_option('workerpolltimeout')), gracetimeout)
+        worker_proc = Worker(
+            laikaboss_config_path,
+            worker_connect_address,
+            ttl,
+            time_ttl,
+            options.use_ipv6,
+            logresult,
+            int(get_option('workerpolltimeout')),
+            gracetimeout)
         worker_proc.start()
         workers.append(worker_proc)
 
@@ -979,8 +995,15 @@ def main():
 
         for worker_proc in dead_workers:
             workers.remove(worker_proc)
-            new_proc = Worker(laikaboss_config_path, worker_connect_address, ttl, time_ttl,
-                logresult, int(get_option('workerpolltimeout')), gracetimeout)
+            new_proc = Worker(
+                laikaboss_config_path,
+                worker_connect_address,
+                ttl,
+                time_ttl,
+                options.use_ipv6,
+                logresult,
+                int(get_option('workerpolltimeout')),
+                gracetimeout)
             new_proc.start()
             workers.append(new_proc)
             worker_proc.join()
