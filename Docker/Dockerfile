@@ -1,17 +1,18 @@
-# Docker image encapsulates the Laika BOSS: Object Scanning System by 
-# Lockheed Martin Corporation from https://github.com/lmco/laikaboss 
+# This Docker image encapsulates the File Scanning Framework (FSF) by 
+# Emerson Electric Company from https://github.com/EmersonElectricCo/fsf 
 #
 # To run this image after installing Docker using a standalone instance, use a command like 
-# the following, replacing “~/laikaboss-workdir" with the path to the location of your 
-# Laika BOSS working directory:
+# the following, replacing “~/fsf-workdir" with the path to the location of your FSF
+# working directory:
 #
-# sudo docker run --rm -it -v ~/laikaboss-workdir:/home/nonroot/workdir wzod/laikaboss
+# sudo docker run --rm -it -v ~/fsf-workdir:/home/nonroot/workdir wzod/fsf
 #
-# To run this image using a networked instance, use a command like this:
+# To run this image using a networked instance, use a command like this after installing
+# FSF on the host system:
 #
-# sudo docker run --rm -it -p 5558:5558 -v ~/laikaboss-workdir:/home/nonroot/workdir wzod/laikaboss
+# sudo docker run --rm -it -p 5800:5800 -v ~/fsf-workdir:/home/nonroot/workdir wzod/fsf
 #
-# Before running Laika BOSS, create the  ~/laikaboss-workdir and make it world-accessible
+# Before running FSF, create the  ~/fsf-workdir and make it world-accessible
 # (“chmod a+xwr").
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,31 +36,33 @@ ENV DEBIAN_FRONTEND noninteractive
 USER root
 RUN apt-get -y install software-properties-common && \
   apt-add-repository -y multiverse && \
-  apt-get -qq update && apt-get install -y \
+  apt-get -qq update && apt-get install -y --fix-missing \
+  autoconf \
   automake \
   build-essential \
+  cabextract \
+  dh-autoreconf \
   git \
   jq \
+  libffi-dev \
   libfuzzy-dev \
-  libimage-exiftool-perl \
-  liblzma5 \
+  libpython2.7-stdlib \
+  libssl-dev \
   libtool \
-  libzmq3 \
   make \
-  python-cffi \
+  net-tools \
   python-dev \
-  python-gevent \
-  python-ipy \
-  python-m2crypto \
-  python-msgpack \
-  python-pexpect \
   python-pip \
-  python-progressbar \
-  python-pyclamd \
-  python-zmq \
+  python-setuptools \
+  ssdeep \
   unrar \
   unzip \
-  wget
+  upx-ucl \
+  vim \
+  wget && \
+
+# Update setuptools
+  easy_install -U setuptools
 
 # Retrieve current version of Yara via wget, verify known good hash and install Yara
 RUN cd /tmp && \
@@ -78,41 +81,53 @@ RUN cd /tmp && \
   python setup.py build && \
   python setup.py install && \
 
-# Retrieve pyexiftool, verify known good hash and install pyexiftool
-  wget -O pyexiftool-master.zip https://github.com/smarnach/pyexiftool/archive/master.zip && \
-  echo c243efbd226ad00333d03d16a39dc08ceb2ad277bd21b5247a2821156097debd\ \ pyexiftool-master.zip > sha256sum-pyexiftool && \
-  sha256sum -c sha256sum-pyexiftool && \
+# Retrieve current version of pefile via wget, verify known good hash and install pefile
+  wget -O pefile-1.2.10-139.zip "https://github.com/erocarrera/pefile/archive/master.zip" && \
+  echo 6362f500afa3505d4ef92c03639af18abb43996491b2eb67295036c15e57f5d8\ \ pefile-1.2.10-139.zip > sha256sum-pefile && \
+  sha256sum -c sha256sum-pefile && \
 
-  unzip pyexiftool-master.zip && \
-  cd pyexiftool-master/ && \
+  unzip pefile-1.2.10-139.zip && \
+  cd pefile-master && \
   python setup.py build && \
   python setup.py install
 
 # Install additional dependencies
-RUN pip install fluent-logger \
-  interruptingcow \
-  olefile \
-  pefile \
+RUN pip install czipfile \
+  hachoir-parser \
+  hachoir-core \
+  hachoir-regex \
+  hachoir-metadata \
+  hachoir-subfile \
+  ConcurrentLogHandler \
+  pypdf2 \
+  xmltodict \
+  rarfile \
   pylzma \
-  py-unrar2 \
-  ssdeep
+  oletools \
+  pyasn1_modules \ 
+  pyasn1 && \
+
+  BUILD_LIB=1 pip install ssdeep
 
 # Add nonroot user, clone repo and setup environment
 RUN groupadd -r nonroot && \
   useradd -r -g nonroot -d /home/nonroot -s /sbin/nologin -c "Nonroot User" nonroot && \
   mkdir /home/nonroot && \
-  chown -R nonroot:nonroot /home/nonroot
+  chown -R nonroot:nonroot /home/nonroot && \
+  echo "/usr/local/lib" >> /etc/ld.so.conf.d/yara.conf
 
 USER nonroot
-RUN cd /home/nonroot && \
-  git clone https://github.com/lmco/laikaboss.git && \
-  cd laikaboss/ && \
-  chmod +x laika.py && \
-  chmod +x laikad.py && \
-  chmod +x cloudscan.py
-
+RUN mkdir -pv /home/nonroot/workdir && \
+  cd /home/nonroot && \
+  git clone https://github.com/EmersonElectricCo/fsf.git && \
+  cd fsf/ && \
+  sed -i 's/\/FULL\/PATH\/TO/\/home\/nonroot\/fsf/' fsf-server/conf/config.py && \
+  sed -i "/^SCANNER\_CONFIG/ s/\/tmp/\/home\/nonroot\/workdir/" fsf-server/conf/config.py 
+  
 USER root
 RUN ldconfig && \
+  ln -f -s /home/nonroot/fsf/fsf-server/main.py /usr/local/bin/ && \
+  ln -f -s /home/nonroot/fsf/fsf-client/fsf_client.py /usr/local/bin/ && \
   apt-get remove -y --purge automake build-essential libtool && \
   apt-get autoremove -y --purge && \
   apt-get clean -y && \
@@ -121,6 +136,6 @@ RUN ldconfig && \
 USER nonroot
 ENV HOME /home/nonroot
 ENV USER nonroot
-WORKDIR /home/nonroot/laikaboss
+WORKDIR /home/nonroot/workdir
 
-ENTRYPOINT echo "To run the standalone scanner, execute laika.py against a file like so:" && printf "\n""./laika.py <filename> | jq -C . | less -r" && printf "\n\n""To run the networked instance, first execute laikad.py and use cloudscan against like so:" && printf "\n\n""./laikad.py &" && printf "\n\n""./cloudscan.py <filename> | jq -C . | less -r" && printf "\n\n" && /bin/bash
+ENTRYPOINT sed -i "/^SERVER_CONFIG/ s/127\.0\.0\.1/$(hostname -i)/" /home/nonroot/fsf/fsf-client/conf/config.py && main.py start && printf "\n\n" && echo "<----->" && echo "FSF server daemonized!" &&  echo "<----->" && printf "\n" && echo "Invoke fsf_client.py by giving it a file as an argument:" && printf "\n" && echo "fsf_client.py <file>"  && printf "\n" && echo "Alternatively, Invoke fsf_client.py by giving it a file as an argument and pass to jq so you can interact extensively with the JSON output:" && printf "\n" && echo "fsf_client.py <file> | jq - C . | less -r" && printf "\n" && echo "To access all of the subobjects that are recursively processed, simply add --full when invoking fsf_client.py:" && printf "\n" && echo "fsf_client.py <file> --full" && printf "\n" && /bin/bash
