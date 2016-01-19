@@ -86,13 +86,22 @@ RUN cd /tmp && \
   unzip pyexiftool-master.zip && \
   cd pyexiftool-master/ && \
   python setup.py build && \
+  python setup.py install && \
+
+# Retrieve current version of pefile via wget, verify known good hash and install pefile
+  wget -O pefile-1.2.10-139.zip "https://github.com/erocarrera/pefile/archive/master.zip" && \
+  echo 6362f500afa3505d4ef92c03639af18abb43996491b2eb67295036c15e57f5d8\ \ pefile-1.2.10-139.zip > sha256sum-pefile && \
+  sha256sum -c sha256sum-pefile && \
+
+  unzip pefile-1.2.10-139.zip && \
+  cd pefile-master && \
+  python setup.py build && \
   python setup.py install
 
 # Install additional dependencies
 RUN pip install fluent-logger \
   interruptingcow \
   olefile \
-  pefile \
   pylzma \
   py-unrar2 \
   ssdeep
