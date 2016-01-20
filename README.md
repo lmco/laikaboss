@@ -67,11 +67,16 @@ apt-get install libzmq3 python-zmq python-gevent python-pexpect
 ```
 + Install module dependencies:
 ```shell
-apt-get install python-ipy python-m2crypto python-pefile python-pyclamd liblzma5 libimage-exiftool-perl python-msgpack libfuzzy-dev python-cffi python-dev unrar
+apt-get install python-ipy python-m2crypto python-pyclamd liblzma5 libimage-exiftool-perl python-msgpack libfuzzy-dev python-cffi python-dev unrar
 pip install fluent-logger olefile ssdeep py-unrar2 pylzma
 wget https://github.com/smarnach/pyexiftool/archive/master.zip
 unzip master.zip
 cd pyexiftool-master
+python setup.py build
+python setup.py install
+wget http://pefile.googlecode.com/files/pefile-1.2.10-139.tar.gz
+tar vxzf pefile-1.2.10-139.tar.gz
+cd pefile-1.2.10-139
 python setup.py build
 python setup.py install
 ```
