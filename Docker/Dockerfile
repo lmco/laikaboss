@@ -77,6 +77,7 @@ RUN cd /tmp && \
   cd yara-python/ && \
   python setup.py build && \
   python setup.py install && \
+  cd /tmp && \
 
 # Retrieve pyexiftool, verify known good hash and install pyexiftool
   wget -O pyexiftool-master.zip https://github.com/smarnach/pyexiftool/archive/master.zip && \
@@ -87,6 +88,7 @@ RUN cd /tmp && \
   cd pyexiftool-master/ && \
   python setup.py build && \
   python setup.py install && \
+  cd /tmp && \
 
 # Retrieve current version of pefile via wget, verify known good hash and install pefile
   wget "http://pefile.googlecode.com/files/pefile-1.2.10-139.tar.gz" && \
@@ -99,7 +101,8 @@ RUN cd /tmp && \
   python setup.py install
 
 # Install additional dependencies
-RUN pip install fluent-logger \
+RUN cd /tmp && \
+  pip install fluent-logger \
   interruptingcow \
   olefile \
   pylzma \
