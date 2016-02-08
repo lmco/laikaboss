@@ -94,7 +94,9 @@ DEFAULT_CONFIGS = {
     'workerpolltimeout': '300',
     'log_result' : 'False',
     'dev_config_path' : 'etc/framework/laikaboss.conf',
-    'sys_config_path' : '/usr/local/laikaboss/etc/laikaboss.conf'
+    'sys_config_path' : '/etc/laikaboss/laikaboss.conf',
+    'laikad_dev_config_path' : 'etc/framework/laikad.conf',
+    'laikad_sys_config_path' : '/etc/laikaboss/laikad.conf'
     }
 
 def log_debug(message):
@@ -793,11 +795,33 @@ def main():
                       " finish ongoing scans before being killed")
     (options, _) = parser.parse_args()
 
-    # Set the configuration file path
-    config_location = '/usr/local/laikaboss/etc/laikad.conf'
+    # Set the configuration file path for laikad
+    config_location = '/etc/laikaboss/laikad.conf'
     if options.laikad_config_path:
         config_location = options.laikad_config_path
+        if not os.path.exists(options.laikad_config_path):
+            print "the provided config path is not valid, exiting"
+            return 1
+    # Next, check to see if we're in the top level source directory (dev environment)
+    elif os.path.exists(DEFAULT_CONFIGS['laikad_dev_config_path']):
+        config_location = DEFAULT_CONFIGS['laikad_dev_config_path']
+    # Next, check for an installed copy of the default configuration
+    elif os.path.exists(DEFAULT_CONFIGS['laikad_sys_config_path']):
+        config_location = DEFAULT_CONFIGS['laikad_sys_config_path']
+    # Exit
+    else:
+        print 'A valid laikad configuration was not found in either of the following locations:\
+\n%s\n%s' % (DEFAULT_CONFIGS['laikad_dev_config_path'],DEFAULT_CONFIGS['laikad_sys_config_path'])
+        return 1
     
+    # Read the laikad config file
+    config_parser = ConfigParser()
+    config_parser.read(config_location)
+
+    # Parse through the config file and append each section to a single dict
+    for section in config_parser.sections():
+        CONFIGS.update(dict(config_parser.items(section)))
+
     # We need a default framework config at a minimum
     if options.laikaboss_config_path:
         laikaboss_config_path = options.laikaboss_config_path
@@ -805,6 +829,9 @@ def main():
         if not os.path.exists(options.laikaboss_config_path):
             print "the provided config path is not valid, exiting"
             return 1
+    #Next, check for a config path in the laikad config
+    elif os.path.exists(get_option('configpath')):
+        laikaboss_config_path = get_option('configpath')
     # Next, check to see if we're in the top level source directory (dev environment)
     elif os.path.exists(DEFAULT_CONFIGS['dev_config_path']):
         laikaboss_config_path = DEFAULT_CONFIGS['dev_config_path']
@@ -816,14 +843,6 @@ def main():
         print 'A valid framework configuration was not found in either of the following locations:\
 \n%s\n%s' % (DEFAULT_CONFIGS['dev_config_path'],DEFAULT_CONFIGS['sys_config_path'])
         return 1
-
-    # Read the config file
-    config_parser = ConfigParser()
-    config_parser.read(config_location)
-
-    # Parse through the config file and append each section to a single dict
-    for section in config_parser.sections():
-        CONFIGS.update(dict(config_parser.items(section)))
 
     if options.num_procs:
         num_procs = options.num_procs
