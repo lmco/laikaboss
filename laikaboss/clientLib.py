@@ -127,15 +127,15 @@ def getJSON(result):
     # Build the results portion of the log record. This will be a list of
     # dictionaries, where each dictionary is the result of a single buffer's
     # scan. The list will contain all of the buffers that were exploded from
-    # a root buffer's scan in no particular order.
-    buffer_results = []
+    # a root buffer's scan in the order they were processed.
+    buffer_results = [None] * len(result.files)
     for scan_object in result.files.itervalues():
         # Do not damage the original result -> clone
         buffer_result = clone_object(scan_object.__dict__)
         # Don't log buffers here, just metadata
         if "buffer" in buffer_result:
             del buffer_result["buffer"]
-        buffer_results.append(buffer_result)
+        buffer_results[buffer_result["order"]] = buffer_result
 
     # Construct the log record with fields useful for log processing and
     # routing
