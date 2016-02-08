@@ -80,10 +80,17 @@ cd pefile-1.2.10-139
 python setup.py build
 python setup.py install
 ```
+#### Installing Laika BOSS (optional)
+You may use the provided setup script to install the Laika BOSS framework, client library, modules and associated scripts (laika.py, laikad.py, cloudscan.py).
 
-We recommend using installing [jq](http://stedolan.github.io/jq/) to parse Laika output.
+```shell
+python setup.py install
+```
+
 #### Standalone instance
 From the directory containing the framework code, you may run the standalone scanner, laika.py against any file you choose. If you move this file from this directory you'll have to specify various config locations. By default it uses the configurations in the ./etc directory.
+
+We recommend using installing [jq](http://stedolan.github.io/jq/) to parse Laika output.
 
 ```javascript
 $ ./laika.py ~/test_files/testfile.cws.swf | jq '.scan_result[] | { "file type" : .fileType, "flags" : .flags, "md5" : .objectHash }'
@@ -128,6 +135,20 @@ $ ./cloudscan.py ~/test_files/testfile.cws.swf | jq '.scan_result[] | { "file ty
   ]
 }
 ```
+
+#### Milter
+The Laika BOSS milter server allows you to integrate Laika BOSS with mail transfer agents such as Sendmail or Postfix. This enables better visibility (passive visibility can be hampered by TLS) and provides a means to block email according to Laika BOSS disposition.
+
+```
++----------------+             +---------------+             +----------------+
+|                |    email    |               |   email     |                |
+|    sendmail    +------------->  laikamilter  +------------->     laikad     |
+|                | accept/deny |               | scan result |                |
+|                <-------------+               <-------------+                |
++----------------+             +---------------+             +----------------+
+```
+
+The Laika BOSS milter server requires the [python-milter](https://pythonhosted.org/milter) module and the Laika BOSS client library. Check out the comments in the source code for more details.
 
 ##### Licensing
 The Laika framework and associated modules are released under the terms of the Apache 2.0 license.
