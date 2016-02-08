@@ -95,7 +95,7 @@ DEFAULT_CONFIGS = {
     'log_result' : 'False',
     'dev_config_path' : 'etc/framework/laikaboss.conf',
     'sys_config_path' : '/etc/laikaboss/laikaboss.conf',
-    'laikad_dev_config_path' : 'etc/framework/laikad.conf',
+    'laikad_dev_config_path' : 'etc/laikad/laikad.conf',
     'laikad_sys_config_path' : '/etc/laikaboss/laikad.conf'
     }
 
