@@ -85,7 +85,7 @@ def main():
     parser.add_option("-c", "--config-path",
                       action="store", type="string",
                       dest="config_path",
-                      help="specify a path to si-cloudscan.conf.")
+                      help="specify a path to cloudscan.conf.")
     parser.add_option("-a", "--address",
                       action="store", type="string",
                       dest="broker_host",
@@ -142,12 +142,12 @@ def main():
                       dest="recursive",
                       help="Enable recursive directory scanning. If enabled, all files "
                             "in the specified directory will be scanned. Results will "
-                            "be output to si-cloudscan.log in the current directory.")
+                            "be output to cloudscan.log in the current directory.")
     (options, args) = parser.parse_args()
 
 
     # Define default configuration location
-    CONFIG_PATH = "/etc/si-cloudscan/si-cloudscan.conf"
+    CONFIG_PATH = "/etc/laikaboss/cloudscan.conf"
 
     if options.config_path:
         CONFIG_PATH = options.config_path
@@ -195,7 +195,7 @@ def main():
     if options.source:
         SOURCE = options.source
     else:
-        SOURCE = "si-cloudscan"
+        SOURCE = "cloudscan"
 
     if not options.log_db:
         SOURCE += "-nolog"
@@ -344,47 +344,51 @@ def main():
             starttime = time.time()
             result = client.send(externalObject, retry=REQUEST_RETRIES, timeout=REQUEST_TIMEOUT)
             logging.debug("got reply in %s seconds" % str(time.time() - starttime))
-            rootObject = getRootObject(result)
-            try:
-                jsonResult = getJSON(result)
-                print jsonResult
-            except:
-                logging.exception("error occured collecting results")
-                return
-            if return_level == level_full:
-                SAVE_PATH = "%s/%s" % (SAVE_PATH, get_scanObjectUID(rootObject))
-                if not os.path.exists(SAVE_PATH):
-                    try:
-                        os.makedirs(SAVE_PATH)
-                        print "\nWriting results to %s...\n" % SAVE_PATH
-                    except (OSError, IOError) as e:
-                        print "\nERROR: unable to write to %s...\n" % SAVE_PATH
-                        return
-                else:
-                    print "\nOutput folder already exists! Skipping results output...\n"
+            if result:
+                rootObject = getRootObject(result)
+                try:
+                    jsonResult = getJSON(result)
+                    print jsonResult
+                except:
+                    logging.exception("error occured collecting results")
                     return
-                for uid, scanObject in result.files.iteritems():
-                    f = open("%s/%s" % (SAVE_PATH, uid), "wb")
-                    f.write(scanObject.buffer)
-                    f.close()
-                    try:
-                        if scanObject.filename and scanObject.parent:
-                            linkPath = "%s/%s" % (SAVE_PATH, scanObject.filename.replace("/","_"))
-                            if not os.path.lexists(linkPath):
-                                os.symlink("%s" % (uid), linkPath)
-                        elif scanObject.filename:
-                            filenameParts = scanObject.filename.split("/")
-                            os.symlink("%s" % (uid), "%s/%s" % (SAVE_PATH, filenameParts[-1]))
-                    except:
-                        print "Unable to create symlink for %s" % (uid)
+                if return_level == level_full:
+                    SAVE_PATH = "%s/%s" % (SAVE_PATH, get_scanObjectUID(rootObject))
+                    if not os.path.exists(SAVE_PATH):
+                        try:
+                            os.makedirs(SAVE_PATH)
+                            print "\nWriting results to %s...\n" % SAVE_PATH
+                        except (OSError, IOError) as e:
+                            print "\nERROR: unable to write to %s...\n" % SAVE_PATH
+                            return
+                    else:
+                        print "\nOutput folder already exists! Skipping results output...\n"
+                        return
+                    for uid, scanObject in result.files.iteritems():
+                        f = open("%s/%s" % (SAVE_PATH, uid), "wb")
+                        f.write(scanObject.buffer)
+                        f.close()
+                        try:
+                            if scanObject.filename and scanObject.parent:
+                                linkPath = "%s/%s" % (SAVE_PATH, scanObject.filename.replace("/","_"))
+                                if not os.path.lexists(linkPath):
+                                    os.symlink("%s" % (uid), linkPath)
+                            elif scanObject.filename:
+                                filenameParts = scanObject.filename.split("/")
+                                os.symlink("%s" % (uid), "%s/%s" % (SAVE_PATH, filenameParts[-1]))
+                        except:
+                            print "Unable to create symlink for %s" % (uid)
 
-                f = open("%s/%s" % (SAVE_PATH, "results.log"), "wb")
-                f.write(jsonResult)
-                f.close()
-                sys.exit(1)
+                    f = open("%s/%s" % (SAVE_PATH, "results.log"), "wb")
+                    f.write(jsonResult)
+                    f.close()
+                    sys.exit(1)
+            else:
+                print "ERROR: No result received (scan timed out)"
+                return
         else:
             try:
-                fh = open('si-cloudscan.log', 'w')
+                fh = open('cloudscan.log', 'w')
                 fh.close()
             except:
                 pass
@@ -406,14 +410,14 @@ def main():
                 resultText = result_queue.get()
                 try:
                     # Process results
-                    fh = open('si-cloudscan.log', 'ab')
+                    fh = open('cloudscan.log', 'ab')
                     fh.write('%s\n' % resultText)
                     fh.close()
                     results_processed += 1
                 except Exception as e:
                     raise
 
-            print 'Wrote results to si-cloudscan.log'
+            print 'Wrote results to cloudscan.log'
 
     except KeyboardInterrupt:
         print "Interrupted by user, exiting..."
