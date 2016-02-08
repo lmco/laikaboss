@@ -12,6 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # 
+'''
+SCAN CLAMAV
+
+Laika module for scanning with the ClamAV Daemon
+
+Install pyClamd 0.3.10 or greater from:
+  https://pypi.python.org/pypi/pyClamd/
+  or
+  http://xael.org/norman/python/pyclamd/
+'''
+
+
 import logging
 import pyclamd
 from laikaboss.util import get_option
@@ -24,13 +36,13 @@ class SCAN_CLAMAV(SI_MODULE):
     def __init__(self,):
         self.module_name = "SCAN_CLAMAV"
         self.flag_prefix = "clam"
+        self.clam = None
 
     def _run(self, scanObject, result, depth, args):
         '''
         Arguments:
-        unix_socket     -- Path to the clamd unix socket (str)
-        max_bytes       -- Maximum number of bytes to scan (0 is unlimited) (int)
-        timeout         -- Max number of seconds to scan (float)
+        unixsocket     -- Path to the clamd unix socket (str)
+        maxbytes       -- Maximum number of bytes to scan (0 is unlimited) (int)
 
         Returns:
         Flags           -- Virus name hits
@@ -38,49 +50,32 @@ class SCAN_CLAMAV(SI_MODULE):
         '''
         moduleResult = []
 
-        # Defualt max of 20 MB
-        default_max_bytes = 20000000
-        # Default timeout of 10.0 seconds
-        default_timeout = 10.0
-        # Default clamd unix socket
-        default_unix_socket = '/var/run/clamav/clamd.sock'
-
-        unix_socket = str(get_option(args, 'unixsocket', 'scanclamavunixsocket', default_unix_socket))
-        max_bytes = int(get_option(args, 'maxbytes', 'scanclamavmaxbytes', default_max_bytes))
-        timeout = float(get_option(args, 'timeout', 'scanclamavtimeout', default_timeout))
-
-        if timeout < 0.01:
-            timeout = default_timeout
+        unix_socket = str(get_option(args, 'unixsocket', 'scanclamavunixsocket', '/var/run/clamav/clamd.ctl'))
+        max_bytes = int(get_option(args, 'maxbytes', 'scanclamavmaxbytes', 20000000))
 
         # Connect to daemon
-        try:
-            clam = pyclamd.ClamdUnixSocket(filename=unix_socket, timeout=timeout)
-        except IOError:
-            logging.debug('IOError: Cannot connect to clamd unix socket file')
-            scanObject.addMetadata(self.module_name, 'Error', 'IOError: clamd socket')
-            return moduleResult
+        if not self.clam:
+            try:
+                self.clam = pyclamd.ClamdUnixSocket(filename=unix_socket)
+            except IOError:
+                logging.debug('IOError: Cannot connect to clamd unix socket file')
+                scanObject.addMetadata(self.module_name, 'Error', 'IOError: clamd socket')
+                raise
 
-        errmsg = None
         try:
             # Scan the buffer with clamav
             if max_bytes <= 0:
-                clam_result = clam.scan_stream(scanObject.buffer)
+                clam_result = self.clam.scan_stream(scanObject.buffer)
             else:
-                clam_result = clam.scan_stream(str(buffer(scanObject.buffer, 0, max_bytes)))
+                clam_result = self.clam.scan_stream(str(buffer(scanObject.buffer, 0, max_bytes)))
 
             # Process a result
             if clam_result:
                 status, virusname = clam_result['stream']
                 scanObject.addFlag("%s:%s" % (self.flag_prefix, str(virusname)))
         except ValueError as e:
-            errmsg = "ValueError (BufferTooLong): %s" % e
+            scanObject.addMetadata(self.module_name, 'Error', 'ValueError (BufferTooLong): %s' % str(e))
         except IOError as e:
-            errmsg = "IOError (ScanError): %s" % e
-        except Exception as e:
-            errmsg = "Unexpected error: %s" % e
-
-        if errmsg:
-            logging.debug(errmsg)
-            scanObject.addMetadata(self.module_name, 'Error', errmsg)
+            scanObject.addMetadata(self.module_name, 'Error', 'IOError (ScanError): %s' % str(e))
 
         return moduleResult

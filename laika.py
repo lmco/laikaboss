@@ -26,11 +26,9 @@ from laikaboss.dispatch import Dispatch, close_modules
 from laikaboss import config
 from laikaboss.util import init_yara, init_logging, log_result
 from laikaboss.clientLib import getJSON, getRootObject, get_scanObjectUID
-from ast import literal_eval
 from distutils.util import strtobool
 import zlib
 import json
-
 
 # Variable to store configs from file
 configs = {}
@@ -41,7 +39,7 @@ default_configs = {
     'num_procs' : '8',
     'max_bytes' : '10485760',
     'max_files' : '0',
-    'progress_bar' : 'true',
+    'progress_bar' : 'false',
     'save_path' : '',
     'scan_modules' : None,
     'source' : 'CLI',
@@ -50,7 +48,7 @@ default_configs = {
     'log_json' : '',
     'ephID' : '',
     'dev_config_path' : 'etc/framework/laikaboss.conf',
-    'sys_config_path' : '/usr/local/laikaboss/etc/laikaboss.conf'
+    'sys_config_path' : '/etc/laikaboss/laikaboss.conf'
 }
 
 def warning(*objs):
@@ -124,10 +122,11 @@ def main():
                       action="store", type="int", default=0,
                       dest="fileLimit",
                       help="Specify a limited number of files to scan (default: off)")
-    parser.add_option("--no-progress",
+    parser.add_option("--progress",
                       action="store_true",
-                      dest="no_progress",
-                      help="disable the progress bar")
+                      dest="progress",
+                      default=False,
+                      help="enable the progress bar")
     (options, args) = parser.parse_args()
     
     logger = logging.getLogger()
@@ -168,8 +167,8 @@ def main():
     logging.debug("SCAN_MODULES: %s"  % (SCAN_MODULES))
 
     global PROGRESS_BAR
-    if options.no_progress:
-        PROGRESS_BAR = 0
+    if options.progress:
+        PROGRESS_BAR = 1
     else:
         PROGRESS_BAR = strtobool(getConfig('progress_bar'))
     logging.debug("PROGRESS_BAR: %s"  % (PROGRESS_BAR))
@@ -354,8 +353,8 @@ class QueueMonitor(multiprocessing.Process):
         self.task_queue = task_queue
         self.task_count = task_count
     def run(self):
-        from progressbar import ProgressBar, Bar, Counter, Timer, ETA, Percentage, RotatingMarker
         try:
+            from progressbar import ProgressBar, Bar, Counter, Timer, ETA, Percentage, RotatingMarker
             widgets = [Percentage(), Bar(left='[', right=']'), ' Processed: ', Counter(), '/', "%s" % self.task_count, ' total files (', Timer(), ') ', ETA()]
             pb = ProgressBar(widgets=widgets, maxval=self.task_count).start()
             while self.task_queue.qsize():
@@ -363,10 +362,13 @@ class QueueMonitor(multiprocessing.Process):
                 
                 time.sleep(0.5)
             pb.finish()
-
         except KeyboardInterrupt:
-            print("\n")
+            warning("progressbar interrupted by user\n")
             return 1
+        except ImportError:
+            warning("progressbar module not available")
+        except:
+            warning("unknown error from progress bar")
 
         return 0
 
@@ -438,8 +440,8 @@ class Consumer(multiprocessing.Process):
                         f.write(resultJSON)
                 
                 if LOG_RESULT:
-                    log_result(result)   
-                    
+                    log_result(result)
+
                 if LOG_JSON:
                     LOCAL_PATH = LOG_JSON
                     with open(LOCAL_PATH, "ab") as f:

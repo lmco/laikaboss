@@ -13,7 +13,7 @@
 # limitations under the License.
 # 
 #  Set up classes
-from laikaboss.constants import level_minimal, level_metadata#, level_full
+from laikaboss.constants import level_minimal, level_metadata
 import time
 import uuid
 
@@ -81,6 +81,7 @@ class ScanObject(object):
                        ephID = "",
                        uniqID = "",
                        parent = "",
+                       parent_order = -1,
                        sourceModule = "",
                        source = "",
                        depth = -1,
@@ -100,6 +101,7 @@ class ScanObject(object):
         self.uniqID = convertToUTF8(uniqID)
         self.uuid = str(uuid.uuid4())
         self.parent = parent
+        self.parent_order = parent_order
         self.sourceModule = convertToUTF8(sourceModule)
         self.source = convertToUTF8(source)
         self.moduleMetadata = {}
@@ -245,6 +247,7 @@ class ExternalVars(object):
                        source = "",
                        flags = "",
                        parent = "",
+                       parent_order = -1,
                        depth = 0,
                        origRootUID = "",
                        extMetaData = {}):
@@ -260,6 +263,7 @@ class ExternalVars(object):
         self.set_source(source)
         self.flags = flags
         self.parent = parent
+        self.parent_order = parent_order
         self.depth = depth
         self.set_origRootUID(origRootUID)
         self.set_extMetaData(extMetaData)

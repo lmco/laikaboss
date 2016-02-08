@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import re
 import struct
 import hashlib
 import binascii
@@ -21,9 +20,7 @@ import pefile
 from datetime import datetime
 from laikaboss.objectmodel import (ModuleObject,
                                    ExternalVars,
-                                   QuitScanException,
-                                   GlobalScanTimeoutError,
-                                   GlobalModuleTimeoutError)
+                                   ScanError)
 from laikaboss.si_module import SI_MODULE
 
 IMAGE_MAGIC_LOOKUP = {
@@ -78,9 +75,7 @@ class META_PE(SI_MODULE):
                 for exp in pe.DIRECTORY_ENTRY_EXPORT.symbols:
                     exports.append(exp.name)
                 scanObject.addMetadata(self.module_name, 'Exports', exports)
-            except (QuitScanException,
-                    GlobalScanTimeoutError,
-                    GlobalModuleTimeoutError):
+            except ScanError:
                 raise
             except:
                 logging.debug('No export entries')
@@ -128,9 +123,7 @@ class META_PE(SI_MODULE):
                             }
                             scanObject.addMetadata(
                                 self.module_name, 'Resources', data)
-            except (QuitScanException,
-                    GlobalScanTimeoutError,
-                    GlobalModuleTimeoutError):
+            except ScanError:
                 raise
             except:
                 logging.debug('No resources')
@@ -139,6 +132,8 @@ class META_PE(SI_MODULE):
             try:
                 scanObject.addMetadata(self.module_name,
                                        'Imphash', pe.get_imphash())
+            except ScanError:
+                raise
             except:
                 logging.debug('Unable to identify imphash')
 
@@ -203,50 +198,32 @@ class META_PE(SI_MODULE):
 
             # Parse RSDS & Rich
             scanObject.addMetadata(
-                self.module_name, 'RSDS', self.parseRSDS(scanObject))
-            scanObject.addMetadata(
                 self.module_name, 'Rich Header', self.parseRich(pe))
+
+            if hasattr(pe, 'DIRECTORY_ENTRY_DEBUG'):
+                debug = dict()
+                for e in pe.DIRECTORY_ENTRY_DEBUG:
+                    rawData = pe.get_data(e.struct.AddressOfRawData, e.struct.SizeOfData)
+                    if rawData.find('RSDS') != -1 and len(rawData) > 24:
+                        pdb = rawData[rawData.find('RSDS'):]
+                        debug["guid"] = "%s-%s-%s-%s" % (
+                            binascii.hexlify(pdb[4:8]),
+                            binascii.hexlify(pdb[8:10]),
+                            binascii.hexlify(pdb[10:12]),
+                            binascii.hexlify(pdb[12:20]))
+                        debug["age"] = struct.unpack('<L', pdb[20:24])[0]
+                        debug["pdb"] = pdb[24:].rstrip('\x00')
+                        scanObject.addMetadata(self.module_name, 'RSDS', debug)
+                    elif rawData.find('NB10') != -1 and len(rawData) > 16:
+                        pdb = rawData[rawData.find('NB10')+8:]
+                        debug["created"] = datetime.fromtimestamp(struct.unpack('<L', pdb[0:4])[0]).isoformat()
+                        debug["age"] = struct.unpack('<L', pdb[4:8])[0]
+                        debug["pdb"] = pdb[8:].rstrip('\x00')
+                        scanObject.addMetadata(self.module_name, 'NB10', debug)
 
         except pefile.PEFormatError:
             logging.debug("Invalid PE format")
         return moduleResult
-
-    @staticmethod
-    def parseRSDS(scanObject):
-        """
-        Parses out RSDS pdb information
-
-        00000000  52 53 44 53 b4 bc 76 74  d2 9f 6a 49 b5 6c 74 7c  |RSDS..vt..jI.lt||
-        00000010  1d 41 bb a5 05 00 00 00  44 3a 5c 4d 69 63 72 6f  |.A......D:\Micro|
-        00000020  73 6f 66 74 20 56 69 73  75 61 6c 20 53 74 75 64  |soft Visual Stud|
-        00000030  69 6f 5c 66 69 6c 65 73  5c 43 23 5c 7a 63 67 2e  |io\files\C#\zcg.|
-        00000040  43 68 6f 70 70 65 72 53  72 65 76 65 72 46 6f 72  |ChopperSreverFor|
-        00000050  43 73 68 61 72 70 5c 6f  62 6a 5c 52 65 6c 65 61  |Csharp\obj\Relea|
-        00000060  73 65 5c 53 79 73 74 65  6d 2e 57 65 62 53 65 72  |se\System.WebSer|
-        00000070  76 69 63 65 73 2e 70 64  62 00 00 00 04 55 00 00  |vices.pdb....U..|
-
-        +0h   dword        "RSDS" signature
-        +4h   GUID         16-byte Globally Unique Identifier
-        +14h  dword        "age"
-        +18h  byte string  zero terminated UTF8 path and file name
-
-        http://www.godevtool.com/Other/pdb.htm
-        """
-
-        result = {}
-        rsds = re.compile('RSDS.{24,1024}\.pdb')
-        x = rsds.findall(scanObject.buffer)
-
-        if x and x[-1]:
-            match = x[-1]
-            result["guid"] = "%s-%s-%s-%s" % (binascii.hexlify(match[4:8]),
-                                              binascii.hexlify(match[8:10]),
-                                              binascii.hexlify(match[10:12]),
-                                              binascii.hexlify(match[12:20]))
-            result["age"] = struct.unpack('<L', match[20:24])[0]
-            result["pdb"] = match[24:]
-
-        return result
 
     def parseRich(self, pe):
         """
