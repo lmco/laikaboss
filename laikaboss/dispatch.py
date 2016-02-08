@@ -79,6 +79,7 @@ def _run_module(sm, scanObject, result, depth, args, earlyQuitTime=0):
     for moduleObject in moduleResult:
         moduleObject.externalVars.source = result.source
         moduleObject.externalVars.parent = get_scanObjectUID(scanObject) 
+        moduleObject.externalVars.parent_order = scanObject.order
         moduleObject.externalVars.parentModules = scanObject.scanModules
         moduleObject.externalVars.sourceModule = sm
         moduleObject.externalVars.flags = scanObject.flags
@@ -157,6 +158,7 @@ def _gather_metadata(buffer, externalVars, result, depth, maxBytes):
 
     contentType = externalVars.contentType if externalVars.contentType else []
     scanObject = ScanObject(parent=externalVars.parent,
+                            parent_order=externalVars.parent_order,
                             buffer=buffer,
                             objectHash=getObjectHash(buffer),
                             objectSize=len(buffer),
