@@ -68,7 +68,7 @@ apt-get install libzmq3 python-zmq python-gevent python-pexpect
 + Install module dependencies:
 ```shell
 apt-get install python-ipy python-m2crypto python-pyclamd liblzma5 libimage-exiftool-perl python-msgpack libfuzzy-dev python-cffi python-dev unrar
-pip install fluent-logger olefile ssdeep py-unrar2 pylzma
+pip install fluent-logger olefile ssdeep py-unrar2 pylzma javatools
 wget https://github.com/smarnach/pyexiftool/archive/master.zip
 unzip master.zip
 cd pyexiftool-master
