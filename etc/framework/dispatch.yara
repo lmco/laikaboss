@@ -266,6 +266,8 @@ rule type_is_java_class
 
 rule type_is_metainf_manifest
 {
+    meta:
+	scan_modules = "META_MANIFEST"
     strings:
         $a = { 4d 61 6e 69 66 65 73 74 }
     condition:
