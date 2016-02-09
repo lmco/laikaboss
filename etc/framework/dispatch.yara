@@ -176,7 +176,7 @@ rule type_is_arj
 rule type_is_msoffice2003
 {
     meta:
-        scan_modules = "EXPLODE_OLE(minFileSize=128)"
+        scan_modules = "EXPLODE_OLE(minFileSize=128) META_OLEVBA"
         file_type = "ole"
     strings:
         $a = { D0 CF 11 E0 A1 B1 1A E1 }
