@@ -1,4 +1,4 @@
-# Docker image encapsulates the Laika BOSS: Object Scanning System by 
+# This Docker image encapsulates the Laika BOSS: Object Scanning System by 
 # Lockheed Martin Corporation from https://github.com/lmco/laikaboss 
 #
 # To run this image after installing Docker using a standalone instance, use a command like 
@@ -98,7 +98,15 @@ RUN cd /tmp && \
   tar vxzf pefile-1.2.10-139.tar.gz && \
   cd pefile-1.2.10-139 && \
   python setup.py build && \
-  python setup.py install
+  python setup.py install && \
+  cd /tmp && \
+
+# Retrieve current version of jq via wget, verify known good hash and move to /usr/local/bin
+  wget -O jq "https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64" && \
+  echo c6b3a7d7d3e7b70c6f51b706a3b90bd01833846c54d32ca32f0027f00226ff6d\ \ jq > sha256sum-jq && \
+  sha256sum -c sha256sum-jq && \
+  chmod 755 jq && \
+  mv jq /usr/local/bin/
 
 # Install additional dependencies
 RUN cd /tmp && \
@@ -115,15 +123,18 @@ RUN groupadd -r nonroot && \
   mkdir /home/nonroot && \
   chown -R nonroot:nonroot /home/nonroot
 
+# Clone Laika BOSS from GitHub as nonroot user
 USER nonroot
 RUN cd /home/nonroot && \
-  git clone https://github.com/lmco/laikaboss.git && \
-  cd laikaboss/ && \
-  chmod +x laika.py && \
-  chmod +x laikad.py && \
-  chmod +x cloudscan.py
+  git clone https://github.com/lmco/laikaboss.git
 
+# Run setup script to install Laika BOSS framework, client library, modules and associated scripts (laika.py, laikad.py, cloudscan.py)
 USER root
+RUN cd /home/nonroot/laikaboss/ && \
+  python setup.py build && \
+  python setup.py install
+
+# Clean up and run ldconfig
 RUN ldconfig && \
   apt-get remove -y --purge automake build-essential libtool && \
   apt-get autoremove -y --purge && \
@@ -133,6 +144,6 @@ RUN ldconfig && \
 USER nonroot
 ENV HOME /home/nonroot
 ENV USER nonroot
-WORKDIR /home/nonroot/laikaboss
+WORKDIR /home/nonroot/workdir
 
-ENTRYPOINT echo "To run the standalone scanner, execute laika.py against a file like so:" && printf "\n""./laika.py <filename> | jq -C . | less -r" && printf "\n\n""To run the networked instance, first execute laikad.py and use cloudscan against like so:" && printf "\n\n""./laikad.py &" && printf "\n\n""./cloudscan.py <filename> | jq -C . | less -r" && printf "\n\n" && /bin/bash
+ENTRYPOINT echo "To run the standalone scanner, execute laika.py against a file like so:" && printf "\n""laika.py <filename> | jq -C . | less -r" && printf "\n\n""To run the networked instance, first execute laikad.py and use cloudscan against like so:" && printf "\n\n""laikad.py &" && printf "\n\n""cloudscan.py <filename> | jq -C . | less -r" && printf "\n\n" && /bin/bash
