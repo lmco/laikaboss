@@ -3,31 +3,31 @@
 Laika Dispatcher : 1st pass
 
 *Overview
-    * This first pass dispatcher operates on the full buffer of the object. The
-      dispatcher can be configured to run modules based on the contents of the
+    * This first pass dispatcher operates on the full buffer of the object. The 
+      dispatcher can be configured to run modules based on the contents of the 
       object as well as the external variables provided to you.
 * META fields
     * scan_modules : A space separated list of modules to run on the given object.
                      Some modules take comma seperated arguments, for example:
                      SCAN_MODULE(key1=value1,key2=value2).
     * flags        : Appends a flag to the current object if the rule is true.
-    * parent_flags : Appends a flag to the parent of the current object if the
+    * parent_flags : Appends a flag to the parent of the current object if the 
                      rule is true.
-    * priority     : This optional field can be used to control the order in which
-                     your modules will be executed. Within a single rule, modules will
-                     run in the order they are listed. If multiple rules match, modules
-                     will be run in order of their rule's priority. The default priority
+    * priority     : This optional field can be used to control the order in which 
+                     your modules will be executed. Within a single rule, modules will 
+                     run in the order they are listed. If multiple rules match, modules 
+                     will be run in order of their rule's priority. The default priority 
                      is 9, with 1 being the highest priority.
 * External Variables
-    * ext_parentModules (str) : a space separated list of the modules that have been
+    * ext_parentModules (str) : a space separated list of the modules that have been 
       run on the parent of the current object (default: NONE)
-    * ext_sourceModule (str)  : the module that produced this object or NONE if it's
+    * ext_sourceModule (str)  : the module that produced this object or NONE if it's 
       the root object (default: NONE)
     * ext_contentType (str)   : content type set by client or a module (default: NONE)
     * ext_filename (str)      : filename set by client or a module (default: NONE)
     * ext_timestamp (str)     : timestamp set by client or a module (default: NONE)
-    * ext_source (str)        : source set by client or a module (default: NONE)
-    * ext_flags (str)         : flags set by client or a module (default: NONE)
+    * ext_source (str)        : source set by client or a module (default: NONE) 
+    * ext_flags (str)         : flags set by client or a module (default: NONE) 
     * ext_size (int)          : the length of the buffer (default: 0)
     * ext_depth (int)         : the depth of the current object (root == 0)
 
@@ -38,7 +38,7 @@ Laika Dispatcher : 1st pass
 private rule root_object
 {
     condition:
-        ext_sourceModule contains "NONE"
+        ext_sourceModule contains "NONE" 
 }
 
 /*_________________________________________________________________________*/
@@ -53,7 +53,7 @@ rule scan_yara
         true
 }
 
-rule meta_hash
+rule meta_hash 
 {
     meta:
         scan_modules = "META_HASH"
@@ -100,9 +100,9 @@ rule type_is_PKCS7
         $pem = "-----BEGIN PKCS7-----"
     condition:
         (uint16(0) == 0x8230 and uint16(4) == 0x0906) or
-        uint32(0) == 0x09068030 or
+        uint32(0) == 0x09068030 or 
         $pem at 0
-
+        
 }
 
 /*_________________________________________________________________________*/
@@ -212,9 +212,9 @@ rule type_is_pdf
         $pdf2 = { 25 50 44 46 2d }
     condition:
 
-        ($pdf1 in (0 .. 1024) or $pdf2 at 0) and not (type_is_zip or
-                                                      type_is_msoffice2007 or
-                                                      type_is_tar or
+        ($pdf1 in (0 .. 1024) or $pdf2 at 0) and not (type_is_zip or 
+                                                      type_is_msoffice2007 or 
+                                                      type_is_tar or 
                                                       type_is_rar)
 }
 
@@ -295,8 +295,8 @@ rule type_is_email
         $return = "\x0aReturn-Path:"
     condition:
         (not ext_sourceModule contains "EXPLODE_EMAIL") and
-        (($from at 0) or
-         ($received in (0 .. 2048)) or
+        (($from at 0) or 
+         ($received in (0 .. 2048)) or 
          ($return   in (0 .. 2048)))
 }
 
@@ -309,7 +309,7 @@ rule type_is_mime
            $mime = "MIME-Version:"
     condition:
         not type_is_email and
-        not ext_sourceModule contains "EXPLODE_EMAIL" and
+        not ext_sourceModule contains "EXPLODE_EMAIL" and 
         $mime in (0 .. 2048)
 }
 
@@ -440,7 +440,7 @@ rule exe_in_zip
         flags = "misc_exe_in_zip"
     condition:
         ext_sourceModule contains "EXPLODE_ZIP" and
-        type_is_mz
+        type_is_mz 
 }
 
 /*_________________________________________________________________________*/
