@@ -26,8 +26,12 @@ class META_JAVA_CLASS(SI_MODULE):
         try:
             class_obj = unpack_class(scanObject.buffer)
 
-#            class_requires = class_obj.get_requires()
-#            scanObject.addMetadata(self.module_name, 'Requires', class_requires)
+            try:
+                class_requires = class_obj.get_requires()
+                scanObject.addMetadata(self.module_name, 'Requires', class_requires)
+
+            except:
+                scanObject.addFlag('java_class:err:class_requires')
 
             class_provides = class_obj.get_provides()
             scanObject.addMetadata(self.module_name, 'Provides', class_provides)
