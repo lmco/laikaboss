@@ -198,6 +198,7 @@ rule type_is_msoffice2007
 rule type_is_rtf
 {
     meta:
+        scan_modules = "EXPLODE_RTF"
         file_type = "rtf"
     condition:
         uint32(0) == 0x74725c7b
