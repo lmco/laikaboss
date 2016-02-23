@@ -13,12 +13,12 @@
 # limitations under the License.
 #
 from laikaboss.si_module import SI_MODULE
-from laikaboss.objectmodel import QuitScanException, GlobalScanTimeoutError, GlobalModuleTimeoutError
+from laikaboss.objectmodel import ScanError
 from javatools.manifest import Manifest
 
-class META_MANIFEST(SI_MODULE):
+class META_JAVA_MANIFEST(SI_MODULE):
     def __init__(self,):
-        self.module_name = "META_MANIFEST"
+        self.module_name = "META_JAVA_MANIFEST"
 
     def _run(self, scanObject, result, depth, args):
         moduleResult = []
@@ -30,7 +30,7 @@ class META_MANIFEST(SI_MODULE):
             for key,val in mf.items():
                 scanObject.addMetadata(self.module_name, key, val)
 
-        except (QuitScanException, GlobalScanTimeoutError, GlobalModuleTimeoutError):
+        except ScanError:
             raise
 
         return moduleResult
