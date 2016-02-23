@@ -28,7 +28,7 @@ class EXPLODE_RTF(SI_MODULE):
 
         try:
             for index, obj_len, obj_data in rtfobj.rtf_iter_objects(scanObject.buffer):
-				# file name becomes the index location of the RTF object
+                # index location of the RTF object becomes the file name
                 name = 'index_' + str(index)
                 try:
                     moduleResult.append(ModuleObject(buffer=obj_data, externalVars=ExternalVars(filename='e_rtf_%s' % name)))
