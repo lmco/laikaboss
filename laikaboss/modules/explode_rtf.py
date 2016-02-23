@@ -13,10 +13,7 @@
 # limitations under the License.
 #
 from laikaboss.si_module import SI_MODULE
-from laikaboss.objectmodel import ModuleObject, ExternalVars
-from laikaboss import config
-import tempfile
-import os
+from laikaboss.objectmodel import ModuleObject, ExternalVars, ScanError
 from oletools import rtfobj
 
 class EXPLODE_RTF(SI_MODULE):
