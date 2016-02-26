@@ -14,7 +14,7 @@
 #
 from laikaboss.si_module import SI_MODULE
 from laikaboss.objectmodel import ScanError
-from javatools import unpack_class
+from javatools import unpack_class, Unimplemented, ClassUnpackException
 
 class META_JAVA_CLASS(SI_MODULE):
     def __init__(self,):
@@ -26,12 +26,8 @@ class META_JAVA_CLASS(SI_MODULE):
         try:
             class_obj = unpack_class(scanObject.buffer)
 
-            try:
-                class_requires = class_obj.get_requires()
-                scanObject.addMetadata(self.module_name, 'Requires', class_requires)
-
-            except:
-                scanObject.addFlag('java_class:err:class_requires')
+            class_requires = class_obj.get_requires()
+            scanObject.addMetadata(self.module_name, 'Requires', class_requires)
 
             class_provides = class_obj.get_provides()
             scanObject.addMetadata(self.module_name, 'Provides', class_provides)
@@ -42,5 +38,9 @@ class META_JAVA_CLASS(SI_MODULE):
 
         except ScanError:
             raise
+        except Unimplemented:
+            scanObject.addFlag('java_class:err:unimplemented_feature')
+        except ClassUnpackException:
+            scanObject.addFlag('java_class:err:class_unpack_exception')
 
         return moduleResult
