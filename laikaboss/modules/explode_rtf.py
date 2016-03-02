@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 from laikaboss.si_module import SI_MODULE
-from laikaboss.objectmodel import ModuleObject, ExternalVars, ScanError
+from laikaboss.objectmodel import ModuleObject, ExternalVars
 from oletools import rtfobj
 
 class EXPLODE_RTF(SI_MODULE):
@@ -23,17 +23,9 @@ class EXPLODE_RTF(SI_MODULE):
     def _run(self, scanObject, result, depth, args):
         moduleResult = []
 
-        try:
-            for index, obj_len, obj_data in rtfobj.rtf_iter_objects(scanObject.buffer):
-                # index location of the RTF object becomes the file name
-                name = 'index_' + str(index)
-                try:
-                    moduleResult.append(ModuleObject(buffer=obj_data, externalVars=ExternalVars(filename='e_rtf_%s' % name)))
-
-                except:
-                    scanObject.addFlag('explode_rtf:err:explode_%s_failed' % name)
-
-        except ScanError:
-            raise
+        for index, obj_len, obj_data in rtfobj.rtf_iter_objects(scanObject.buffer):
+            # index location of the RTF object becomes the file name
+            name = 'index_' + str(index)
+            moduleResult.append(ModuleObject(buffer=obj_data, externalVars=ExternalVars(filename='e_rtf_%s' % name)))
 
         return moduleResult
