@@ -28,5 +28,4 @@ class META_JAVA_MANIFEST(SI_MODULE):
         for key,val in mf.items():
             scanObject.addMetadata(self.module_name, key, val)
 
-
         return moduleResult
