@@ -13,7 +13,6 @@
 # limitations under the License.
 #
 from laikaboss.si_module import SI_MODULE
-from laikaboss.objectmodel import ScanError
 from javatools.manifest import Manifest
 
 class META_JAVA_MANIFEST(SI_MODULE):
@@ -23,14 +22,11 @@ class META_JAVA_MANIFEST(SI_MODULE):
     def _run(self, scanObject, result, depth, args):
         moduleResult = []
 
-        try:
-            mf = Manifest()
-            mf.parse(scanObject.buffer)
+        mf = Manifest()
+        mf.parse(scanObject.buffer)
 
-            for key,val in mf.items():
-                scanObject.addMetadata(self.module_name, key, val)
+        for key,val in mf.items():
+            scanObject.addMetadata(self.module_name, key, val)
 
-        except ScanError:
-            raise
 
         return moduleResult
