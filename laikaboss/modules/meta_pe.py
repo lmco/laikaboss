@@ -221,6 +221,17 @@ class META_PE(SI_MODULE):
                         debug["pdb"] = pdb[8:].rstrip('\x00')
                         scanObject.addMetadata(self.module_name, 'NB10', debug)
 
+            # Extract digital signature
+            digi_sig_virtual_address = pe.OPTIONAL_HEADER.DATA_DIRECTORY[pefile.DIRECTORY_ENTRY['IMAGE_DIRECTORY_ENTRY_SECURITY']].VirtualAddress
+            if digi_sig_virtual_address > 0:
+                scanObject.addFlag('pe:nfo:signed')
+                signatureData = pe.write()[digi_sig_virtual_address + 8:];
+                if len(signatureData) > 0:
+                    name = scanObject.filename + '_digital_signature'
+                    moduleResult.append(ModuleObject(buffer=signatureData, externalVars=ExternalVars(filename=name)))
+                else:
+                    scanObject.addFlag('pe:nfo:empty_signature')
+
         except pefile.PEFormatError:
             logging.debug("Invalid PE format")
         return moduleResult
