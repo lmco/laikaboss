@@ -80,7 +80,7 @@ class META_PE(SI_MODULE):
             except:
                 logging.debug('No export entries')
 
-            for imp_symbol in dump_dict['Imported symbols']:
+            for imp_symbol in dump_dict.get('Imported symbols',[]):
                 for imp in imp_symbol:
                     if imp.get('DLL'):
                         dll = imp.get('DLL')
