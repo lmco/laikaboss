@@ -14,27 +14,33 @@
 #
 
 from laikaboss.si_module import SI_MODULE
-from laikaboss.objectmodel import QuitScanException, GlobalScanTimeoutError, GlobalModuleTimeoutError
+from laikaboss.objectmodel import ScanError
 from oletools.olevba import VBA_Parser
 
 class META_OLEVBA(SI_MODULE):
-	def __init__(self,):
-		self.module_name = "META_OLEVBA"
+    def __init__(self,):
+        self.module_name = "META_OLEVBA"
 
-	def _run(self, scanObject, result, depth, args):
-		moduleResult = []
-		vbap_buffer = VBA_Parser(scanObject.buffer)
+    def _run(self, scanObject, result, depth, args):
+        moduleResult = []
+        vbaDict = {}
 
-		try:
-			if vbap_buffer.detect_vba_macros():
-				vbap_result = vbap_buffer.analyze_macros()
-				for kw_type, keyword, description in vbap_result:
-					kw = '%s - %s' % ( keyword,description )
-					scanObject.addMetadata(self.module_name,kw_type,kw)
+        try:
+            vbap_buffer = VBA_Parser(scanObject.buffer)
 
-		except (QuitScanException, GlobalScanTimeoutError, GlobalModuleTimeoutError):
-			raise
+            if vbap_buffer.detect_vba_macros():
+                vbap_macro = vbap_buffer.analyze_macros()
+                for kw_type, keyword, description in vbap_macro:
+                    if kw_type not in vbaDict:
+                        vbaDict[kw_type] = [(keyword)]
+                    else:
+                        vbaDict[kw_type].append(keyword)
 
-		vbap_buffer.close()
+            scanObject.addMetadata(self.module_name, 'Artifacts', vbaDict)
 
-		return moduleResult
+        except TypeError:
+            scanObject.addFlag('olevba:err:type_error')
+        except ScanError:
+            raise
+
+        return moduleResult
