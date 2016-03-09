@@ -259,6 +259,7 @@ rule type_is_lnk
 rule type_is_java_class
 {
     meta:
+        scan_modules = "META_JAVA_CLASS"
         file_type = "class"
     condition:
         uint32(0) == 0xbebafeca
