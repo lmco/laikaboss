@@ -259,6 +259,7 @@ rule type_is_lnk
 rule type_is_java_class
 {
     meta:
+        scan_modules = "META_JAVA_CLASS"
         file_type = "class"
     condition:
         uint32(0) == 0xbebafeca
@@ -266,6 +267,8 @@ rule type_is_java_class
 
 rule type_is_metainf_manifest
 {
+    meta:
+        scan_modules = "META_JAVA_MANIFEST"
     strings:
         $a = { 4d 61 6e 69 66 65 73 74 }
     condition:
