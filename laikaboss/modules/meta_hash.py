@@ -27,7 +27,7 @@ class META_HASH(SI_MODULE):
         self.module_defaults = set(["md5", #md5.hexdigest
                                     "SHA1", #sha1.hexdigest
                                     "SHA256",#sha256.hexdigest
-                                    #"ssdeep", #ssdeep is not a standard package
+                                    "ssdeep", #ssdeep is not a standard package
                                     "SHA512",#sha512.hexdigest
                                    ])
 
@@ -77,8 +77,11 @@ class META_HASH(SI_MODULE):
             #only import ssdeep if dispatched.
             #Prevents import error if you don't have/want the package
             #python should keep handing you the original, minimal/no overhead
-            import ssdeep
-            metaDict['ssdeep'] = ssdeep.hash(scanObject.buffer)
+            try:
+                import ssdeep
+                metaDict['ssdeep'] = ssdeep.hash(scanObject.buffer)
+            except ImportError:
+                metaDict['ssdeep'] = "" #indicate ssdeep was configured but failed
 
 
         scanObject.addMetadata(self.module_name, "HASHES", metaDict)
