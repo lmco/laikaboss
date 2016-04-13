@@ -58,7 +58,7 @@ Laika BOSS has been tested on the latest versions of CentOS and Ubuntu LTS
 ##### Installing on Ubuntu
 + Install framework dependencies:
 ```shell
-apt-get install yara python-yara python-progressbar
+apt-get install yara python-yara python-progressbar python-pip
 pip install interruptingcow
 ```
 + Install network client and server dependencies:
