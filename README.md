@@ -85,7 +85,7 @@ python setup.py install
 + Install framework dependencies:
 ```shell
 sudo yum install -y epel-release
-yum install -y autoconf automake libtool libffi-devel python-devel python-pip ssdeep-devel swig zeromq
+sudo yum install -y autoconf automake libtool libffi-devel python-devel python-pip ssdeep-devel swig zeromq
 ```
 + Install Python modules
 ```shell
@@ -94,6 +94,7 @@ pip install six --upgrade --force-reinstall
 pip install ssdeep
 ```
 + Install Yara
+
 There is no Yara package for CentOS, so we have to build it from source. You can't use a checkout from Github as it won't contain the Python code. You must download one of the release versions from https://github.com/plusvic/yara/releases. The following uses Yara version 3.4.0
 
 ```shell
