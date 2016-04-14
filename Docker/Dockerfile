@@ -112,6 +112,7 @@ RUN cd /tmp && \
 RUN cd /tmp && \
   pip install fluent-logger \
   interruptingcow \
+  javatools \
   olefile \
   pylzma \
   py-unrar2 \
