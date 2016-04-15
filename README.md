@@ -85,7 +85,7 @@ python setup.py install
 + Install framework dependencies:
 ```shell
 sudo yum install -y epel-release
-sudo yum install -y autoconf automake libtool libffi-devel python-devel python-pip ssdeep-devel swig zeromq
+sudo yum install -y autoconf automake libtool libffi-devel python-devel python-pip python-zmq ssdeep-devel swig
 ```
 + Install Python modules
 ```shell
