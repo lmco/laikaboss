@@ -58,7 +58,7 @@ Laika BOSS has been tested on the latest versions of CentOS and Ubuntu LTS
 ##### Installing on Ubuntu
 + Install framework dependencies:
 ```shell
-apt-get install yara python-yara python-progressbar
+apt-get install yara python-yara python-progressbar python-pip
 pip install interruptingcow
 ```
 + Install network client and server dependencies:
@@ -80,6 +80,55 @@ cd pefile-1.2.10-139
 python setup.py build
 python setup.py install
 ```
+
+##### Installing on CentOS
++ Install framework dependencies:
+```shell
+sudo yum install -y epel-release
+sudo yum install -y autoconf automake libtool libffi-devel python-devel python-pip python-zmq ssdeep-devel swig
+```
++ Install Python modules
+```shell
+pip install IPy cffi interruptingcow fluent-logger javatools m2crypto olefile pylzma pyclamd py-unrar2
+pip install six --upgrade --force-reinstall
+pip install ssdeep
+```
++ Install Yara
+
+There is no Yara package for CentOS, so we have to build it from source. You can't use a checkout from Github as it won't contain the Python code. You must download one of the release versions from https://github.com/plusvic/yara/releases. The following uses Yara version 3.4.0
+
+```shell
+wget https://github.com/plusvic/yara/archive/v3.4.0.zip
+unzip v3.4.0.zip
+cd yara-3.4.0
+chmod +x ./build.sh
+./build.sh
+sudo make install
+cd yara-python
+python setup.py build
+sudo python setup.py install
+```
+
++ Install pyexif
+```shell
+wget https://github.com/smarnach/pyexiftool/archive/master.zip
+unzip master.zip
+python setup.py build
+sudo python setup.py install
+```
+
++ Install pefile
+```shell
+wget http://pefile.googlecode.com/files/pefile-1.2.10-139.tar.gz
+tar vxzf pefile-1.2.10-139.tar.gz
+cd pefile-1.2.10-139
+python setup.py build
+python setup.py install --user
+```
+
+You may need to set the LD_LIBRARY_PATH variable to include /usr/local/lib when running Laika.
+
+
 #### Installing Laika BOSS (optional)
 You may use the provided setup script to install the Laika BOSS framework, client library, modules and associated scripts (laika.py, laikad.py, cloudscan.py).
 
