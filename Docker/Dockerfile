@@ -33,7 +33,9 @@ MAINTAINER Zod (@wzod)
 ENV DEBIAN_FRONTEND noninteractive
 
 USER root
-RUN apt-get -y install software-properties-common && \
+RUN apt-get update && \
+  apt-get upgrade -y && \
+  apt-get -y install software-properties-common && \
   apt-add-repository -y multiverse && \
   apt-get -qq update && apt-get install -y \
   automake \
