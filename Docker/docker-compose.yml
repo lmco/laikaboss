@@ -31,16 +31,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# Retrieve current version of Yara via wget, verify known good hash and install Yara
-# Retrieve pyexiftool, verify known good hash and install pyexiftool
-# Retrieve current version of pefile via wget, verify known good hash and install pefile
-# Retrieve current version of jq via wget, verify known good hash and move to /usr/local/bin
-# Install additional dependencies
-# Add nonroot user, clone repo and setup environment
-# Clone Laika BOSS from GitHub as nonroot user
-# Run setup script to install Laika BOSS framework, client library, modules and associated scripts (laika.py, laikad.py, cloudscan.py)
-# Clean up and run ldconfig
-# Build container
+# Build the container with a mapped volume
 
 version: '2'
 
