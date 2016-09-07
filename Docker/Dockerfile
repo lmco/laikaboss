@@ -91,7 +91,7 @@ RUN cd /tmp && \
   cd /tmp && \
 
 # Retrieve current version of pefile via wget, verify known good hash and install pefile
-  wget "http://pefile.googlecode.com/files/pefile-1.2.10-139.tar.gz" && \
+  wget "http://pkgs.fedoraproject.org/repo/pkgs/python-pefile/pefile-1.2.10-139.tar.gz/f10a94320bfaca356fff4d28c41e9278/pefile-1.2.10-139.tar.gz" && \
   echo 8b7c5d853c97a923d0f6e128d0ae76b962aa75fd608d552f5a32e46276908a16\ \ pefile-1.2.10-139.tar.gz > sha256sum-pefile && \
   sha256sum -c sha256sum-pefile && \
 
