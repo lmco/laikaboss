@@ -41,11 +41,7 @@ class EXPLODE_OLE(SI_MODULE):
                 raise
             except:
                 pass 
-        file = StringIO.StringIO()
-        file.write(scanObject.buffer)
-        file.flush()
-        file.seek(0)
-        ole = olefile.OleFileIO(file)
+        ole = olefile.OleFileIO(scanObject.buffer)
         
         lstStreams = ole.listdir()
         numStreams = 0
@@ -72,5 +68,4 @@ class EXPLODE_OLE(SI_MODULE):
             except:
                 log_module("MSG", self.module_name, 0, scanObject, result, "ERROR EXTRACTING STREAM: "+str(stream))
         ole.close()
-        file.close()
         return moduleResult
