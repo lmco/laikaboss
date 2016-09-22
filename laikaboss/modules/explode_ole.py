@@ -13,7 +13,6 @@
 # limitations under the License.
 # 
 import olefile
-import StringIO
 from laikaboss.objectmodel import ModuleObject, ExternalVars, QuitScanException, \
                                 GlobalScanTimeoutError, GlobalModuleTimeoutError
 from laikaboss.util import log_module
