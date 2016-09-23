@@ -244,7 +244,9 @@ class META_PE(SI_MODULE):
 
             result['Rich Header Values'] = data
             result['Checksum'] = pe.RICH_HEADER.checksum
-            result['Hashes'] = self.richHeaderHashes(pe)
+            hashes = self.richHeaderHashes(pe)
+            if hashes:
+                result['Hashes'] = hashes
 
         return result
 
@@ -253,10 +255,28 @@ class META_PE(SI_MODULE):
         """
         Returns hashes of the Rich PE header
         """
-        rich_data = pe.get_data(0x80, 0x80)
-        data = list(struct.unpack('<32I', rich_data))
+        rich_data = pe.get_data(0x80, 0xc0)
+        data = list(struct.unpack('<48I', rich_data))
         checksum = data[1]
-        rich_end = data.index(0x68636952)
+        try:
+            # look for Rich string
+            rich_end = data.index(0x68636952)
+        except ValueError:
+            # if that doesn't work, then look for PE header
+            try:
+                rich_end = data.index(0x4550)
+                # check if it ends sooner than the PE header
+                if 0 in data:
+                    i = data.index(0)
+                    if i < rich_end:
+                        rich_end = i
+            except ValueError:
+                # if no PE header in range, then try just NULLs
+                if 0 in data:
+                    rich_end = data.index(0)
+                else:
+                    logging.debug('Unable to identify end of richheader')
+                    return None
         md5 = hashlib.md5()
         sha1 = hashlib.sha1()
         sha256 = hashlib.sha256()
