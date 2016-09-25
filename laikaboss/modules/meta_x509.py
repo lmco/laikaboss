@@ -74,8 +74,10 @@ class META_X509(SI_MODULE):
             scanObject.addMetadata(self.module_name, "issuer", issuer)
 
             #validity dates
-            scanObject.addMetadata(self.module_name, "not_before", str(cert.get_not_before()))
-            scanObject.addMetadata(self.module_name, "not_after", str(cert.get_not_after()))
+            not_before = str(cert.get_not_before())
+            scanObject.addMetadata(self.module_name, "not_before", not_before)
+            not_after = str(cert.get_not_after())
+            scanObject.addMetadata(self.module_name, "not_after", not_after)
             
             
             #string complete subject and issuers
@@ -86,10 +88,14 @@ class META_X509(SI_MODULE):
             if str(cert.get_issuer()) == str(cert.get_subject()):
                 scanObject.addFlag("x509:nfo:self_signed_cert")
            
-            start = datetime.datetime.strptime(str(cert.get_not_before()), "%b %d %H:%M:%S %Y %Z")
-            end = datetime.datetime.strptime(str(cert.get_not_after()), "%b %d %H:%M:%S %Y %Z")
-            dur = end - start
-            scanObject.addMetadata(self.module_name, "duration", dur.days) 
+            if not_before != 'Bad time value' and not_after != 'Bad time value':
+                try:
+                    start = datetime.datetime.strptime(not_before, "%b %d %H:%M:%S %Y %Z")
+                    end = datetime.datetime.strptime(not_after, "%b %d %H:%M:%S %Y %Z")
+                    dur = end - start
+                    scanObject.addMetadata(self.module_name, "duration", dur.days) 
+                except ValueError:
+                    pass
 
             extensions = {}
             for i in range(cert.get_ext_count()):
@@ -105,9 +111,11 @@ class META_X509(SI_MODULE):
             logging.exception("Error parsing cert in "+str(get_scanObjectUID(getRootObject(result))))
             
             ugly_error_string = str(exc_value)
-            nicer_error_string = string.split(string.split(ugly_error_string,":")[4])[0]
-                        
-            scanObject.addFlag("x509:err:"+nicer_error_string)
+            try:
+                nicer_error_string = string.split(string.split(ugly_error_string,":")[4])[0]
+                scanObject.addFlag("x509:err:"+nicer_error_string)
+            except IndexError:
+                scanObject.addFlag("x509:err:unknown")
             
             
        
