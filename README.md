@@ -95,7 +95,7 @@ pip install ssdeep
 ```
 + Install Yara
 
-There is no Yara package for CentOS, so we have to build it from source. You can't use a checkout from Github as it won't contain the Python code. You must download one of the release versions from https://github.com/plusvic/yara/releases. The following uses Yara version 3.5.0
+There is no Yara package for CentOS, so we have to build it from source. You can't use a checkout from Github as it won't contain the Python code. You must download one of the release versions from https://github.com/virustotal/yara/releases. The following uses Yara version 3.5.0
 
 ```shell
 wget https://github.com/VirusTotal/yara/archive/v3.5.0.zip
