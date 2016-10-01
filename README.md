@@ -74,7 +74,7 @@ unzip master.zip
 cd pyexiftool-master
 python setup.py build
 python setup.py install
-wget http://pefile.googlecode.com/files/pefile-1.2.10-139.tar.gz
+wget https://github.com/erocarrera/pefile/archive/pefile-1.2.10-139.tar.gz
 tar vxzf pefile-1.2.10-139.tar.gz
 cd pefile-1.2.10-139
 python setup.py build
@@ -95,12 +95,12 @@ pip install ssdeep
 ```
 + Install Yara
 
-There is no Yara package for CentOS, so we have to build it from source. You can't use a checkout from Github as it won't contain the Python code. You must download one of the release versions from https://github.com/plusvic/yara/releases. The following uses Yara version 3.4.0
+There is no Yara package for CentOS, so we have to build it from source. You can't use a checkout from Github as it won't contain the Python code. You must download one of the release versions from https://github.com/virustotal/yara/releases. The following uses Yara version 3.5.0
 
 ```shell
-wget https://github.com/plusvic/yara/archive/v3.4.0.zip
-unzip v3.4.0.zip
-cd yara-3.4.0
+wget https://github.com/VirusTotal/yara/archive/v3.5.0.zip
+unzip yara-3.5.0.zip
+cd yara-3.5.0
 chmod +x ./build.sh
 ./build.sh
 sudo make install
@@ -119,7 +119,7 @@ sudo python setup.py install
 
 + Install pefile
 ```shell
-wget http://pefile.googlecode.com/files/pefile-1.2.10-139.tar.gz
+wget https://github.com/erocarrera/pefile/archive/pefile-1.2.10-139.tar.gz
 tar vxzf pefile-1.2.10-139.tar.gz
 cd pefile-1.2.10-139
 python setup.py build
