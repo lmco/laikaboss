@@ -1,17 +1,17 @@
 # Copyright 2015 Lockheed Martin Corporation
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# 
+#
 import yara
 import random
 import string
@@ -46,27 +46,41 @@ char_set = string.ascii_uppercase + string.digits + string.ascii_lowercase
 # Set up lazy loading yara rules
 yara_on_demand_rules = {}
 
-def is_compiled(rule):
-    '''
-    Check to see if the yara signature is pre-compiled. 
-    Compiled Yara has the file magic of 'YARA' starting at byte 0
-    '''
-    with open(rule, 'r') as f:
-        if f.read(4) == 'YARA':
-            return True
-        else: 
-            return False
+def compile_rule(rule, externalVars={}):
+    logging.debug("util: compiling for lazy load")
+    try:
+        # Attempt to load the rule in binary form first.
+        return yara.load(rule)
+    except yara.Error as e:
+        logging.debug("util: loading from file failed")
+
+    try:
+        # Attempt to compile it in source file form.
+        return yara.compile(rule, externals=externalVars)
+    except Exception as e:
+        logging.debug("util: compiling from file failed")
+
+    try:
+        # Attempt to compile the rules from the contents of the string.
+        return yara.compile(source=rule, externals=externalVars)
+    except Exception as e:
+        logging.debug("util: compiling from string source failed: %s" % str(e))
+
+    return None
+
+def clear_yara_on_demand(rule):
+    try:
+        del yara_on_demand_rules[rule]
+    except KeyError:
+        logging.debug("util: attempting to remove non-existent key: %s" % rule)
 
 def yara_on_demand(rule, theBuffer, externalVars={}, maxBytes=0):
+    logging.debug("util: doing on demand yara scan")
+    logging.debug("util: externalVars: %s" % str(externalVars))
+    if rule not in yara_on_demand_rules:
+        yara_on_demand_rules[rule] = compile_rule(rule, externalVars=externalVars)
+
     try:
-        logging.debug("util: doing on demand yara scan with rule: %s" % rule)
-        logging.debug("util: externalVars: %s" % str(externalVars))
-        if rule not in yara_on_demand_rules:
-            if not is_compiled(rule):
-                logging.debug("util: compiling %s for lazy load" % rule)
-                yara_on_demand_rules[rule] = yara.compile(rule, externals=externalVars)
-            else:
-                yara_on_demand_rules[rule] = yara.load(rule)
         if maxBytes and len(theBuffer) > maxBytes:
             matches = yara_on_demand_rules[rule].match(data=buffer(theBuffer, 0, maxBytes) or 'EMPTY', externals=externalVars)
         else:
@@ -75,7 +89,7 @@ def yara_on_demand(rule, theBuffer, externalVars={}, maxBytes=0):
     except (QuitScanException, GlobalScanTimeoutError, GlobalModuleTimeoutError):
         raise
     except:
-        logging.exception("util: yara on demand scan failed with rule %s" % (rule))
+        logging.exception("util: yara on demand scan failed")
         raise
 
 def listToSSV(alist):
@@ -115,7 +129,7 @@ def log_result(result, returnOutput=False):
     '''
     global log_delimiter
     global log_delimiter_replacement
-    # check result.source (set by the caller) to see if its in our list of sources 
+    # check result.source (set by the caller) to see if its in our list of sources
     # we should log from. this is to exclude logging from sources such as filescan.
     # this can be overridden using the 'all' keyword in the configuration.
     # module and error logging still occur regardless
@@ -167,7 +181,7 @@ def log_result(result, returnOutput=False):
         logging.exception("result logging error for %s" % rootObject.filename)
     if returnOutput:
         return output
-        
+
 def clean_field(field, last=False):
     '''
     Cleans up a string to be inserted into a log entry. Ensures it is of type "str",
@@ -282,7 +296,7 @@ def log_module_error(module_name, scanObject, result, error):
     module_name -- the name of the module calling this function
     scanObject  -- the object that the module was run against
     error       -- an error message (usually a stack trace)
-    
+
     Returns:
     Nothing
     '''
@@ -300,7 +314,7 @@ def log_module_error(module_name, scanObject, result, error):
         parentFilename = ""
     else:
         parentFilename = result.files[parentUID].filename if parentUID in result.files else ""
-        
+
     try:
         log = "ERROR %s%s%s%s%s%s" % \
                (
@@ -315,18 +329,18 @@ def log_module_error(module_name, scanObject, result, error):
     except (QuitScanException, GlobalScanTimeoutError, GlobalModuleTimeoutError):
         raise
     except Exception as e:
-        logging.exception("module error logging error, details below:") 
+        logging.exception("module error logging error, details below:")
 
 def log_CEF(module_name, staticDict, extensionDict):
     '''
-    Logging function for modules that need to log to ArcSight. 
-    
+    Logging function for modules that need to log to ArcSight.
+
     Using the ArcSight smart connector for Syslog, the data is
     formatted into ArcSight Common Event Format (CEF) and forwared
     to Syslog, where it will be forwared onto ArcSight.
 
     Arguments:
-    staticDict  -- the dictionary of static objects that are 
+    staticDict  -- the dictionary of static objects that are
                     required for every ArcSight entry. these
                     are defaulted if the are not included.
                     Available fields (see ArcSight documentation for more info):
@@ -339,8 +353,8 @@ def log_CEF(module_name, staticDict, extensionDict):
                         - Severity
     extensionDict   -- the dictionary of other objects that
                         are used in ArcSight, such as custom fields.
-                        The keys available are specified in the 
-                        ArcSight documentation. According to the 
+                        The keys available are specified in the
+                        ArcSight documentation. According to the
                         docs, there are some fields that use short
                         names, some that use the full names, and
                         some fields that appear to be left out entirely.
@@ -349,7 +363,7 @@ def log_CEF(module_name, staticDict, extensionDict):
 
     '''
     CEF = "CEF:"
-    
+
     version = "0"
     device_vendor = "ngIDS"
     device_product = "laika"
@@ -404,7 +418,7 @@ def log_CEF(module_name, staticDict, extensionDict):
         for key in extensionDict:
             extensionString += "%s=%s " % (key, CEFify(clean_field(extensionDict[key], True)))
         extensionString = extensionString[:-1]
-                
+
         logText = "%s%s" % (staticString, extensionString)
 
     syslog.syslog(syslog.LOG_CRIT,logText)
@@ -413,7 +427,7 @@ def log_CEF(module_name, staticDict, extensionDict):
 
 def CEFify(input):
     ''' Returns a string that is valid for CEF Extension format. '''
-    
+
     input = input.replace('\\','\\\\')
     input = input.replace('=','\\=').replace('|','\\|').replace('\n','').replace('\r','').replace('\t','')
 
@@ -425,8 +439,8 @@ def getRandFill():
 
 def get_parentModules(result, scanObject):
     '''
-    Returns a string containing the scan modules run against the parent of a 
-    ScanObject instance. The parent is a tuple containing the UID and (optional) 
+    Returns a string containing the scan modules run against the parent of a
+    ScanObject instance. The parent is a tuple containing the UID and (optional)
     ID
     '''
     if scanObject.parent:
@@ -437,7 +451,7 @@ def get_parentModules(result, scanObject):
 def get_scanObjectUID(scanObject):
     '''
     Get the UID for a ScanObject instance.
-    
+
     Arguments:
     scanObject -- a ScanObject instance
 
@@ -452,7 +466,7 @@ def get_module_arguments(sm):
     Extracts arguments from scan module declarations inside the yara dispatcher.
     Format is:
     SCAN_MODULE(arg1=value1,arg2=value2, arg3=value3)
-    
+
     Arguments:
     sm --- a string in the format above
 
@@ -488,7 +502,7 @@ def get_all_module_metadata(result, scanModule):
     Since this function will probably be called directly from a module, it's possible the
     metadata being sought after will not be available depending on what sequence the modules are
     run in.
-    
+
     Arguments:
     result     --- a partially populated ScanResult object.
     scanModule --- a string in the format above
@@ -507,8 +521,8 @@ def get_all_module_metadata(result, scanModule):
 
 def get_parent_metadata(result, scanObject, scanModule=None):
     '''
-    Get the module metadata for the parent of a given ScanObject. Optionally you may specifiy a 
-    specific module to get metadata for. If no scan module name is given, all module metadata 
+    Get the module metadata for the parent of a given ScanObject. Optionally you may specifiy a
+    specific module to get metadata for. If no scan module name is given, all module metadata
     will be returned.
 
     Arguments:
@@ -539,13 +553,13 @@ def get_parent_metadata(result, scanObject, scanModule=None):
             return result.files[scanObject.parent].moduleMetadata[scanModule]
         else:
             return {}
-    else: 
+    else:
         return {}
 
 def get_root_metadata(result, scanModule=None):
     '''
-    Get the module metadata for the root of a given ScanResult set. Optionally you may specifiy a 
-    specific module to get metadata for. If no scan module name is given, all module metadata 
+    Get the module metadata for the root of a given ScanResult set. Optionally you may specifiy a
+    specific module to get metadata for. If no scan module name is given, all module metadata
     will be returned.
 
     Arguments:
@@ -574,14 +588,14 @@ def get_root_metadata(result, scanModule=None):
             return rootObject.moduleMetadata[scanModule]
         else:
             return {}
-    else: 
+    else:
         return rootObject.moduleMetadata
 
 def uniqueList(lst):
     '''
-    
+
     This function is a generator function that takes in a list and returns a
-    de-duplicated list with the contents in the same relative order. It 
+    de-duplicated list with the contents in the same relative order. It
     utilizes the yield operator to submit back the iteration location of each
     unique object in the list. The next iteration (next call to the function)
     will add the value to the set and only yield back a result when it has
@@ -592,7 +606,7 @@ def uniqueList(lst):
     list    --- list to be de-duplicated.
 
     Returns:
-    The function returns a generator object that will need to be iterated 
+    The function returns a generator object that will need to be iterated
     over to continue through the results. In most cases, it is easiest to
     wrap a container constructor, such as list, around the object so that
     it will iterate through the contents and return the full result.
@@ -600,7 +614,7 @@ def uniqueList(lst):
     Example:
     l = ['A', 'B', 'A', 'D', 'C', 'C', 'D']
     print list(uniqueList(l))
-    
+
     Example Output: ['A', 'B', 'D', 'C']
 
 
