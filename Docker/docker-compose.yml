@@ -1,0 +1,60 @@
+# This docker-compose.yml file is used to build and manage a container using the Docker image
+# that encapsulates the Laika BOSS: Object Scanning System by Lockheed Martin Corporation
+# from https://github.com/lmco/laikaboss
+#
+# If you would like to build the container from the provided Dockerfile, uncomment the 'build' and
+# 'context' lines. To build a container, network, and attach the volume after installing Docker and
+# Docker Compose using a standalone instance, use a command like the following:
+#
+# sudo docker-compose up -d
+#
+# Unless a network is specificed, Docker Compose will create a new bridged network and attach the
+# new container to it during the build.
+#
+# To build the container using a networked instance, uncomment the lines that specify the ports
+# and run the command above.
+#
+# To remove the container and network, run the following command:
+#
+# sudo docker-compose down
+#
+# To remove the container, image, and network, run the following command:
+#
+# sudo docker-compose down --rmi all
+#
+# Before running Laika BOSS, create the ~/laikaboss-workdir, replacing “~/laikaboss-workdir" with
+# the path to your Laika BOSS working directory and make it world-accessible (“chmod a+xwr"). Also,
+# ensure that Docker Compose is installed. Instructions for installing Docker Compose can be found
+# at https://docs.docker.com/compose/install
+#
+# If you want to add additional options, a reference to the docker-compose.yml file can be found
+# at https://docs.docker.com/compose/compose-file/
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Build the container with a mapped volume
+
+version: '2'
+
+services:
+  laikaboss:
+#    build:
+#      context: .
+    image: wzod/laikaboss
+    labels:
+      - 'laikaboss'
+#    ports:
+#      - '5558:5558'
+    volumes:
+      - '~/laikaboss-workdir:/home/nonroot/workdir'
+    tty: true
