@@ -78,7 +78,12 @@ def yara_on_demand(rule, theBuffer, externalVars={}, maxBytes=0):
     logging.debug("util: doing on demand yara scan")
     logging.debug("util: externalVars: %s" % str(externalVars))
     if rule not in yara_on_demand_rules:
-        yara_on_demand_rules[rule] = compile_rule(rule, externalVars=externalVars)
+        result = compile_rule(rule, externalVars=externalVars)
+        if result is not None:
+            yara_on_demand_rules[rule] = result
+        else:
+            logging.exception("util: yara on demand scan failed")
+            return []
 
     try:
         if maxBytes and len(theBuffer) > maxBytes:
