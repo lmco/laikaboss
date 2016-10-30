@@ -27,7 +27,7 @@ Each scan does three main actions on each object:
 
 	Discover as much information describing the object for future analysis.
 
-**Whitepaper can be found @ [http://lockheedmartin.com/us/what-we-do/information-technology/cybersecurity/laika-boss.html](http://lockheedmartin.com/us/what-we-do/information-technology/cybersecurity/laika-boss.html)**
+**Whitepaper can be found @ [http://lockheedmartin.com/content/dam/lockheed/data/isgs/documents/LaikaBOSS%20Whitepaper.pdf](http://lockheedmartin.com/content/dam/lockheed/data/isgs/documents/LaikaBOSS%20Whitepaper.pdf)**
 
 ## Components
 Laika is composed of the following pieces:
