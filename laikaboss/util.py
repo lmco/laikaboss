@@ -66,7 +66,7 @@ def compile_rule(rule, externalVars={}):
     except Exception as e:
         logging.debug("util: compiling from string source failed: %s" % str(e))
 
-    return None
+    raise Exception('Unable to compile rules.')
 
 def clear_yara_on_demand(rule):
     try:
@@ -77,15 +77,11 @@ def clear_yara_on_demand(rule):
 def yara_on_demand(rule, theBuffer, externalVars={}, maxBytes=0):
     logging.debug("util: doing on demand yara scan")
     logging.debug("util: externalVars: %s" % str(externalVars))
-    if rule not in yara_on_demand_rules:
-        result = compile_rule(rule, externalVars=externalVars)
-        if result is not None:
-            yara_on_demand_rules[rule] = result
-        else:
-            logging.exception("util: yara on demand scan failed")
-            return []
-
     try:
+        if rule not in yara_on_demand_rules:
+            result = compile_rule(rule, externalVars=externalVars)
+            yara_on_demand_rules[rule] = result
+
         if maxBytes and len(theBuffer) > maxBytes:
             matches = yara_on_demand_rules[rule].match(data=buffer(theBuffer, 0, maxBytes) or 'EMPTY', externals=externalVars)
         else:
