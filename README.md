@@ -211,7 +211,7 @@ First, start laikad.py in async mode:
 
 Then launch the middleware script and give it the address of the laikad broker and Redis database (defaults shown below):
 ```shell
-laika_redis_client.py -b tcp://localhost:5558 -r localhost -p 6379
+./laika_redis_client.py -b tcp://localhost:5558 -r localhost -p 6379
 ```
 
 Note that you will need to use a logging module such as LOG_FLUENT to export the full scan result of the these file scans from laikad.
