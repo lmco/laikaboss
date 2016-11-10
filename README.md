@@ -199,5 +199,22 @@ The Laika BOSS milter server allows you to integrate Laika BOSS with mail transf
 
 The Laika BOSS milter server requires the [python-milter](https://pythonhosted.org/milter) module and the Laika BOSS client library. Check out the comments in the source code for more details.
 
+#### Suricata Integration Prototype
+We have released a proof of concept feature for Suricata that allows it to store extracted files and their associated metadata in a Redis database. You will find this code under a [new branch](https://github.com/lmco/suricata/tree/file_extract_redis_prototype_v1) in our Suricata fork. We hope to refine the implementation and eventually have it accepted by the project. 
+
+Once you've enabled file extraction and the optional Redis integration in Suricata, you can extract these files from Redis and submit them to Laika BOSS for scanning by using the middleware script laika_redis_client.py as shown below. Note that it requires the python-redis module.
+
+First, start laikad.py in async mode:
+```shell
+./laikad.py -a
+```
+
+Then launch the middleware script and give it the address of the laikad broker and Redis database (defaults shown below):
+```shell
+./laika_redis_client.py -b tcp://localhost:5558 -r localhost -p 6379
+```
+
+Note that you will need to use a logging module such as LOG_FLUENT to export the full scan result of the these file scans from laikad.
+
 ##### Licensing
 The Laika framework and associated modules are released under the terms of the Apache 2.0 license.
