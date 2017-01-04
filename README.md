@@ -85,31 +85,25 @@ python setup.py install
 + Install framework dependencies:
 ```shell
 sudo yum install -y epel-release
-sudo yum install -y autoconf automake libtool libffi-devel python-devel python-pip python-zmq ssdeep-devel swig
+sudo yum install -y autoconf automake libtool libffi-devel python-devel python-pip python-zmq ssdeep-devel swig openssl-devel perl-devel
 ```
 + Install Python modules
 ```shell
-pip install IPy cffi interruptingcow fluent-logger javatools m2crypto olefile pylzma pyclamd py-unrar2
+pip install IPy cffi interruptingcow fluent-logger javatools m2crypto olefile pylzma pyclamd py-unrar2 pexpect
 pip install six --upgrade --force-reinstall
 pip install ssdeep
 ```
 + Install Yara
 
-There is no Yara package for CentOS, so we have to build it from source. You can't use a checkout from Github as it won't contain the Python code. You must download one of the release versions from https://github.com/virustotal/yara/releases. The following uses Yara version 3.5.0
+
+Previously there were not packages for CentOS and a manual install was required of yara to get the yara Python library. Now, pip can be used.
 
 ```shell
-wget https://github.com/VirusTotal/yara/archive/v3.5.0.zip
-unzip yara-3.5.0.zip
-cd yara-3.5.0
-chmod +x ./build.sh
-./build.sh
-sudo make install
-cd yara-python
-python setup.py build
-sudo python setup.py install
+pip install yara-python
 ```
 
 + Install pyexif
+pyexif is a Python library to communicate with the ExifTool command-line application. Install ExifTool application following instructions at http://www.sno.phy.queensu.ca/~phil/exiftool/install.html#Unix.
 ```shell
 wget https://github.com/smarnach/pyexiftool/archive/master.zip
 unzip master.zip
@@ -119,9 +113,9 @@ sudo python setup.py install
 
 + Install pefile
 ```shell
-wget https://github.com/erocarrera/pefile/archive/pefile-1.2.10-139.tar.gz
-tar vxzf pefile-1.2.10-139.tar.gz
-cd pefile-1.2.10-139
+wget https://github.com/erocarrera/pefile/archive/master.zip
+unzip master.zip
+cd pefile-master
 python setup.py build
 python setup.py install --user
 ```
