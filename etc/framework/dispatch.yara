@@ -176,12 +176,36 @@ rule type_is_arj
 rule type_is_msoffice2003
 {
     meta:
-        scan_modules = "EXPLODE_OLE(minFileSize=128)"
+        scan_modules = "EXPLODE_OLE(minFileSize=128) EXPLODE_VBA"
         file_type = "ole"
     strings:
         $a = { D0 CF 11 E0 A1 B1 1A E1 }
     condition:
         $a at 0
+}
+
+rule type_is_msoffice2003xml
+{
+    meta:
+        scan_modules = "EXPLODE_VBA"
+        file_type = "xml"
+    strings:
+       $a = { 3c 3f 78 6d 6c 20 76 65 72 73 69 6f 6e 3d } //<?xml version=        
+       $b = "http://schemas.microsoft.com/office/word/2003/wordml"
+    condition:
+        $a at 0 and $b
+}
+
+rule type_is_msofficemhtml
+{
+    meta:
+        scan_modules = "EXPLODE_VBA"
+        file_type = "mhtml"
+    strings:
+        $a = "MIME-Version: 1.0"
+        $b = "This document is a Single File Web Page, also known as a Web Archive file"
+    condition:
+        $a at 0 and $b
 }
 
 rule type_is_msoffice2007
@@ -198,6 +222,7 @@ rule type_is_msoffice2007
 rule type_is_rtf
 {
     meta:
+        scan_modules = "EXPLODE_RTF"
         file_type = "rtf"
     condition:
         uint32(0) == 0x74725c7b
