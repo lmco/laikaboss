@@ -1,25 +1,25 @@
 #!/usr/bin/env python
-# Copyright 2015 Lockheed Martin Corporation
-# 
+# Copyright 2017 Lockheed Martin Corporation
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# 
+#
 #
 #  Copyright Lockheed Martin 2015
 #
 #  A networked client for the laikaboss framework.
 #  Must have an instance of laikad running locally or on a server
 #  accessible by this client over ssh.
-#  
+#
 #  This client is based on the ZeroMQ Lazy Pirate pattern
 #
 
@@ -151,7 +151,7 @@ def main():
 
     if options.config_path:
         CONFIG_PATH = options.config_path
-    
+
     Config = ConfigParser.ConfigParser()
     Config.read(CONFIG_PATH)
 
@@ -166,7 +166,7 @@ def main():
 
     if options.use_ssh:
         USE_SSH = True
-    else: 
+    else:
         if strtobool(getConfig('use_ssh')):
             USE_SSH = True
         else:
@@ -176,12 +176,12 @@ def main():
         SSH_HOST = options.ssh_host
     else:
         SSH_HOST = getConfig('ssh_host')
-        
+
     if options.broker_host:
         BROKER_HOST = options.broker_host
     else:
         BROKER_HOST = getConfig('broker_host')
- 
+
     if options.debug:
         logging.basicConfig(level=logging.DEBUG)
 
@@ -199,12 +199,12 @@ def main():
 
     if not options.log_db:
         SOURCE += "-nolog"
-     
+
     if options.save_path:
         SAVE_PATH = options.save_path
     else:
         SAVE_PATH = WORKING_PATH
-    
+
     if options.num_procs:
         num_procs = int(options.num_procs)
     else:
@@ -231,14 +231,14 @@ def main():
         ext_metadata = dict()
 
     REQUEST_RETRIES = int(getConfig('request_retries'))
-    
+
     # Attempt to get the hostname
     try:
-        hostname = gethostname().split('.')[0] 
+        hostname = gethostname().split('.')[0]
     except:
         hostname = "none"
 
-    
+
     # Attempt to set the return level, throw an error if it doesn't exist.
     try:
         return_level = globals()["level_%s" % RETURN_LEVEL]
@@ -266,7 +266,7 @@ def main():
                 if not file_buffer:
                     parser.print_usage()
                     sys.exit(1)
-                
+
                 file_len = len(file_buffer)
 
             if file_len > 20971520 and not options.nolimit:
@@ -298,7 +298,7 @@ def main():
                         parser.print_usage()
                         sys.exit(1)
 
-            
+
             if len(fileList) > 1000 and not options.nolimit:
                 print "You're trying to scan over 1000 files... Are you sure?"
                 print "Use the --remove-limit flag if you really want to do this."
@@ -309,8 +309,8 @@ def main():
             sys.exit(1)
 
 
-   
-    if not options.recursive: 
+
+    if not options.recursive:
         # Construct the object to be sent for scanning
         if args:
             filename = args[0]
@@ -319,8 +319,8 @@ def main():
 
         ext_metadata['server'] = hostname
         ext_metadata['user'] = getpass.getuser()
-        externalObject = ExternalObject(buffer=file_buffer, 
-                                        externalVars=ExternalVars(filename=filename, 
+        externalObject = ExternalObject(buffer=file_buffer,
+                                        externalVars=ExternalVars(filename=filename,
                                                                   ephID=options.ephID,
                                                                   extMetaData=ext_metadata,
                                                                   source="%s-%s-%s" % (SOURCE,
@@ -329,7 +329,7 @@ def main():
                                         level=return_level)
     try:
         if not options.recursive:
-            # Set up ZMQ context 
+            # Set up ZMQ context
             if USE_SSH:
                 try:
                     logging.debug("attempting to connect to broker at %s and SSH host %s" % (BROKER_HOST, SSH_HOST))
@@ -403,7 +403,7 @@ def main():
 
             for i in range(num_procs):
                 Process(target=worker, args=(options.nolimit, REQUEST_RETRIES, REQUEST_TIMEOUT, SAVE_PATH, SOURCE, return_level, hostname, USE_SSH, BROKER_HOST, SSH_HOST,ext_metadata,options.ephID,)).start()
-   
+
             results_processed = 0
             while results_processed < len(fileList):
                 logging.debug("Files left: %s" % ((len(fileList) - results_processed)))
@@ -424,7 +424,7 @@ def main():
         sys.exit(1)
 
 def worker(nolimit, REQUEST_RETRIES, REQUEST_TIMEOUT, SAVE_PATH, SOURCE, return_level, hostname, USE_SSH, BROKER_HOST, SSH_HOST, ext_metadata, ephID):
-    # Set up ZMQ context 
+    # Set up ZMQ context
     if USE_SSH:
         try:
             logging.debug("attempting to connect to broker at %s and SSH host %s" % (BROKER_HOST, SSH_HOST))
@@ -436,9 +436,9 @@ def worker(nolimit, REQUEST_RETRIES, REQUEST_TIMEOUT, SAVE_PATH, SOURCE, return_
         logging.debug("SSH has been disabled.")
         client = Client(BROKER_HOST)
 
-    
+
     randNum = randint(1, 10000)
-    
+
     for fname in iter(job_queue.get, 'STOP'):
         print "Worker %s: Starting new request" % randNum
         try:
@@ -509,7 +509,7 @@ def worker(nolimit, REQUEST_RETRIES, REQUEST_TIMEOUT, SAVE_PATH, SOURCE, return_
                 f = open("%s/%s" % (FILE_SAVE_PATH, "results.json"), "wb")
                 f.write(jsonResult)
                 f.close()
-            
+
             result_queue.put(resultText)
         except:
             #logging.exception("error occured collecting results")
