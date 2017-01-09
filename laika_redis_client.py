@@ -1,21 +1,21 @@
 #!/usr/bin/env python
 #
-# Copyright 2016 Lockheed Martin Corporation
-# 
+# Copyright 2017 Lockheed Martin Corporation
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# 
+#
 # laika_redis_client.py
-#   Middleware script for pulling extracted Suricata files from Redis and 
+#   Middleware script for pulling extracted Suricata files from Redis and
 #   sending to Laika BOSS.
 #
 import json
@@ -46,20 +46,20 @@ def main(laika_broker, redis_host, redis_port):
     # Register signal handler
     signal.signal(signal.SIGINT, handler)
     signal.signal(signal.SIGTERM, handler)
-    
+
     # Connect to Redis
     r = redis.StrictRedis(host=redis_host, port=redis_port)
-    
+
     # Create Laika BOSS client object
     client = Client(laika_broker, async=True)
-    
+
     while True:
         # pop next item off queue
         q_item = r.blpop('suricata_queue', timeout=0)
         key = q_item[1]
 
         print "Popped object: %s" % (key)
-    
+
         # look up file buffer
         file_buffer = r.get("%s_buf" % (key))
 
@@ -70,7 +70,7 @@ def main(laika_broker, redis_host, redis_port):
             print "File buffer or meta for key: %s not found. Skipping this object." % (key)
             delete_keys(r, key)
             continue
-    
+
         try:
             file_meta_dict = json.loads(file_meta)
         except:
@@ -91,14 +91,14 @@ def main(laika_broker, redis_host, redis_port):
             content_type = file_meta_dict['http_response'].get('Content-Type', [])
         else:
             content_type = []
- 
+
         externalObject = ExternalObject(buffer=file_buffer,
                 externalVars=ExternalVars(filename=filename,
                     source="%s-%s" % ("suricata", "redis"),
                     extMetaData=file_meta_dict,
                     contentType=content_type),
                 level=level_minimal)
-    
+
         # send to Laika BOSS for async scanning - no response expected
         client.send(externalObject)
 
