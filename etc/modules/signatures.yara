@@ -1,6 +1,6 @@
 /*
 * Overview
-    * This file contains the default rules the SCAN_YARA module will use unless 
+    * This file contains the default rules the SCAN_YARA module will use unless
       another ruleset is specified in the dispatcher.
 */
 

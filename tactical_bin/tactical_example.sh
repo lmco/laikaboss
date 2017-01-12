@@ -1,39 +1,48 @@
 #!/bin/bash
 # Copyright 2015 Lockheed Martin Corporation
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# 
-#example script showing how to use tactical module
-#for extraction, metadata, and/or flags
-
-#Interface:
 #
-#input file name given as first (and only) argument
-#ouput results (if any) via STDOUT
-#  if output lines begin with "FLAG:..." then rest of line as a flag (multiple lines per flag please, no flags over 20 chars long)
-#  if output lines begin with "FILE:..." then rest of line is taken to be the filename represententing an object to be fed back into scanner
-#  if output lines begin with "META:..." then rest of line is taken to be an item to be put into the metadata section as "key=value"
-#  any other output lines are ignored
-#STDERR is not captured by scanner at all
-#One thing per line, please
-#scanner is responsible for deleting the file to be scanned (input) and any files specified to be fed into scanner (output), but tactical script is responsible for cleaning up anything else it does
 
-#this script provides example of proper formating--if in doubt, execute it on some files and see what it does
+# Example script showing how to use tactical module # for extraction, metadata,
+#     and/or flags
 
-#Simply flag as test1 or test2 (or both) occaisonally
-#Extract payloads by reversing or hex encoding file contents (or both) occaisonally
-#set metadata item of tempfile name
-#Use the input file hash as psuedo random value so flagging/extraction is pseudo random but deterministic
+# Interface:
+#
+# Input file name given as first (and only) argument
+# Ouput results (if any) via STDOUT
+# If output lines begin with "FLAG:..." then rest of line as a flag
+#     (multiple lines per flag please, no flags over 20 chars long)
+# If output lines begin with "FILE:..." then rest of line is taken to be the
+#     filename represententing an object to be fed back into scanner
+# If output lines begin with "META:..." then rest of line is taken to be an
+#     item to be put into the metadata section as "key=value"
+# Any other output lines are ignored
+# STDERR is not captured by scanner at all
+# One thing per line, please
+# Scanner is responsible for deleting the file to be scanned (input) and any
+#     files specified to be fed into scanner (output), but tactical script is
+#     responsible for cleaning up anything else it does
+
+# This script provides example of proper formating--if in doubt, execute it on
+#     some files and see what it does
+
+# Simply flag as test1 or test2 (or both) occaisonally
+# Extract payloads by reversing or hex encoding file contents (or both)
+#     occaisonally
+# Set metadata item of tempfile name
+# Use the input file hash as psuedo random value so flagging/extraction is
+#     pseudo random but deterministic
 
 #TUNABLES
 #Flag rate--flag every 1/N times
@@ -69,17 +78,17 @@ if [ "$RANDOM_N" == "0" ]
 then
     #output flags
     RANDOM_T=`echo $[ 0x$HASH % 3 ] | sed 's/-//'`
-    
+
     if [ "$RANDOM_T" == "0" ]
     then
         echo "FLAG:tact_test1"
     fi
-    
+
     if [ "$RANDOM_T" == "1" ]
     then
         echo "FLAG:tact_test2"
     fi
-    
+
     if [ "$RANDOM_T" == "2" ]
     then
         echo "FLAG:tact_test1"
@@ -95,22 +104,22 @@ if [ "$RANDOM_M" == "1" ]
 then
     NEW_FILENAME_REV="/tmp/tact_${HASH}_${BASHPID}_`date +%s`_rev"
     NEW_FILENAME_HEX="/tmp/tact_${HASH}_${BASHPID}_`date +%s`_hex"
-    
+
     #output flags
     RANDOM_T=`echo $[ 0x$HASH % 3 ] | sed 's/-//'`
-    
+
     if [ "$RANDOM_T" == "0" ]
     then
         tac "$FILENAME" > "$NEW_FILENAME_REV"
         echo "FILE:$NEW_FILENAME_REV"
     fi
-    
+
     if [ "$RANDOM_T" == "1" ]
     then
         xxd -p "$FILENAME" > "$NEW_FILENAME_HEX"
         echo "FILE:$NEW_FILENAME_HEX"
     fi
-    
+
     if [ "$RANDOM_T" == "2" ]
     then
         tac "$FILENAME" > "$NEW_FILENAME_REV"
@@ -119,14 +128,3 @@ then
         echo "FILE:$NEW_FILENAME_HEX"
     fi
 fi
-
-
-
-
-
-
-
-
-
-
-
