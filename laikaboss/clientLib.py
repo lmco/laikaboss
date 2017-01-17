@@ -1,17 +1,17 @@
 # Copyright 2015 Lockheed Martin Corporation
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# 
+#
 #
 # Copyright Lockheed Martin 2012
 #
@@ -19,46 +19,53 @@
 #
 ########################################
 
-import os, sys
-import zlib, cPickle as pickle
-import logging
-from random import randint
+import cPickle as pickle
 import json
-import traceback
-import uuid
-from laikaboss.objectmodel import QuitScanException
+import logging
+import sys
+import zlib
+
 from copy import deepcopy as clone_object
+from random import randint
+
+from laikaboss.objectmodel import QuitScanException
+
 
 REQ_TYPE_PICKLE = '1'
 REQ_TYPE_PICKLE_ZLIB = '2'
 
+
 def dispositionFromResult(result):
     '''
-    This function examines the DISPOSITIONER module metadata in the scan results 
+    This function examines the DISPOSITIONER module metadata in the scan results
     to determine disposition.
     '''
     try:
-        matches = result.files[result.rootUID].moduleMetadata['DISPOSITIONER']['Disposition']['Matches']
+        matches = result.files[result.rootUID] \
+            .moduleMetadata['DISPOSITIONER']['Disposition']['Matches']
         return sorted(matches)
     except QuitScanException:
         raise
-    except:
+    except Exception:
         logging.debug("Unable to disposition the result")
         return ['Error']
-    
+
+
 def finalDispositionFromResult(result):
     '''
-    This function examines the DISPOSITIONER module metadata in the scan results 
+    This function examines the DISPOSITIONER module metadata in the scan results
     to determine disposition.
     '''
     try:
-        return result.files[result.rootUID].moduleMetadata['DISPOSITIONER']['Disposition']['Result']
+        return result.files[result.rootUID] \
+            .moduleMetadata['DISPOSITIONER']['Disposition']['Result']
     except QuitScanException:
         raise
-    except:
+    except Exception:
         logging.debug("Unable to disposition the result")
         return ['Error']
-    
+
+
 def getAttachmentList(result):
     children = []
     rootObject = None
@@ -71,10 +78,11 @@ def getAttachmentList(result):
                 children.append(scanObject.filename)
     return children
 
+
 def flagRollup(result):
     '''
-    This function takes a fully populated result object and returns a list of flags
-    which has been sorted and deduplicated.
+    This function takes a fully populated result object and returns a list of
+    flags which has been sorted and deduplicated.
 
     Arguments:
     result -- a fully populated scan result set
@@ -82,15 +90,17 @@ def flagRollup(result):
     Returns:
     A sorted/unique list of all flags in the result
     '''
-    flag_rollup = [] 
+    flag_rollup = []
     for id, scanObject in result.files.iteritems():
         flag_rollup.extend(scanObject.flags)
     flag_rollup = set(flag_rollup)
     return sorted(flag_rollup)
 
+
 def getRootObject(result):
     '''
-    Returns the ScanObject in a result set that contains no parent (making it the root).
+    Returns the ScanObject in a result set that contains no parent (making it
+    the root).
 
     Arguments:
     result -- a fully populated scan result set
@@ -100,10 +110,11 @@ def getRootObject(result):
     '''
     return result.files[result.rootUID] #ScanObject type
 
+
 def get_scanObjectUID(scanObject):
     '''
     Get the UID for a ScanObject instance.
-    
+
     Arguments:
     scanObject -- a ScanObject instance
 
@@ -111,6 +122,7 @@ def get_scanObjectUID(scanObject):
     A string containing the UID of the object.
     '''
     return scanObject.uuid
+
 
 def getJSON(result):
     '''
@@ -147,6 +159,7 @@ def getJSON(result):
     resultText = json.dumps(log_record)
     return resultText
 
+
 class Client:
     _CONTEXT = None
     _CLIENT = None
@@ -156,8 +169,15 @@ class Client:
     _SSH_HOST = None
     _USE_SSH = None
     _REQUEST_TYPE = None
-    
-    def __init__(self, brokerHost, context=None, useSSH=False, sshHost=None, async=False, useGevent=False, requestType=REQ_TYPE_PICKLE_ZLIB):
+
+    def __init__(self,
+                 brokerHost,
+                 context=None,
+                 useSSH=False,
+                 sshHost=None,
+                 async=False,
+                 useGevent=False,
+                 requestType=REQ_TYPE_PICKLE_ZLIB):
 
         # Initialize Attributes
         if useGevent:
@@ -165,7 +185,7 @@ class Client:
             #from gevent_zeromq import zmq
             import zmq.green as zmq
         else:
-            import zmq            
+            import zmq
 
         self.zmq = zmq
         self._BROKER_HOST = brokerHost
@@ -184,14 +204,13 @@ class Client:
         # Connect Client
         self._connect()
 
-    # END __init__
     def close(self):
         try:
             self._disconnect()
             self._CONTEXT.term()
-        except:
+        except Exception:
             raise
-        
+
     def _connect(self):
         # Get Context
         if self._ASYNC:
@@ -205,7 +224,11 @@ class Client:
             # Ensure there exists an SSH Host
             if self._SSH_HOST:
                 try:
-                    ssh.tunnel_connection(self._CLIENT, self._BROKER_HOST, self._SSH_HOST)
+                    ssh.tunnel_connection(
+                        self._CLIENT,
+                        self._BROKER_HOST,
+                        self._SSH_HOST
+                    )
                 except RuntimeError as e:
                     raise e
             else:
@@ -215,15 +238,12 @@ class Client:
 
         # Register Poll
         self._POLL.register(self._CLIENT, self.zmq.POLLIN)
-    # END _connect
 
     def _disconnect(self):
 
         self._CLIENT.setsockopt(self.zmq.LINGER, 0)
         self._CLIENT.close()
         self._POLL.unregister(self._CLIENT)
-    # END _disconnect
-
 
     def _send_recv(self, externalObject):
 
@@ -231,15 +251,18 @@ class Client:
         zmo = pickle.dumps(externalObject, pickle.HIGHEST_PROTOCOL)
         if self._REQUEST_TYPE == REQ_TYPE_PICKLE_ZLIB:
             zmo = zlib.compress(zmo)
-        
+
         # Send (if _TIMEOUT=None, there is unlimited time)
         try:
             self._CLIENT.send_multipart([self._REQUEST_TYPE, '', zmo])
         # An error will occur if the ZMQ socket is in the wrong state
         # In this case, we disconnect and then reconnect before retrying
         #except self.zmq.core.error.ZMQError:
-        except:
-            logging.debug("ID %i : ZMQ socket in wrong state, reconnecting." % self._ID)
+        except Exception:
+            logging.debug(
+                "ID {} : ZMQ socket in wrong state, reconnecting.".format(
+                    self._ID)
+            )
             self._disconnect()
             self._connect()
             self._CLIENT.send_multipart([self._REQUEST_TYPE, '', zmo])
@@ -249,7 +272,7 @@ class Client:
 
             # Recieve reply
             reply = self._CLIENT.recv()
-            logging.debug("ID %i : got reply" % self._ID)
+            logging.debug("ID {} : got reply".format(self._ID))
 
             # Check for non-empty reply
             if not reply:
@@ -268,7 +291,7 @@ class Client:
 
     def _send_only(self, externalObject, timeout=-1):
 
-        logging.debug("AED Async Send Timeout: %s" % timeout)
+        logging.debug("AED Async Send Timeout: {}".format(timeout))
 
         # Serialize and compress the externalObject
         zmo = pickle.dumps(externalObject, pickle.HIGHEST_PROTOCOL)
@@ -278,7 +301,10 @@ class Client:
         # Send (if _TIMEOUT=None, there is unlimited time)
         try:
             if timeout:
-                tracker = self._CLIENT.send_multipart([self._REQUEST_TYPE, '', zmo], copy=False, track=True)
+                tracker = self._CLIENT.send_multipart(
+                    [self._REQUEST_TYPE, '', zmo],
+                    copy=False,
+                    track=True)
                 tracker.wait(timeout)
             else:
                 self._CLIENT.send_multipart([self._REQUEST_TYPE, '', zmo])
@@ -288,21 +314,26 @@ class Client:
         except self.zmq.NotDone:
             logging.debug("Message sending timed out...")
             return False
-        except:
+        except Exception:
             try:
-                logging.debug("ID %i : ZMQ socket in wrong state, reconnecting" % self._ID)
+                logging.debug(
+                    "ID {} : ZMQ socket in wrong state, reconnecting".format(
+                        self._ID)
+                )
                 self._disconnect()
                 self._connect()
                 if timeout:
-                    tracker = self._CLIENT.send_multipart([self._REQUEST_TYPE, '', zmo], copy=False, track=True)
+                    tracker = self._CLIENT.send_multipart(
+                        [self._REQUEST_TYPE, '', zmo],
+                        copy=False,
+                        track=True)
                     tracker.wait(timeout)
                 else:
                     self._CLIENT.send_multipart([self._REQUEST_TYPE, '', zmo])
-            except:
+            except Exception:
                 return False
         # Return the result
         return True
-    # END _send_only
 
     def send(self, externalObject, retry=0, timeout=None):
         self._TIMEOUT = timeout
@@ -314,20 +345,24 @@ class Client:
             else:
                 result = self._send_recv(externalObject)
             while retriesLeft and not result:
-                logging.debug("ID %i : No response from broker, retrying..." % self._ID)
+                logging.debug(
+                    "ID {} : No response from broker, retrying...".format(
+                        self._ID)
+                )
                 self._disconnect()
                 self._connect()
                 if self._ASYNC:
-                    result = self._send_only(externalObject, timeout=self._TIMEOUT)
+                    result = self._send_only(
+                        externalObject,
+                        timeout=self._TIMEOUT
+                    )
                 else:
                     result = self._send_recv(externalObject)
                 retriesLeft -= 1
             return result
 
         except KeyboardInterrupt:
-            print "Interrupted by user, exiting..."
+            print("Interrupted by user, exiting...")
             sys.exit()
-        except:
+        except Exception:
             raise
-    # END send
-
