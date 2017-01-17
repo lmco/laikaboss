@@ -334,7 +334,8 @@ class SyncBroker(Process):
                     #   client_id   --  ZMQ identifier of the client socket
                     #   reply       --  The content of the reply
                     msg = backend.recv_multipart()
-                    #logging.debug("Broker: received message %s", str(msg))
+                    #logging.debug(
+                    #    "Broker: received message {}".format(str(msg)))
                     worker_id = msg[0]
                     status = msg[2]
 
@@ -511,7 +512,8 @@ class Worker(Process):
                     request_type = task[3]
                     request = task[5]
                     if request_type in [REQ_TYPE_PICKLE, REQ_TYPE_PICKLE_ZLIB]:
-                        #logging.debug("Worker: received work %s", str(task))
+                        #logging.debug(
+                        #    "Worker: received work {}".format(str(task)))
                         if request_type == REQ_TYPE_PICKLE_ZLIB:
                             externalObject = pickle.loads(
                                 zlib.decompress(request))
@@ -708,7 +710,8 @@ class Worker(Process):
                 #                   determines how we handle this request
                 #   client_id   --  ZMQ identifier of the client socket
                 #   reply       --  The content of the reply
-                #logging.debug("Worker: sending request %s", str(reply))
+                #logging.debug(
+                #    "Worker: sending request {}".format(str(reply)))
                 tracker = self.broker.send_multipart(reply,
                                                      copy=False,
                                                      track=True)
@@ -935,7 +938,7 @@ def main():
     else:
         print(
             "A valid framework configuration was not found in either of the " +
-            "following locations: \n{}\n%s".format(
+            "following locations: \n{}\n{}".format(
                 DEFAULT_CONFIGS['dev_config_path'],
                 DEFAULT_CONFIGS['sys_config_path'])
         )

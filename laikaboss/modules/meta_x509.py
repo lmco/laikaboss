@@ -54,7 +54,7 @@ class META_X509(SI_MODULE):
             cert = M2Crypto.X509.load_cert_string(buffer, format=format)
 
             #serial_number
-            #print "serial_number: %x" % cert.get_serial_number()
+            #print("serial_number: {:x}".format(cert.get_serial_number()))
             serial_number = "{:x}".format(cert.get_serial_number())
             scanObject.addMetadata(
                 self.module_name,
@@ -63,7 +63,7 @@ class META_X509(SI_MODULE):
             )
 
             #fingerprint
-            #print "fingerprint: "+str(cert.get_fingerprint())
+            #print("fingerprint: "+str(cert.get_fingerprint()))
             scanObject.addMetadata(
                 self.module_name,
                 "fingerprint",
@@ -71,7 +71,7 @@ class META_X509(SI_MODULE):
             )
 
             #version
-            #print "version: "+str(cert.get_version())
+            #print("version: "+str(cert.get_version()))
             scanObject.addMetadata(
                 self.module_name,
                 "version",

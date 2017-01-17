@@ -119,8 +119,8 @@ class SCAN_YARA(SI_MODULE):
             if m.meta:
                 scanObject.addMetadata(self.module_name, str(m), m.meta)
                 scanObject.addFlag("yr:{}".format(str(m)))
-            #scanObject.addFlag("s_yr::%s" % str(m))  # Placeholder for
-                                                      #standardized flag format
+                # Placeholder for standardized flag format
+                #scanObject.addFlag("s_yr::{}".format(str(m)))
         return moduleResult
 
     def _cleanValue(self, value):

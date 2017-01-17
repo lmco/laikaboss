@@ -38,7 +38,7 @@ class EXPLODE_EMAIL(SI_MODULE):
             if childBuffer is not None:
                 filename = p.get_filename()
                 if filename is None:
-                    filename = 'e_email_%s_%s' % (p.get_content_type(),i)
+                    filename = 'e_email_{}_{}'.format(p.get_content_type(),i)
                 else:
                     attachments.append(filename)
                 logging.debug(

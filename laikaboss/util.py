@@ -47,6 +47,7 @@ def init_logging():
     globals()['moduleLogLevel'] = getattr(syslog, config.moduleloglevel)
     globals()['scanLogLevel'] = getattr(syslog, config.scanloglevel)
     globals()['logResultFromSource'] = config.logresultfromsource
+    # TODO: Where are logIdentity and logFacility?
     syslog.openlog(logIdentity, 0, logFacility)
 
 
@@ -143,6 +144,7 @@ def log_result(result, returnOutput=False):
     # this can be overridden using the 'all' keyword in the configuration.
     # module and error logging still occur regardless
     output = []
+    # TODO: Where is logResultFromSource?
     if ('all' not in logResultFromSource and
         result.source not in logResultFromSource):
         logging.debug(
@@ -186,6 +188,7 @@ def log_result(result, returnOutput=False):
             if returnOutput:
                 output.append(log)
             else:
+                # TODO: Where is scanLogLevel?
                 syslog.syslog(scanLogLevel, "{}".format(log))
             logging.debug("log entry: {}".format(log))
     except (QuitScanException,
@@ -311,6 +314,7 @@ def log_module(
             clean_field(parentFilename),
             clean_field(msg, last=True)
         )
+        # TODO:Where is moduleLogLevel?
         syslog.syslog(moduleLogLevel, "{}".format(log))
     except (QuitScanException,
             GlobalScanTimeoutError,
@@ -357,6 +361,7 @@ def log_module_error(module_name, scanObject, result, error):
             clean_field(parentFilename),
             clean_field(error, last=True)
         )
+        # TODO:Where is moduleLogLevel?
         syslog.syslog(moduleLogLevel, "{}".format(log))
     except (QuitScanException,
             GlobalScanTimeoutError,
@@ -682,7 +687,7 @@ def uniqueList(lst):
 
     Example:
     l = ['A', 'B', 'A', 'D', 'C', 'C', 'D']
-    print list(uniqueList(l))
+    print(list(uniqueList(l)))
 
     Example Output: ['A', 'B', 'D', 'C']
 

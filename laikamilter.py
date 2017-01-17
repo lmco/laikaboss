@@ -312,7 +312,7 @@ class LaikaMilter(Milter.Base):
             if checklist in global_whitelist:
                 log = (
                     "{} ACCEPT ON WHITELIST: ".format(self.uuid) +
-                    "qid:%s client_addr:%s ".format(
+                    "qid:{} client_addr:{} ".format(
                         str(self.qid,),
                         str(self._getClientAddr())
                     ) +
