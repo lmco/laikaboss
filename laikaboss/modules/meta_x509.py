@@ -14,6 +14,8 @@
 #
 #This modules extracts metadata from x509 certificates
 
+from __future__ import print_function
+
 import datetime
 import logging
 import M2Crypto
