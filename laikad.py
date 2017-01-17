@@ -1,49 +1,54 @@
 #!/usr/bin/env python
 # Copyright 2015 Lockheed Martin Corporation
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# 
+#
 
-'''
+"""
 laikad
 
 Command line program for running the broker and worker processes for the Laika
 framework. This program becomes the supervisor process that ensures the broker
 and worker processes remain up and alive (replaces those that go missing).
-'''
+"""
 
 # Follows the Simple Pirate Pattern for ZMQ connections
 
-from ConfigParser import ConfigParser
+from __future__ import print_function
+
+import base64
 import cPickle as pickle
 import functools
-from interruptingcow import timeout
+import json
 import logging
-from multiprocessing import Process
-from optparse import OptionParser
 import os
-from random import randint
 import signal
-from laikaboss.objectmodel import ScanResult, ScanObject, QuitScanException
 import sys
 import syslog
 import time
 import traceback
 import zlib
 import zmq
-import json
-import base64
+
+from ConfigParser import ConfigParser
 from distutils.util import strtobool
+from interruptingcow import timeout
+from multiprocessing import Process
+from optparse import OptionParser
+from random import randint
+
+from laikaboss.objectmodel import ScanResult, ScanObject, QuitScanException
+
 
 SHUTDOWN_GRACE_TIMEOUT_DEFAULT = 30
 
@@ -57,8 +62,35 @@ REQ_TYPE_PICKLE_ZLIB = '2'
 REQ_TYPE_JSON = '3'
 REQ_TYPE_JSON_ZLIB = '4'
 
+# Variable to store configuration options from file
+CONFIGS = {}
+
+# Globals to share in the signal hander
+KEEP_RUNNING = True
+
+# Defaults for all available configurations
+# To be used if not specified on command line or config file
+DEFAULT_CONFIGS = {
+    'numprocs': '4',
+    'ttl': '1000',
+    'time_ttl': '30',
+    'brokerfrontend': 'tcp://*:5558',
+    'brokerbackend': 'tcp://*:5559',
+    'workerconnect': 'tcp://localhost:5559',
+    'async': 'False',
+    'gracetimeout': '30',
+    'workerpolltimeout': '300',
+    'log_result': 'False',
+    'dev_config_path': 'etc/framework/laikaboss.conf',
+    'sys_config_path': '/etc/laikaboss/laikaboss.conf',
+    'laikad_dev_config_path': 'etc/laikad/laikad.conf',
+    'laikad_sys_config_path': '/etc/laikaboss/laikad.conf'
+    }
+
+
 # Class to serialize laikaboss objects to json
 class ResultEncoder(json.JSONEncoder):
+
     def default(self, obj):
         if isinstance(obj, ScanObject):
             newdict = obj.__dict__.copy()
@@ -77,79 +109,35 @@ class ResultEncoder(json.JSONEncoder):
             return res
         return json.JSONEncoder.default(self,obj)
 
-# Variable to store configuration options from file
-CONFIGS = {}
-
-# Defaults for all available configurations
-# To be used if not specified on command line or config file
-DEFAULT_CONFIGS = {
-    'numprocs': '4',
-    'ttl': '1000',
-    'time_ttl': '30',
-    'brokerfrontend': 'tcp://*:5558',
-    'brokerbackend': 'tcp://*:5559',
-    'workerconnect': 'tcp://localhost:5559',
-    'async': 'False',
-    'gracetimeout': '30',
-    'workerpolltimeout': '300',
-    'log_result' : 'False',
-    'dev_config_path' : 'etc/framework/laikaboss.conf',
-    'sys_config_path' : '/etc/laikaboss/laikaboss.conf',
-    'laikad_dev_config_path' : 'etc/laikad/laikad.conf',
-    'laikad_sys_config_path' : '/etc/laikaboss/laikad.conf'
-    }
-
-def log_debug(message):
-    '''Log a debug message'''
-    syslog.syslog(syslog.LOG_DEBUG, "DEBUG (%s) %s" % (os.getpid(), message))
-
-def get_option(option, default=''):
-    '''Get the value of an option from the configuration'''
-    value = default
-    if option in CONFIGS:
-        value = CONFIGS[option]
-    elif option in DEFAULT_CONFIGS:
-        value = DEFAULT_CONFIGS[option]
-    return value
-
-def shutdown_handler(proc, signum, frame):
-    '''
-    Signal handler for shutting down the given process.
-
-    Arguments:
-    proc    --  The process that should be shutdown.
-
-    '''
-    logging.debug("Shutdown handler triggered (%d)", signum)
-    proc.shutdown()
 
 # Follows the Load Balancing Pattern for ZMQ connections
 class AsyncBroker(Process):
-    '''
+    """
     Broker process for receiving asyncronous scan requests. The requests will be
     doled out to the worker processes. The results of the scan will not be
     returned back to the client.
-    '''
+    """
 
     def __init__(self, broker_backend_address, broker_frontend_address):
-        '''Main constructor'''
+        """Main constructor"""
         super(AsyncBroker, self).__init__()
         self.broker_backend_address = broker_backend_address
         self.broker_frontend_address = broker_frontend_address
         self.keep_running = True
 
     def shutdown(self):
-        '''Shutdown method to be called by the signal handler'''
+        """Shutdown method to be called by the signal handler"""
         logging.debug("Broker: shutdown handler triggered")
         self.keep_running = False
 
     def run(self):
-        '''Main process logic'''
+        """Main process logic"""
         logging.debug("Broker: starting up")
         self.keep_running = True
 
         # Add intercept for graceful shutdown
-        # functools.partial creates a function pointer with the first arguments provided
+        # functools.partial creates a function pointer with the first arguments
+        # provided
         # For the signal handler, pass in a reference to this process (self)
         signal.signal(signal.SIGTERM, functools.partial(shutdown_handler, self))
         signal.signal(signal.SIGINT, functools.partial(shutdown_handler, self))
@@ -173,8 +161,10 @@ class AsyncBroker(Process):
         available_workers = []
 
         while self.keep_running:
-            logging.debug("Broker: beginning loop\n\tavailable: %s",
-                str(available_workers))
+            logging.debug(
+                "Broker: beginning loop\n\tavailable: {}".format(
+                    str(available_workers))
+            )
 
             try:
                 if available_workers:
@@ -217,11 +207,13 @@ class AsyncBroker(Process):
                     status = msg[2]
 
                     if status == LRU_READY or status == LRU_RESULT_READY:
-                        logging.debug("Broker: worker (%s) ready", worker_id)
+                        logging.debug(
+                            "Broker: worker ({}) ready".format(worker_id))
                         if worker_id not in available_workers:
                             available_workers.append(worker_id)
                     elif status == LRU_RESULT_QUIT or status == LRU_QUIT:
-                        logging.debug("Broker: worker (%s) quitting", worker_id)
+                        logging.debug(
+                            "Broker: worker ({}) quitting".format(worker_id))
                         try:
                             available_workers.remove(worker_id)
                         except ValueError:
@@ -240,17 +232,20 @@ class AsyncBroker(Process):
         # asynchronously
         logging.debug("Broker: finished")
 
+
 # Follows the Load Balancing Pattern for ZMQ connections
 class SyncBroker(Process):
-    '''
+    """
     Broker process for receiving syncronous scan requests. The requests will be
     doled out to the worker processes. The results of the scan will be
     returned back to the client.
-    '''
+    """
 
-    def __init__(self, broker_backend_address, broker_frontend_address,
-        shutdown_grace_timeout=SHUTDOWN_GRACE_TIMEOUT_DEFAULT):
-        '''Main constructor'''
+    def __init__(self,
+                 broker_backend_address,
+                 broker_frontend_address,
+                 shutdown_grace_timeout=SHUTDOWN_GRACE_TIMEOUT_DEFAULT):
+        """Main constructor"""
         super(SyncBroker, self).__init__()
         self.broker_backend_address = broker_backend_address
         self.broker_frontend_address = broker_frontend_address
@@ -258,12 +253,12 @@ class SyncBroker(Process):
         self.keep_running = True
 
     def shutdown(self):
-        '''Shutdown method to be called by the signal handler'''
+        """Shutdown method to be called by the signal handler"""
         logging.debug("Broker: shutdown handler triggered")
         self.keep_running = False
 
     def run(self):
-        '''Main process logic'''
+        """Main process logic"""
         logging.debug("Broker: starting up")
         self.keep_running = True
 
@@ -294,8 +289,10 @@ class SyncBroker(Process):
         working_workers = []
 
         while self.keep_running:
-            logging.debug("Broker: beginning loop\n\tavailable: %s\n\tworking:"
-                " %s", str(available_workers), str(working_workers))
+            logging.debug(
+                "Broker: beginning loop\n\tavailable: {}\n\tworking: {}".format(
+                    str(available_workers), str(working_workers))
+            )
 
             try:
                 if available_workers:
@@ -342,13 +339,16 @@ class SyncBroker(Process):
                     status = msg[2]
 
                     if status == LRU_READY:
-                        logging.debug("Broker: worker (%s) ready", worker_id)
+                        logging.debug(
+                            "Broker: worker ({}) ready".format(worker_id))
                         if (worker_id not in available_workers and
                             worker_id not in working_workers):
                             available_workers.append(worker_id)
                     elif status == LRU_RESULT_READY:
-                        logging.debug("Broker: worker (%s) finished scan, "
-                            "ready", worker_id)
+                        logging.debug(
+                            "Broker: worker ({}) finished scan, ready".format(
+                                worker_id)
+                        )
                         try:
                             working_workers.remove(worker_id)
                         except ValueError:
@@ -363,8 +363,10 @@ class SyncBroker(Process):
                             worker_id not in working_workers):
                             available_workers.append(worker_id)
                     elif status == LRU_RESULT_QUIT:
-                        logging.debug("Broker: worker (%s) finished scan, "
-                            "quitting", worker_id)
+                        logging.debug(
+                            "Broker: worker ({}) finished scan, quitting".format(
+                            worker_id)
+                        )
                         try:
                             working_workers.remove(worker_id)
                         except ValueError:
@@ -376,7 +378,8 @@ class SyncBroker(Process):
                         #   reply       --  The content of the reply
                         frontend.send_multipart(msg[4:])
                     elif status == LRU_QUIT:
-                        logging.debug("Broker: worker (%s) quitting", worker_id)
+                        logging.debug(
+                            "Broker: worker ({}) quitting".format(worker_id))
                         try:
                             available_workers.remove(worker_id)
                         except ValueError:
@@ -395,9 +398,11 @@ class SyncBroker(Process):
         poll_timeout = (self.shutdown_grace_timeout / 3) * 1000 or 1
         start_time = time.time()
         while(working_workers and
-            (time.time() - start_time < self.shutdown_grace_timeout)):
-            logging.debug("Broker: beginning graceful shutdown loop\n\tworking:"
-                "%s", str(working_workers))
+              (time.time() - start_time < self.shutdown_grace_timeout)):
+            logging.debug(
+                "Broker: beginning graceful shutdown loop\n\tworking: {}".format(
+                    str(working_workers))
+            )
             msgs = dict(backend_poller.poll(poll_timeout))
             if msgs.get(backend) == zmq.POLLIN:
                 # msg should be in one of the following formats
@@ -413,8 +418,8 @@ class SyncBroker(Process):
                 worker_id = msg[0]
                 status = msg[2]
                 if status == LRU_RESULT_READY or status == LRU_RESULT_QUIT:
-                    logging.debug("Broker: worker (%s) finished scan",
-                        worker_id)
+                    logging.debug(
+                        "Broker: worker ({}) finished scan".format(worker_id))
                     try:
                         working_workers.remove(worker_id)
                     except ValueError:
@@ -430,21 +435,26 @@ class SyncBroker(Process):
 
         logging.debug("Broker: finished")
 
+
 # Follows the Lazy Pirate Pattern for ZMQ connections, modified to use the
 # DEALER socket so that repeated status updates can be given over the same
 # connection
 class Worker(Process):
-    '''
+    """
     Worker process for performing scans. Returns the result back to the broker.
     Workers give up and quit receiving work after either a count threshold or a
     time to live timeout triggers, whichever comes first.
-    '''
+    """
 
-    def __init__(self, config_location, broker_address, max_scan_items, ttl,
-    logresult=False, 
-    poll_timeout=300, 
-    shutdown_grace_timeout=SHUTDOWN_GRACE_TIMEOUT_DEFAULT):
-        '''Main constructor'''
+    def __init__(self,
+                 config_location,
+                 broker_address,
+                 max_scan_items,
+                 ttl,
+                 logresult=False,
+                 poll_timeout=300,
+                 shutdown_grace_timeout=SHUTDOWN_GRACE_TIMEOUT_DEFAULT):
+        """Main constructor"""
         super(Worker, self).__init__()
         self.config_location = config_location
         self.max_scan_items = max_scan_items
@@ -453,14 +463,15 @@ class Worker(Process):
         self.keep_running = False
 
         self.broker_address = broker_address
-        self.identity = "%04X-%04X" % (randint(0, 0x10000), randint(0, 0x10000))
+        self.identity = "{:04X}-{:04X}".format(
+            (randint(0, 0x10000), randint(0, 0x10000)))
         self.broker = None
         self.broker_poller = zmq.Poller()
         self.poll_timeout = poll_timeout * 1000 # Poller uses milliseconds
         self.logresult = logresult
 
     def perform_scan(self, poll_timeout):
-        '''
+        """
         Wait for work from broker then perform the scan. If timeout occurs, no
         scan is performed and no result is returned.
 
@@ -469,17 +480,23 @@ class Worker(Process):
 
         Returns:
         The result of the scan or None if no scan was performed.
-        '''
+        """
         from laikaboss.dispatch import Dispatch
-        from laikaboss.objectmodel import ScanResult, ExternalObject, ExternalVars
+        from laikaboss.objectmodel import (
+            ExternalObject,
+            ExternalVars,
+            ScanResult
+        )
         from laikaboss.util import log_result
 
         # If task is found, perform scan
         try:
-            logging.debug("Worker (%s): checking for work", self.identity)
+            logging.debug(
+                "Worker ({}): checking for work".format(self.identity))
             tasks = dict(self.broker_poller.poll(poll_timeout))
             if tasks.get(self.broker) == zmq.POLLIN:
-                logging.debug("Worker (%s): performing scan", self.identity)
+                logging.debug(
+                    "Worker ({}): performing scan".format(self.identity))
                 # task should be in the following format
                 # ['', client_id, '', request_type, '', request]
                 # where:
@@ -488,7 +505,7 @@ class Worker(Process):
                 #   request          --  Object to be scanned
 
                 task = self.broker.recv_multipart()
-                
+
                 client_id = task[1]
                 if len(task) == 6:
                     request_type = task[3]
@@ -496,7 +513,8 @@ class Worker(Process):
                     if request_type in [REQ_TYPE_PICKLE, REQ_TYPE_PICKLE_ZLIB]:
                         #logging.debug("Worker: received work %s", str(task))
                         if request_type == REQ_TYPE_PICKLE_ZLIB:
-                            externalObject = pickle.loads(zlib.decompress(request))
+                            externalObject = pickle.loads(
+                                zlib.decompress(request))
                         else:
                             externalObject = pickle.loads(request)
                     elif request_type in [REQ_TYPE_JSON, REQ_TYPE_JSON_ZLIB]:
@@ -504,78 +522,90 @@ class Worker(Process):
                             jsonRequest = json.loads(zlib.decompress(request))
                         else:
                             jsonRequest = json.loads(request)
-                        
-                        # Set default values for our request just in case some were omitted
-                        if not 'buffer' in jsonRequest:
+
+                        # Set default values for our request just in case some
+                        # were omitted
+                        if 'buffer' not in jsonRequest:
                             jsonRequest['buffer'] = ''
                         else:
                             try:
-                                jsonRequest['buffer'] = base64.b64decode(jsonRequest['buffer'])
+                                jsonRequest['buffer'] = base64.b64decode(
+                                    jsonRequest['buffer'])
                             except:
-                                # This should never happen unless invalid input is given
+                                # This should never happen unless invalid input
+                                # is given
                                 jsonRequest['buffer'] = ''
-                        if not 'filename' in jsonRequest:
+                        if 'filename' not in jsonRequest:
                             jsonRequest['filename'] = ''
-                        if not 'ephID' in jsonRequest:
+                        if 'ephID' not in jsonRequest:
                             jsonRequest['ephID'] = ''
-                        if not 'uniqID' in jsonRequest:
+                        if 'uniqID' not in jsonRequest:
                             jsonRequest['uniqID'] = ''
-                        if not 'contentType' in jsonRequest:
+                        if 'contentType' not in jsonRequest:
                             jsonRequest['contentType'] = []
-                        if not 'timestamp' in jsonRequest:
+                        if 'timestamp' not in jsonRequest:
                             jsonRequest['timestamp'] = ''
-                        if not 'source' in jsonRequest:
+                        if 'source' not in jsonRequest:
                             jsonRequest['source'] = ''
-                        if not 'origRootUID' in jsonRequest:
+                        if 'origRootUID' not in jsonRequest:
                             jsonRequest['origRootUID'] = ''
-                        if not 'extMetaData' in jsonRequest:
+                        if 'extMetaData' not in jsonRequest:
                             jsonRequest['extMetaData'] = {}
-                        if not 'level' in jsonRequest:
+                        if 'level' not in jsonRequest:
                             jsonRequest['level'] = 2
 
-                        externalVars = ExternalVars(filename=jsonRequest['filename'],
-                                                    ephID=jsonRequest['ephID'],
-                                                    uniqID=jsonRequest['uniqID'],
-                                                    contentType=jsonRequest['contentType'],
-                                                    timestamp=jsonRequest['timestamp'],
-                                                    source=jsonRequest['source'],
-                                                    origRootUID=jsonRequest['origRootUID'],
-                                                    extMetaData=jsonRequest['extMetaData'])
+                        externalVars = ExternalVars(
+                            filename=jsonRequest['filename'],
+                            ephID=jsonRequest['ephID'],
+                            uniqID=jsonRequest['uniqID'],
+                            contentType=jsonRequest['contentType'],
+                            timestamp=jsonRequest['timestamp'],
+                            source=jsonRequest['source'],
+                            origRootUID=jsonRequest['origRootUID'],
+                            extMetaData=jsonRequest['extMetaData']
+                        )
 
-                        externalObject = ExternalObject(buffer=jsonRequest['buffer'],
-                                                        level=jsonRequest['level'],
-                                                        externalVars=externalVars)
+                        externalObject = ExternalObject(
+                            buffer=jsonRequest['buffer'],
+                            level=jsonRequest['level'],
+                            externalVars=externalVars
+                        )
 
                     else:
                         return [client_id, '', 'INVALID REQUEST']
-                     
+
                     result = ScanResult(
                         source=externalObject.externalVars.source,
                         level=externalObject.level)
                     result.startTime = time.time()
                     try:
-                        Dispatch(externalObject.buffer, result, 0,
+                        Dispatch(
+                            externalObject.buffer,
+                            result,
+                            0,
                             externalVars=externalObject.externalVars)
                     except QuitScanException:
                         raise
                     except:
                         exc_type, exc_value, exc_traceback = sys.exc_info()
                         log_debug(
-                            "exception on file: %s, detailed exception: %s" % (
-                            externalObject.externalVars.filename,
-                            repr(traceback.format_exception(
-                                exc_type, exc_value, exc_traceback))))
+                            "exception on file: {}, ".format(
+                                 externalObject.externalVars.filename) +
+                            "detailed exception: {}".format(
+                                repr(traceback.format_exception(
+                                    exc_type, exc_value, exc_traceback)))
+                        )
                     if self.logresult:
                         log_result(result)
-                    if request_type == REQ_TYPE_PICKLE_ZLIB:  
+                    if request_type == REQ_TYPE_PICKLE_ZLIB:
                         result = zlib.compress(
                             pickle.dumps(result, pickle.HIGHEST_PROTOCOL))
-                    elif request_type == REQ_TYPE_PICKLE:  
+                    elif request_type == REQ_TYPE_PICKLE:
                         result = pickle.dumps(result, pickle.HIGHEST_PROTOCOL)
-                    elif request_type == REQ_TYPE_JSON_ZLIB:  
+                    elif request_type == REQ_TYPE_JSON_ZLIB:
                         result = zlib.compress(
                             json.dumps(result, cls=ResultEncoder))
-                    elif request_type == REQ_TYPE_JSON:  
+                    elif request_type == REQ_TYPE_JSON:
                         result = json.dumps(result, cls=ResultEncoder)
                     return [client_id, '', result]
 
@@ -583,30 +613,34 @@ class Worker(Process):
                     return [client_id, '', 'INVALID REQUEST']
         except zmq.ZMQError as zmqerror:
             if "Interrupted system call" not in str(zmqerror):
-                logging.exception("Worker (%s): Received ZMQError", self.identity)
+                logging.exception(
+                    "Worker ({}): Received ZMQError".format(self.identity))
             else:
-                logging.debug("Worker (%s): ZMQ interrupted by shutdown signal", self.identity)
+                logging.debug(
+                    "Worker ({}): ZMQ interrupted by shutdown signal".format(
+                        self.identity))
         return None
 
     def shutdown(self):
-        '''Shutdown method to be called by the signal handler'''
-        logging.debug("Worker (%s): shutdown handler triggered", self.identity)
+        """Shutdown method to be called by the signal handler"""
+        logging.debug(
+            "Worker ({}): shutdown handler triggered".format(self.identity))
         self.keep_running = False
         raise QuitScanException()
 
     def run(self):
-        '''Main process logic'''
-        logging.debug("Worker (%s): starting up", self.identity)
+        """Main process logic"""
+        logging.debug("Worker ({}): starting up".format(self.identity))
 
         from laikaboss import config
         from laikaboss.dispatch import close_modules
         from laikaboss.util import init_logging
 
-        logging.debug("using config %s", self.config_location)
+        logging.debug("using config {}".format(self.config_location))
         config.init(path=self.config_location)
         init_logging()
 
-        log_debug("Worker %s started at %s" % (self.identity, time.time()))
+        log_debug("Worker {} started at {}".format(self.identity, time.time()))
 
         self.keep_running = True
         perform_grace_check = False
@@ -616,7 +650,7 @@ class Worker(Process):
         signal.signal(signal.SIGINT, functools.partial(shutdown_handler, self))
 
         # Connect to broker
-        logging.debug("Worker (%s): connecting broker", self.identity)
+        logging.debug("Worker ({}): connecting broker".format(self.identity))
         context = zmq.Context(1)
         self.broker = context.socket(zmq.DEALER)
         self.broker.setsockopt(zmq.IDENTITY, self.identity)
@@ -675,7 +709,9 @@ class Worker(Process):
                 #   client_id   --  ZMQ identifier of the client socket
                 #   reply       --  The content of the reply
                 #logging.debug("Worker: sending request %s", str(reply))
-                tracker = self.broker.send_multipart(reply, copy=False, track=True)
+                tracker = self.broker.send_multipart(reply,
+                                                     copy=False,
+                                                     track=True)
                 while not tracker.done and result:
                     time.sleep(0.1)
 
@@ -683,17 +719,25 @@ class Worker(Process):
                     self.keep_running = False
             except zmq.ZMQError as zmqerror:
                 if "Interrupted system call" not in str(zmqerror):
-                    logging.exception("Worker (%s): Received ZMQError", self.identity)
+                    logging.exception(
+                        "Worker ({}): Received ZMQError".format(self.identity))
                 else:
-                    logging.debug("Worker (%s): ZMQ interrupted by shutdown signal", self.identity)
+                    logging.debug(
+                        "Worker ({}): ZMQ interrupted by shutdown signal".format(
+                            self.identity))
             except QuitScanException:
-                logging.debug("Worker (%s): Caught scan termination exception", self.identity)
+                logging.debug(
+                    "Worker ({}): Caught scan termination exception".format(
+                        self.identity))
                 break
 
         # Begin graceful shutdown
-        logging.debug("Worker (%s): beginning graceful shutdown sequence", self.identity)
+        logging.debug(
+            "Worker ({}): beginning graceful shutdown sequence".format(
+                self.identity))
         if perform_grace_check:
-            logging.debug("Worker (%s): performing grace check", self.identity)
+            logging.debug(
+                "Worker ({}): performing grace check".format(self.identity))
             try:
                 result = self.perform_scan(self.poll_timeout)
                 if result:
@@ -705,32 +749,72 @@ class Worker(Process):
                     #                   determines how we handle this request
                     #   client_id   --  ZMQ identifier of the client socket
                     #   reply       --  The content of the reply
-                    tracker = self.broker.send_multipart(reply, copy=False, track=True)
+                    tracker = self.broker.send_multipart(reply,
+                                                         copy=False,
+                                                         track=True)
                     while not tracker.done:
                         time.sleep(0.1)
             except zmq.ZMQError as zmqerror:
                 if "Interrupted system call" not in str(zmqerror):
-                    logging.exception("Worker (%s): Received ZMQError", self.identity)
+                    logging.exception(
+                        "Worker ({}): Received ZMQError".format(self.identity))
                 else:
-                    logging.debug("Worker (%s): ZMQ interrupted by shutdown signal", self.identity)
+                    logging.debug(
+                        "Worker ({}): ZMQ interrupted by shutdown signal".format(
+                            self.identity))
 
         try:
-            with timeout(self.shutdown_grace_timeout, exception=QuitScanException):
+            with timeout(self.shutdown_grace_timeout,
+                         exception=QuitScanException):
                 close_modules()
         except QuitScanException:
-            logging.debug("Worker (%s): Caught scan termination exception during destruction",
-                self.identity)
-        log_debug("Worker %s dying after %i objects and %i seconds" % (
-            self.identity, counter, time.time() - start_time))
-        logging.debug("Worker (%s): finished", self.identity)
+            logging.debug(
+                "Worker ({}): Caught scan termination ".format(self.identity) +
+                "exception during destruction"
+            )
+        log_debug(
+            "Worker {} dying after {} objects and {} seconds".format(
+                self.identity, counter, time.time() - start_time))
+        logging.debug(
+            "Worker ({}): finished".format(self.identity))
 
-# Globals to share in the signal hander
-KEEP_RUNNING = True
+
+def log_debug(message):
+    """Log a debug message"""
+    syslog.syslog(syslog.LOG_DEBUG,
+                  "DEBUG ({}) {}".format(os.getpid(), message))
+
+
+def get_option(option, default=''):
+    """Get the value of an option from the configuration"""
+    value = default
+    if option in CONFIGS:
+        value = CONFIGS[option]
+    elif option in DEFAULT_CONFIGS:
+        value = DEFAULT_CONFIGS[option]
+    return value
+
+
+def shutdown_handler(proc, signum, frame):
+    """
+    Signal handler for shutting down the given process.
+
+    Arguments:
+    proc    --  The process that should be shutdown.
+
+    """
+    logging.debug("Shutdown handler triggered ({})".format(signum))
+    proc.shutdown()
+
 
 def main():
-    '''Main program logic. Becomes the supervisor process.'''
-    parser = OptionParser(usage="usage: %prog [options]\n"
-        "Default settings in config file: laikad.conf")
+    """Main program logic. Becomes the supervisor process."""
+    parser = OptionParser(
+        usage=(
+            "usage: %prog [options]\n Default settings in config file: " +
+            "laikad.conf"
+        )
+    )
 
     parser.add_option("-d", "--debug",
                       action="store_true", default=False,
@@ -800,9 +884,10 @@ def main():
     if options.laikad_config_path:
         config_location = options.laikad_config_path
         if not os.path.exists(options.laikad_config_path):
-            print "the provided config path is not valid, exiting"
+            print("the provided config path is not valid, exiting")
             return 1
-    # Next, check to see if we're in the top level source directory (dev environment)
+    # Next, check to see if we're in the top level source directory
+    # (dev environment)
     elif os.path.exists(DEFAULT_CONFIGS['laikad_dev_config_path']):
         config_location = DEFAULT_CONFIGS['laikad_dev_config_path']
     # Next, check for an installed copy of the default configuration
@@ -810,10 +895,14 @@ def main():
         config_location = DEFAULT_CONFIGS['laikad_sys_config_path']
     # Exit
     else:
-        print 'A valid laikad configuration was not found in either of the following locations:\
-\n%s\n%s' % (DEFAULT_CONFIGS['laikad_dev_config_path'],DEFAULT_CONFIGS['laikad_sys_config_path'])
+        print(
+            "A valid laikad configuration was not found in either of the " +
+            "following locations: \n{}\n{}".format(
+                DEFAULT_CONFIGS['laikad_dev_config_path'],
+                DEFAULT_CONFIGS['laikad_sys_config_path'])
+        )
         return 1
-    
+
     # Read the laikad config file
     config_parser = ConfigParser()
     config_parser.read(config_location)
@@ -825,14 +914,18 @@ def main():
     # We need a default framework config at a minimum
     if options.laikaboss_config_path:
         laikaboss_config_path = options.laikaboss_config_path
-        logging.debug("using alternative config path: %s" % options.laikaboss_config_path)
+        logging.debug(
+            "using alternative config path: {}".format(
+                options.laikaboss_config_path)
+        )
         if not os.path.exists(options.laikaboss_config_path):
-            print "the provided config path is not valid, exiting"
+            print("the provided config path is not valid, exiting")
             return 1
     #Next, check for a config path in the laikad config
     elif os.path.exists(get_option('configpath')):
         laikaboss_config_path = get_option('configpath')
-    # Next, check to see if we're in the top level source directory (dev environment)
+    # Next, check to see if we're in the top level source directory
+    # (dev environment)
     elif os.path.exists(DEFAULT_CONFIGS['dev_config_path']):
         laikaboss_config_path = DEFAULT_CONFIGS['dev_config_path']
     # Next, check for an installed copy of the default configuration
@@ -840,8 +933,12 @@ def main():
         laikaboss_config_path = DEFAULT_CONFIGS['sys_config_path']
     # Exit
     else:
-        print 'A valid framework configuration was not found in either of the following locations:\
-\n%s\n%s' % (DEFAULT_CONFIGS['dev_config_path'],DEFAULT_CONFIGS['sys_config_path'])
+        print(
+            "A valid framework configuration was not found in either of the " +
+            "following locations: \n{}\n%s".format(
+                DEFAULT_CONFIGS['dev_config_path'],
+                DEFAULT_CONFIGS['sys_config_path'])
+        )
         return 1
 
     if options.num_procs:
@@ -883,7 +980,7 @@ def main():
         async = True
     else:
         async = strtobool(get_option('async'))
-   
+
     logresult = strtobool(get_option('log_result'))
 
     # Get the UserID to run as, if it was not specified on the command line
@@ -905,11 +1002,14 @@ def main():
             os.setgid(runas_gid)
             os.setuid(runas_uid)
     except OSError:
-        print "Unable to set user ID to %i, defaulting to current user" % runas_uid
+        print(
+            "Unable to set user ID to {}, defaulting to current user".format(
+                runas_uid)
+        )
 
     # Add intercept for graceful shutdown
     def shutdown(signum, frame):
-        '''Signal handler for shutting down supervisor gracefully'''
+        """Signal handler for shutting down supervisor gracefully"""
         logging.debug("Supervisor: shutdown handler triggered")
         global KEEP_RUNNING
         KEEP_RUNNING = False
@@ -920,16 +1020,27 @@ def main():
     broker_proc = None
     if not options.no_broker:
         if async:
-            broker_proc = AsyncBroker(broker_backend_address, broker_frontend_address)
+            broker_proc = AsyncBroker(
+                broker_backend_address,
+                broker_frontend_address)
         else:
-            broker_proc = SyncBroker(broker_backend_address, broker_frontend_address, gracetimeout)
+            broker_proc = SyncBroker(
+                broker_backend_address,
+                broker_frontend_address,
+                gracetimeout)
         broker_proc.start()
 
     # Start the workers
     workers = []
     for _ in range(num_procs):
-        worker_proc = Worker(laikaboss_config_path, worker_connect_address, ttl,
-            time_ttl, logresult, int(get_option('workerpolltimeout')), gracetimeout)
+        worker_proc = Worker(
+            laikaboss_config_path,
+            worker_connect_address,
+            ttl,
+            time_ttl,
+            logresult,
+            int(get_option('workerpolltimeout')),
+            gracetimeout)
         worker_proc.start()
         workers.append(worker_proc)
 
@@ -937,9 +1048,13 @@ def main():
         # Ensure we have a broker
         if not options.no_broker and not broker_proc.is_alive():
             if async:
-                broker_proc = AsyncBroker(broker_backend_address, broker_frontend_address)
+                broker_proc = AsyncBroker(
+                    broker_backend_address,
+                    broker_frontend_address)
             else:
-                broker_proc = SyncBroker(broker_backend_address, broker_frontend_address,
+                broker_proc = SyncBroker(
+                    broker_backend_address,
+                    broker_frontend_address,
                     gracetimeout)
             broker_proc.start()
 
@@ -951,8 +1066,14 @@ def main():
 
         for worker_proc in dead_workers:
             workers.remove(worker_proc)
-            new_proc = Worker(laikaboss_config_path, worker_connect_address, ttl, time_ttl,
-                logresult, int(get_option('workerpolltimeout')), gracetimeout)
+            new_proc = Worker(
+                laikaboss_config_path,
+                worker_connect_address,
+                ttl,
+                time_ttl,
+                logresult,
+                int(get_option('workerpolltimeout')),
+                gracetimeout)
             new_proc.start()
             workers.append(new_proc)
             worker_proc.join()
@@ -961,7 +1082,10 @@ def main():
         time.sleep(5)
 
     logging.debug("Supervisor: beginning graceful shutdown sequence")
-    logging.info("Supervisor: giving workers %d second grace period", gracetimeout)
+    logging.info(
+        "Supervisor: giving workers {} second grace period".format(
+            gracetimeout)
+    )
     time.sleep(gracetimeout)
     logging.info("Supervisor: terminating workers")
     for worker_proc in workers:
@@ -977,4 +1101,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
