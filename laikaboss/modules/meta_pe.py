@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import struct
-import hashlib
 import binascii
+import hashlib
 import logging
 import pefile
+import struct
+
 from datetime import datetime
+
 from laikaboss.objectmodel import (ModuleObject,
                                    ExternalVars,
                                    ScanError)
@@ -52,7 +54,7 @@ class META_PE(SI_MODULE):
                 size = section.get('SizeOfRawData', {}).get('Value')
                 secData = pe.get_data(ptr, size)
                 secInfo = {
-                    'Virtual Address': '0x%08X' % virtAddress,
+                    'Virtual Address': '0x{:08X}'.format(virtAddress),
                     'Virtual Size': virtSize,
                     'Raw Size': size,
                     'MD5': section.get('MD5', ''),
@@ -77,7 +79,7 @@ class META_PE(SI_MODULE):
                 scanObject.addMetadata(self.module_name, 'Exports', exports)
             except ScanError:
                 raise
-            except:
+            except Exception:
                 logging.debug('No export entries')
 
             for imp_symbol in dump_dict.get('Imported symbols',[]):
@@ -125,7 +127,7 @@ class META_PE(SI_MODULE):
                                 self.module_name, 'Resources', data)
             except ScanError:
                 raise
-            except:
+            except Exception:
                 logging.debug('No resources')
 
             # Gather miscellaneous stuff
@@ -134,7 +136,7 @@ class META_PE(SI_MODULE):
                                        'Imphash', pe.get_imphash())
             except ScanError:
                 raise
-            except:
+            except Exception:
                 logging.debug('Unable to identify imphash')
 
             imgChars = dump_dict.get('Flags', [])
@@ -155,7 +157,9 @@ class META_PE(SI_MODULE):
             scanObject.addMetadata(
                 self.module_name, 'Machine Type', machineData)
 
-            # Reference: http://msdn.microsoft.com/en-us/library/windows/desktop/ms680339%28v=vs.85%29.aspx
+            # Reference:
+            # http://msdn.microsoft.com/en-us/library/windows/desktop/
+            # ms680339%28v=vs.85%29.aspx
             scanObject.addMetadata(
                 self.module_name,
                 'Image Magic',
@@ -169,7 +173,9 @@ class META_PE(SI_MODULE):
             subName = pefile.SUBSYSTEM_TYPE.get(subsystem)
             scanObject.addMetadata(self.module_name, 'Subsystem', subName)
 
-            # Reference: http://msdn.microsoft.com/en-us/library/windows/desktop/ms648009%28v=vs.85%29.aspx
+            # Reference:
+            # http://msdn.microsoft.com/en-us/library/windows/desktop/
+            # ms648009%28v=vs.85%29.aspx
 
             scanObject.addMetadata(
                 self.module_name,
@@ -203,10 +209,13 @@ class META_PE(SI_MODULE):
             if hasattr(pe, 'DIRECTORY_ENTRY_DEBUG'):
                 debug = dict()
                 for e in pe.DIRECTORY_ENTRY_DEBUG:
-                    rawData = pe.get_data(e.struct.AddressOfRawData, e.struct.SizeOfData)
+                    rawData = pe.get_data(
+                        e.struct.AddressOfRawData,
+                        e.struct.SizeOfData
+                    )
                     if rawData.find('RSDS') != -1 and len(rawData) > 24:
                         pdb = rawData[rawData.find('RSDS'):]
-                        debug["guid"] = "%s-%s-%s-%s" % (
+                        debug["guid"] = "{}-{}-{}-{}".format(
                             binascii.hexlify(pdb[4:8]),
                             binascii.hexlify(pdb[8:10]),
                             binascii.hexlify(pdb[10:12]),
@@ -216,7 +225,8 @@ class META_PE(SI_MODULE):
                         scanObject.addMetadata(self.module_name, 'RSDS', debug)
                     elif rawData.find('NB10') != -1 and len(rawData) > 16:
                         pdb = rawData[rawData.find('NB10')+8:]
-                        debug["created"] = datetime.fromtimestamp(struct.unpack('<L', pdb[0:4])[0]).isoformat()
+                        debug["created"] = datetime.fromtimestamp(
+                            struct.unpack('<L', pdb[0:4])[0]).isoformat()
                         debug["age"] = struct.unpack('<L', pdb[4:8])[0]
                         debug["pdb"] = pdb[8:].rstrip('\x00')
                         scanObject.addMetadata(self.module_name, 'NB10', debug)

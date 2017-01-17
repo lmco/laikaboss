@@ -1,22 +1,23 @@
 # Copyright 2015 Lockheed Martin Corporation
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# 
+#
+
 import logging
 
-from laikaboss.si_module import SI_MODULE
-from laikaboss.util import yara_on_demand, log_module 
 from laikaboss import config
+from laikaboss.si_module import SI_MODULE
+from laikaboss.util import yara_on_demand
 
 
 class SCAN_YARA(SI_MODULE):
@@ -33,26 +34,35 @@ class SCAN_YARA(SI_MODULE):
         # Build the external vars from other modules' input
         # If the key is not in args, don't use it
         externalVars = {}
-       
+
         tmp_externalVars = scanObject.getMetadata('SCAN_YARA', 'ExternalVars')
         if tmp_externalVars:
-            # Due to how the framework works, ExternalVars may be a dictionary or a list of dictionaries
+            # Due to how the framework works, ExternalVars may be a dictionary
+            # or a list of dictionaries
             # If it is neither, then the module writer did it wrong
             if isinstance(tmp_externalVars, dict):
-                externalVars = self.getExternals(args_externalVars, tmp_externalVars)
+                externalVars = self.getExternals(
+                    args_externalVars, tmp_externalVars)
             elif isinstance(tmp_externalVars, list):
                 for externalVars_item in externalVars:
                     if isinstance(externalVars_item, dict):
-                        externalVars.update(self.getExternals(args_externalVars, externalVars_item))
+                        externalVars.update(
+                            self.getExternals(args_externalVars,
+                                              externalVars_item)
+                        )
         else:
             externalVars = self.getExternals(args_externalVars, {})
 
 
         extVars_used = scanObject.getMetadata('SCAN_YARA', 'ExternalVars Used')
-        # If any of the fields in externalVars have data, add to metadata for future verification/analysis
-        if any([externalVars[x] if externalVars[x] != 'None' else '' for x in externalVars.keys()]) \
-          and not extVars_used:
-            scanObject.addMetadata(self.module_name, 'ExternalVars Used', externalVars.keys())
+        # If any of the fields in externalVars have data, add to metadata for
+        # future verification/analysis
+        if (any(
+            [externalVars[x] if externalVars[x] != 'None' else ''
+             for x in externalVars.keys()]
+            ) and not extVars_used):
+            scanObject.addMetadata(
+                self.module_name, 'ExternalVars Used', externalVars.keys())
 
         # Max bytes, if set in dispatcher, allows us to truncate the buffer
         if 'maxbytes' in args:
@@ -61,37 +71,56 @@ class SCAN_YARA(SI_MODULE):
             except ValueError:
                 maxBytes = 0
 
-        # Check for a custom rule set in dispatcher arguments 
+        # Check for a custom rule set in dispatcher arguments
         if 'rule' in args:
             if 'meta_scan' in args:
-                metaBuffer = self._getnested(scanObject.moduleMetadata, args['meta_scan'])
+                metaBuffer = self._getnested(
+                    scanObject.moduleMetadata, args['meta_scan'])
                 # If we can't find the desired metadata, just return.
                 if not isinstance(metaBuffer, str):
                     return moduleResult
-                matches = yara_on_demand(args['rule'], metaBuffer, externalVars=externalVars)
+                matches = yara_on_demand(
+                    args['rule'], metaBuffer, externalVars=externalVars)
             elif maxBytes and scanObject.objectSize > maxBytes:
-                matches = yara_on_demand(args['rule'], buffer(scanObject.buffer, 0, maxBytes), externalVars=externalVars)
+                matches = yara_on_demand(
+                    args['rule'],
+                    buffer(scanObject.buffer, 0, maxBytes),
+                    externalVars=externalVars
+                )
             else:
-                matches = yara_on_demand(args['rule'], scanObject.buffer, externalVars=externalVars)
+                matches = yara_on_demand(
+                    args['rule'],
+                    scanObject.buffer, externalVars=externalVars
+                )
         # Use the default rule set
         else:
             if 'meta_scan' in args:
-                metaBuffer = self._getnested(scanObject.moduleMetadata, args['meta_scan'])
+                metaBuffer = self._getnested(
+                    scanObject.moduleMetadata, args['meta_scan'])
                 # If we can't find the desired metadata, just return.
                 if not isinstance(metaBuffer, str):
                     return moduleResult
-                matches = yara_on_demand(config.yarascanrules, metaBuffer, externalVars=externalVars)
+                matches = yara_on_demand(
+                    config.yarascanrules, metaBuffer, externalVars=externalVars)
             elif maxBytes and scanObject.objectSize > maxBytes:
-                matches = yara_on_demand(config.yarascanrules, buffer(scanObject.buffer, 0, maxBytes), externalVars=externalVars)
+                matches = yara_on_demand(
+                    config.yarascanrules,
+                    buffer(scanObject.buffer, 0, maxBytes),
+                    externalVars=externalVars
+                )
             else:
-                matches = yara_on_demand(config.yarascanrules, scanObject.buffer, externalVars=externalVars)
+                matches = yara_on_demand(
+                    config.yarascanrules, scanObject.buffer,
+                    externalVars=externalVars
+                )
 
         # Process results
         for m in matches:
-            if m.meta: 
+            if m.meta:
                 scanObject.addMetadata(self.module_name, str(m), m.meta)
-            scanObject.addFlag("yr:%s" % str(m))
-            #scanObject.addFlag("s_yr::%s" % str(m))  # Placeholder for standardized flag format
+                scanObject.addFlag("yr:{}".format(str(m)))
+            #scanObject.addFlag("s_yr::%s" % str(m))  # Placeholder for
+                                                      #standardized flag format
         return moduleResult
 
     def _cleanValue(self, value):
@@ -108,14 +137,22 @@ class SCAN_YARA(SI_MODULE):
                 newList.append(self._cleanValue(l))
             newValue = repr(newList)
         #else:
-        #    log_module("MSG", self.module_name, 0, scanObject, result, "External variables for this object have an unsupported type.")
+        #    log_module("MSG",
+        #                self.module_name,
+        #                0,
+        #                scanObject,
+        #                result,
+        #                ("External variables for this object have an" +
+        #                 " unsupported type.")
+        #    )
         return newValue
-        
+
     # Method to pull specific key/values out of a dictionary
     def getExternals(self, args_externalVars, tmp_externalVars):
         externalVars = {}
 
-        # For all items submitted by other modules, make sure that they are listed in args
+        # For all items submitted by other modules, make sure that they are
+        # listed in args
         for key, value in tmp_externalVars.items():
             if any([x == key for x in args_externalVars]):
                 externalVars[key] = self._cleanValue(value)
@@ -124,7 +161,7 @@ class SCAN_YARA(SI_MODULE):
         for x in args_externalVars:
             if x not in externalVars:
                 externalVars[x] = 'None'
-        logging.debug('EXTERNAL VARS: %s' % externalVars)
+        logging.debug('EXTERNAL VARS: {}'.format(externalVars))
         return externalVars
 
     @staticmethod
@@ -136,4 +173,4 @@ class SCAN_YARA(SI_MODULE):
             else:
                 return_value = None
                 break
-        return return_value        
+        return return_value

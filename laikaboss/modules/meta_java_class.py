@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+from javatools import unpack_class, Unimplemented, ClassUnpackException
+
 from laikaboss.si_module import SI_MODULE
 from laikaboss.objectmodel import ScanError
-from javatools import unpack_class, Unimplemented, ClassUnpackException
 
 class META_JAVA_CLASS(SI_MODULE):
     def __init__(self,):

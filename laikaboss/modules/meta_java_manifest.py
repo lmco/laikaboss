@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from laikaboss.si_module import SI_MODULE
+
 from javatools.manifest import Manifest
+
+from laikaboss.si_module import SI_MODULE
 
 class META_JAVA_MANIFEST(SI_MODULE):
     def __init__(self,):
