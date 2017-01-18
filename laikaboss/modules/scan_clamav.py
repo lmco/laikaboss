@@ -91,18 +91,18 @@ class SCAN_CLAMAV(SI_MODULE):
             if clam_result:
                 status, virusname = clam_result['stream']
                 scanObject.addFlag(
-                    "{}:{}".format(self.flag_prefix, str(virusname)))
+                    "{0}:{1}".format(self.flag_prefix, str(virusname)))
         except ValueError as e:
             scanObject.addMetadata(
                 self.module_name,
                 'Error',
-                'ValueError (BufferTooLong): {}'.format(str(e))
+                'ValueError (BufferTooLong): {0}'.format(str(e))
             )
         except IOError as e:
             scanObject.addMetadata(
                 self.module_name,
                 'Error',
-                'IOError (ScanError): {}'.format(str(e))
+                'IOError (ScanError): {0}'.format(str(e))
             )
 
         return moduleResult

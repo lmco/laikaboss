@@ -94,7 +94,7 @@ class LOG_FLUENT(SI_MODULE):
         A FluentSender with the given configuration.
         '''
         sender = None
-        key = "{}{}{}{}{}".format(tag, host, port, bufmax, timeout)
+        key = "{0}{1}{2}{3}{4}".format(tag, host, port, bufmax, timeout)
         if key in self._senders:
             sender = self._senders[key]
         else:

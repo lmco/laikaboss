@@ -97,20 +97,20 @@ class EXPLODE_RAR(SI_MODULE):
 
             try:
                 logging.debug(
-                    '{}: Attempting to open rar file'.format(self.module_name))
+                    '{0}: Attempting to open rar file'.format(self.module_name))
                 # If headers are encrypted, the following will raise
                 # IncorrectRARPassword
                 rar = UnRAR2.RarFile(temp_file.name)
                 infos = rar.infolist()
                 logging.debug(
-                    '{}: Succeeded opening rar file'.format(self.module_name))
+                    '{0}: Succeeded opening rar file'.format(self.module_name))
 
                 # If files are encrypted, the filename will be prefixed with a
                 # '*'
                 for info in infos:
                     if info.filename.startswith('*'):
                         logging.debug(
-                            '{}: Rar files are encrypted'.format(
+                            '{0}: Rar files are encrypted'.format(
                                 self.module_name)
                         )
                         scanObject.addFlag('ENCRYPTED_RAR')
@@ -123,7 +123,7 @@ class EXPLODE_RAR(SI_MODULE):
                         break
             except IncorrectRARPassword:
                 logging.debug(
-                    '{}: Rar headers are encrypted'.format(self.module_name))
+                    '{0}: Rar headers are encrypted'.format(self.module_name))
                 scanObject.addFlag('ENCRYPTED_RAR')
                 scanObject.addMetadata(
                     self.module_name,
@@ -137,7 +137,7 @@ class EXPLODE_RAR(SI_MODULE):
             if ((headers_are_encrypted or files_are_encrypted) and
                 attempt_decrypt):
                 logging.debug(
-                    '{}: Attempting to decrypt'.format(self.module_name))
+                    '{0}: Attempting to decrypt'.format(self.module_name))
                 possible_passwords = []
 
                 # Passwords are sometimes sent in the email content. Use the
@@ -154,7 +154,7 @@ class EXPLODE_RAR(SI_MODULE):
                 for possible_password in possible_passwords:
                     try:
                         logging.debug(
-                            "EXPLODE_RAR: Attempting password '{}'".format(
+                            "EXPLODE_RAR: Attempting password '{0}'".format(
                                 possible_password))
                         rar = UnRAR2.RarFile(
                             temp_file.name,
@@ -166,7 +166,7 @@ class EXPLODE_RAR(SI_MODULE):
                             rar.extract(path=explode_temp_dir)
                         infos = rar.infolist()
                         logging.debug(
-                            "EXPLODE_RAR: Found password '{}'".format(
+                            "EXPLODE_RAR: Found password '{0}'".format(
                                 possible_password))
                         scanObject.addFlag('rar:decrypted')
                         scanObject.addMetadata(

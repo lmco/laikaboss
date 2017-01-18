@@ -55,7 +55,7 @@ class DISPOSITIONER(SI_MODULE):
                 0,
                 scanObject,
                 result,
-                msg="dispositon_email: flag rollup: {}".format(flag_rollup)
+                msg="dispositon_email: flag rollup: {0}".format(flag_rollup)
             )
         try:
             matches = yara_on_demand(

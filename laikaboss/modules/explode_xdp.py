@@ -39,7 +39,7 @@ class EXPLODE_XDP(SI_MODULE):
             dom1 = parseString(scanObject.buffer)
             for element_name in element_names:
                 logging.debug(
-                    "EXPLODE_XDP: trying {} element name".format(element_name))
+                    "EXPLODE_XDP: trying {0} element name".format(element_name))
                 chunks = dom1.getElementsByTagName(element_name)
                 # Just in case there happen to be more than 1 element with the
                 # name chunk..
@@ -51,7 +51,7 @@ class EXPLODE_XDP(SI_MODULE):
                         ModuleObject(
                             buffer=b64pdf,
                             externalVars=ExternalVars(
-                                filename='e_xdp_{}'.format(element_name),
+                                filename='e_xdp_{0}'.format(element_name),
                                 contentType="base64"
                             )
                         )

@@ -39,7 +39,7 @@ class EXPLODE_SWF(SI_MODULE):
             fstr = StringIO(scanObject.buffer)
             fstr.seek(4)
             swf_size = struct.unpack("<i", fstr.read(4))[0]
-            logging.debug("swf size is {}".format(swf_size))
+            logging.debug("swf size is {0}".format(swf_size))
             fstr.seek(0)
             fws = self._decompressSWF(fstr, swf_size)
             if fws != None and fws != "ERROR":
@@ -47,7 +47,7 @@ class EXPLODE_SWF(SI_MODULE):
                     ModuleObject(
                         buffer=fws,
                         externalVars=ExternalVars(
-                            filename='e_swf_{}'.format(swf_size)
+                            filename='e_swf_{0}'.format(swf_size)
                         )
                     )
                 )

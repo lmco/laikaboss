@@ -47,7 +47,7 @@ class TACTICAL(SI_MODULE):
                 raise
 
     def _run(self, scanObject, result, depth, args):
-        logging.debug("tactical: args: {}".format(repr(args)))
+        logging.debug("tactical: args: {0}".format(repr(args)))
         moduleResult = []
         output = ''
 
@@ -76,7 +76,7 @@ class TACTICAL(SI_MODULE):
                 # use timeout command in the command, if available on the
                 # system?
                 output = self._collect(
-                    "timeout {} {} {} {}".format(
+                    "timeout {0} {1} {2} {3}".format(
                         timeout,
                         script_path,
                         temp_file_name,
@@ -134,13 +134,13 @@ class TACTICAL(SI_MODULE):
                             # make sure the incoming file is deleted, or at
                             # least we try....
                             logging.debug(
-                                "Trying to unlink file: {}".format(line_value))
+                                "Trying to unlink file: {0}".format(line_value))
                             os.unlink(line_value)
                     else:
                         pass
                 if unlinkDir:
                     logging.debug(
-                        "Attempting to remove temp directories: {}".format(
+                        "Attempting to remove temp directories: {0}".format(
                             tmp_dirs))
                     # Loop through the directories and remove them, starting
                     # with the deepest level (by length)
@@ -158,10 +158,10 @@ class TACTICAL(SI_MODULE):
                                 0,
                                 scanObject,
                                 result,
-                                "Could not remove tmp dir {}".format(tmp_dir)
+                                "Could not remove tmp dir {0}".format(tmp_dir)
                             )
                             logging.exception(
-                                "Unable to remove temp directory: {}".format(
+                                "Unable to remove temp directory: {0}".format(
                                     tmp_dir)
                             )
 

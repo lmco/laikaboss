@@ -30,7 +30,7 @@ from laikaboss.objectmodel import (
 # This ensures that the dispatcher can access every module in this folder
 # without any further configuration needed.
 def log_debug(message):
-    syslog.syslog(syslog.LOG_DEBUG, "DEBUG {}".format(message))
+    syslog.syslog(syslog.LOG_DEBUG, "DEBUG {0}".format(message))
 
 for module in os.listdir(os.path.dirname(__file__)):
     try:
@@ -51,7 +51,7 @@ for module in os.listdir(os.path.dirname(__file__)):
     except:
         exc_type, exc_value, exc_traceback = sys.exc_info()
         logging.exception(
-            "Import Exception for {} module: {}".format(
+            "Import Exception for {0} module: {1}".format(
                 module,
                 repr(traceback.format_exception(
                     exc_type,
@@ -61,7 +61,7 @@ for module in os.listdir(os.path.dirname(__file__)):
             )
         )
         log_debug(
-            "Import Exception for {} module: {}".format(
+            "Import Exception for {0} module: {1}".format(
                 module,
                 repr(traceback.format_exception(
                     exc_type,

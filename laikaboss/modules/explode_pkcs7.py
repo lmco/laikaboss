@@ -66,7 +66,7 @@ class EXPLODE_PKCS7(SI_MODULE):
             # openssl pkcs7 -inform der -print_certs -in MYKEY.DSA
             i=0
             for cert in certs:
-                cert_filename = "{:x}.der".format(cert.get_serial_number())
+                cert_filename = "{0:x}.der".format(cert.get_serial_number())
                 moduleResult.append(
                     ModuleObject(
                         buffer=cert.as_der(),

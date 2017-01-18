@@ -153,7 +153,7 @@ class EXPLODE_ZIP(SI_MODULE):
                     ModuleObject(
                         buffer=childBuffer,
                         externalVars=ExternalVars(
-                            filename='e_zip_{}'.format(name)
+                            filename='e_zip_{0}'.format(name)
                         )
                     )
                 )
@@ -188,7 +188,7 @@ class EXPLODE_ZIP(SI_MODULE):
         # End of central directory signature
         pos = buffer.find('\x50\x4b\x05\x06')
         if (pos > 0):
-            logging.debug("Truncating file at location {}".format(
+            logging.debug("Truncating file at location {0}".format(
                 str(pos + 22)))
             # size of 'ZIP end of central directory record'
             file.seek(pos + 22)

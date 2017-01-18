@@ -262,7 +262,7 @@ class Client:
         #except self.zmq.core.error.ZMQError:
         except Exception:
             logging.debug(
-                "ID {} : ZMQ socket in wrong state, reconnecting.".format(
+                "ID {0} : ZMQ socket in wrong state, reconnecting.".format(
                     self._ID)
             )
             self._disconnect()
@@ -274,7 +274,7 @@ class Client:
 
             # Recieve reply
             reply = self._CLIENT.recv()
-            logging.debug("ID {} : got reply".format(self._ID))
+            logging.debug("ID {0} : got reply".format(self._ID))
 
             # Check for non-empty reply
             if not reply:
@@ -293,7 +293,7 @@ class Client:
 
     def _send_only(self, externalObject, timeout=-1):
 
-        logging.debug("AED Async Send Timeout: {}".format(timeout))
+        logging.debug("AED Async Send Timeout: {0}".format(timeout))
 
         # Serialize and compress the externalObject
         zmo = pickle.dumps(externalObject, pickle.HIGHEST_PROTOCOL)
@@ -319,7 +319,7 @@ class Client:
         except Exception:
             try:
                 logging.debug(
-                    "ID {} : ZMQ socket in wrong state, reconnecting".format(
+                    "ID {0} : ZMQ socket in wrong state, reconnecting".format(
                         self._ID)
                 )
                 self._disconnect()
@@ -348,7 +348,7 @@ class Client:
                 result = self._send_recv(externalObject)
             while retriesLeft and not result:
                 logging.debug(
-                    "ID {} : No response from broker, retrying...".format(
+                    "ID {0} : No response from broker, retrying...".format(
                         self._ID)
                 )
                 self._disconnect()

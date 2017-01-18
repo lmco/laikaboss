@@ -43,19 +43,20 @@ def _ConfigSectionMap(section):
     try:
         options = Config.options(section)
     except ConfigParser.NoSectionError:
-        logging.debug("Section {} does not exist in the config".format(section))
+        logging.debug(
+            "Section {0} does not exist in the config".format(section))
         return dict1
     for option in options:
         try:
             dict1[option] = Config.get(section, option)
-            logging.debug("Parsed option {} with value {}".format(
+            logging.debug("Parsed option {0} with value {1}".format(
                 option,
                 Config.get(section, option))
             )
             if dict1[option] == -1:
-                logging.debug("skip: {}".format(option))
+                logging.debug("skip: {0}".format(option))
         except Exception:
-            logging.debug("exception on {}!".format(option))
+            logging.debug("exception on {0}!".format(option))
             dict1[option] = None
     return dict1
 
@@ -63,17 +64,17 @@ def _ConfigSectionMap(section):
 def _map_to_globals(dictionary):
     """Map the values in the dictionary into globals()"""
     for name, value in dictionary.iteritems():
-        base = '{}'.format(name)
+        base = '{0}'.format(name)
         if value.lower() == 'true':
-            globals()['{}'.format(base)] = True
+            globals()['{0}'.format(base)] = True
         elif value.lower() == 'false':
-            globals()['{}'.format(base)] = False
+            globals()['{0}'.format(base)] = False
         else:
-            globals()['{}'.format(base)] = '{}'.format(value)
+            globals()['{0}'.format(base)] = '{0}'.format(value)
 
 
 def init(path):
-    logging.debug("Initializing with config: {}".format(path))
+    logging.debug("Initializing with config: {0}".format(path))
     Config.read(path)
 
     _map_to_globals(_ConfigSectionMap('General'))

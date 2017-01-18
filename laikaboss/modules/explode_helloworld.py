@@ -180,7 +180,7 @@ class EXPLODE_HELLOWORLD(SI_MODULE):
         # so none of thses messages will clutter up Laika logs.
         logging.debug('Hello world!')
         logging.debug(
-            'HELLOWORLD invoked with helloworld_param value {}'.format(
+            'HELLOWORLD invoked with helloworld_param value {0}'.format(
                 helloworld_param)
         )
 
@@ -188,13 +188,13 @@ class EXPLODE_HELLOWORLD(SI_MODULE):
             flags.append('e_helloworld:nfo:helloworldsmall')
         else:
             logging.debug(
-                'HELLOWORLD({} >= 10) setting flag'.format(helloworld_param))
+                'HELLOWORLD({0} >= 10) setting flag'.format(helloworld_param))
             flags.append('e_helloworld:nfo:helloworld')
 
 
         if helloworld_param > 20:
             logging.debug(
-                'HELLOWORLD({} > 20) adding new object'.format(
+                'HELLOWORLD({0} > 20) adding new object'.format(
                     helloworld_param)
             )
             flags.append('e_helloworld:nfo:helloworldx2')
@@ -205,12 +205,13 @@ class EXPLODE_HELLOWORLD(SI_MODULE):
                 # size bytes.
                 buff = buffer[helloworld_param:]
 
-                object_name = 'e_helloworld_{}_{}'.format(
+                object_name = 'e_helloworld_{0}_{1}'.format(
                     len(buff),
                     hashlib.md5(buff).hexdigest()
                 )
 
-                logging.debug('HELLOWORLD - New object: {}'.format(object_name))
+                logging.debug('HELLOWORLD - New object: {0}'.format(
+                    object_name))
 
                 # And we can create new objects that go back to the dispatcher
                 # and subsequent laika modules
@@ -232,7 +233,7 @@ class EXPLODE_HELLOWORLD(SI_MODULE):
             else:
                 logging.debug(
                     'HELLOWORLD - object is too small to carve ' +
-                    '({} < {})'.format(len(buffer), helloworld_param)
+                    '({0} < {1})'.format(len(buffer), helloworld_param)
                 )
 
         return set(flags)

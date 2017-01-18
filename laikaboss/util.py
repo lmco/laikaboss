@@ -71,11 +71,11 @@ def is_compiled(rule):
 def yara_on_demand(rule, theBuffer, externalVars={}, maxBytes=0):
     try:
         logging.debug(
-            "util: doing on demand yara scan with rule: {}".format(rule))
-        logging.debug("util: externalVars: {}".format(str(externalVars)))
+            "util: doing on demand yara scan with rule: {0}".format(rule))
+        logging.debug("util: externalVars: {0}".format(str(externalVars)))
         if rule not in yara_on_demand_rules:
             if not is_compiled(rule):
-                logging.debug("util: compiling {} for lazy load".format(rule))
+                logging.debug("util: compiling {0} for lazy load".format(rule))
                 yara_on_demand_rules[rule] = yara.compile(
                     rule, externals=externalVars)
             else:
@@ -95,7 +95,7 @@ def yara_on_demand(rule, theBuffer, externalVars={}, maxBytes=0):
         raise
     except Exception:
         logging.exception(
-            "util: yara on demand scan failed with rule {}".format(rule))
+            "util: yara on demand scan failed with rule {0}".format(rule))
         raise
 
 
@@ -148,7 +148,7 @@ def log_result(result, returnOutput=False):
     if ('all' not in logResultFromSource and
         result.source not in logResultFromSource):
         logging.debug(
-            'skipping logging result from source {} not in {}'.format(
+            'skipping logging result from source {0} not in {1}'.format(
                 result.source,
                 logResultFromSource)
         )
@@ -166,38 +166,42 @@ def log_result(result, returnOutput=False):
             if uid != result.rootUID:
                 parentUID = scanObject.parent
                 parentFilename = result.files[parentUID].filename
-            log = "RESULT {}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}".format(
-                clean_field(processID),
-                clean_field(result.source),
-                clean_field(scanTime),
-                clean_field(get_scanObjectUID(rootObject)),
-                clean_field(rootObject.filename),
-                clean_field(rootObject.uniqID),
-                clean_field(rootObject.ephID),
-                clean_field(get_scanObjectUID(scanObject)),
-                clean_field(scanObject.filename),
-                clean_field(scanObject.contentType),
-                clean_field(scanObject.fileType),
-                clean_field(scanObject.objectHash),
-                clean_field(scanObject.objectSize),
-                clean_field(scanObject.flags),
-                clean_field(scanObject.scanModules),
-                clean_field(parentUID),
-                clean_field(parentFilename, last=True)
+            log = (
+                "RESULT {0}{1}{2}{3}{4}{5}{6}{7}{8}{9}".format(
+                    clean_field(processID),
+                    clean_field(result.source),
+                    clean_field(scanTime),
+                    clean_field(get_scanObjectUID(rootObject)),
+                    clean_field(rootObject.filename),
+                    clean_field(rootObject.uniqID),
+                    clean_field(rootObject.ephID),
+                    clean_field(get_scanObjectUID(scanObject)),
+                    clean_field(scanObject.filename),
+                    clean_field(scanObject.contentType),
+                ) +
+                "{0}{1}{2}{3}{4}{5}{6}".format(
+                    clean_field(scanObject.fileType),
+                    clean_field(scanObject.objectHash),
+                    clean_field(scanObject.objectSize),
+                    clean_field(scanObject.flags),
+                    clean_field(scanObject.scanModules),
+                    clean_field(parentUID),
+                    clean_field(parentFilename, last=True)
+                )
             )
             if returnOutput:
                 output.append(log)
             else:
                 # TODO: Where is scanLogLevel?
-                syslog.syslog(scanLogLevel, "{}".format(log))
-            logging.debug("log entry: {}".format(log))
+                syslog.syslog(scanLogLevel, "{0}".format(log))
+            logging.debug("log entry: {0}".format(log))
     except (QuitScanException,
             GlobalScanTimeoutError,
             GlobalModuleTimeoutError):
         raise
     except Exception:
         logging.exception(
-            "result logging error for {}".format(rootObject.filename))
+            "result logging error for {0}".format(rootObject.filename))
     if returnOutput:
         return output
 
@@ -229,7 +233,7 @@ def clean_field(field, last=False):
             field = ''
     result = field.replace(log_delimiter,log_delimiter_replacement).strip()
     if not last:
-        result = "{}{}".format(result, log_delimiter)
+        result = "{0}{1}".format(result, log_delimiter)
     return result.replace("\0", "_")
 
 
@@ -301,7 +305,7 @@ def log_module(
             if parentUID in result.files:
                 parentFilename = result.files[parentUID].filename
 
-        log = "MODULE {}{}{}{}{}{}{}{}{}{}{}".format(
+        log = "MODULE {0}{1}{2}{3}{4}{5}{6}{7}{8}{9}{10}".format(
             clean_field(module_status),
             clean_field(processID),
             clean_field(get_scanObjectUID(rootObject)),
@@ -315,7 +319,7 @@ def log_module(
             clean_field(msg, last=True)
         )
         # TODO:Where is moduleLogLevel?
-        syslog.syslog(moduleLogLevel, "{}".format(log))
+        syslog.syslog(moduleLogLevel, "{0}".format(log))
     except (QuitScanException,
             GlobalScanTimeoutError,
             GlobalModuleTimeoutError):
@@ -353,7 +357,7 @@ def log_module_error(module_name, scanObject, result, error):
             if parentUID in result.files else ""
 
     try:
-        log = "ERROR {}{}{}{}{}{}".format(
+        log = "ERROR {0}{1}{2}{3}{4}{5}".format(
             clean_field(processID),
             clean_field(module_name),
             clean_field(UID),
@@ -362,7 +366,7 @@ def log_module_error(module_name, scanObject, result, error):
             clean_field(error, last=True)
         )
         # TODO:Where is moduleLogLevel?
-        syslog.syslog(moduleLogLevel, "{}".format(log))
+        syslog.syslog(moduleLogLevel, "{0}".format(log))
     except (QuitScanException,
             GlobalScanTimeoutError,
             GlobalModuleTimeoutError):
@@ -428,7 +432,7 @@ def log_CEF(module_name, staticDict, extensionDict):
         elif key == "Severity":
             severity = value
 
-    staticString = "{}{}{}{}{}{}{}{}".format(
+    staticString = "{0}{1}{2}{3}{4}{5}{6}{7}".format(
         CEF,
         clean_field(version),
         clean_field(device_vendor),
@@ -443,13 +447,13 @@ def log_CEF(module_name, staticDict, extensionDict):
 
     if extensionDict:
         for key in extensionDict:
-            extensionString += "{}={} ".format(
+            extensionString += "{0}={1} ".format(
                 key,
                 CEFify(clean_field(extensionDict[key], True))
             )
         extensionString = extensionString[:-1]
 
-    logText = "{}{}".format(staticString, extensionString)
+    logText = "{0}{1}".format(staticString, extensionString)
 
 
     # Syslog has a character limitation of 1000 characters, so ensure that the
@@ -468,13 +472,13 @@ def log_CEF(module_name, staticDict, extensionDict):
         extensionDict[longest] = shortString[:shortLength]
 
         for key in extensionDict:
-            extensionString += "{}={} ".format(
+            extensionString += "{0}={1} ".format(
                 key,
                 CEFify(clean_field(extensionDict[key], True))
             )
         extensionString = extensionString[:-1]
 
-        logText = "{}{}".format(staticString, extensionString)
+        logText = "{0}{1}".format(staticString, extensionString)
 
     syslog.syslog(syslog.LOG_CRIT,logText)
 
@@ -548,7 +552,7 @@ def get_module_arguments(sm):
             module = sm[:open_paren]
             logging.debug(
                 "si_dispatch,util - Attempting to extract arguments " +
-                "from {}".format(sm)
+                "from {0}".format(sm)
             )
             args_string = sm[open_paren + 1:len(sm) - 1]
             args_list = args_string.split(',')

@@ -54,7 +54,7 @@ class META_PE(SI_MODULE):
                 size = section.get('SizeOfRawData', {}).get('Value')
                 secData = pe.get_data(ptr, size)
                 secInfo = {
-                    'Virtual Address': '0x{:08X}'.format(virtAddress),
+                    'Virtual Address': '0x{0:08X}'.format(virtAddress),
                     'Virtual Size': virtSize,
                     'Raw Size': size,
                     'MD5': section.get('MD5', ''),
@@ -215,7 +215,7 @@ class META_PE(SI_MODULE):
                     )
                     if rawData.find('RSDS') != -1 and len(rawData) > 24:
                         pdb = rawData[rawData.find('RSDS'):]
-                        debug["guid"] = "{}-{}-{}-{}".format(
+                        debug["guid"] = "{0}-{1}-{2}-{3}".format(
                             binascii.hexlify(pdb[4:8]),
                             binascii.hexlify(pdb[8:10]),
                             binascii.hexlify(pdb[10:12]),

@@ -38,7 +38,7 @@ def handler(signum, frame):
     '''
     Signal handler for graceful exit.
     '''
-    print("\n\nSignal {} received. Exiting.".format(str(signum)))
+    print("\n\nSignal {0} received. Exiting.".format(str(signum)))
     sys.exit(0)
 
 
@@ -46,8 +46,8 @@ def delete_keys(redis_conn, key):
     '''
     Delete keys from Redis once they have been used.
     '''
-    redis_conn.delete("{}_buf".format(key))
-    redis_conn.delete("{}_meta".format(key))
+    redis_conn.delete("{0}_buf".format(key))
+    redis_conn.delete("{0}_meta".format(key))
 
 
 def main(laika_broker, redis_host, redis_port):
@@ -66,17 +66,17 @@ def main(laika_broker, redis_host, redis_port):
         q_item = r.blpop('suricata_queue', timeout=0)
         key = q_item[1]
 
-        print("Popped object: {}".format(key))
+        print("Popped object: {0}".format(key))
 
         # look up file buffer
-        file_buffer = r.get("{}_buf".format(key))
+        file_buffer = r.get("{0}_buf".format(key))
 
         # look up file file meta
-        file_meta = r.get("{}_meta".format(key))
+        file_meta = r.get("{0}_meta".format(key))
 
         if not file_buffer or not file_meta:
             print(
-                "File buffer or meta for key: {} not found.".format(key) +
+                "File buffer or meta for key: {0} not found.".format(key) +
                 " Skipping this object.")
             delete_keys(r, key)
             continue
@@ -85,7 +85,7 @@ def main(laika_broker, redis_host, redis_port):
             file_meta_dict = json.loads(file_meta)
         except Exception:
             print(
-                "JSON decode error for key: {}.".format(key) +
+                "JSON decode error for key: {0}.".format(key) +
                 " Skipping this object.")
             delete_keys(r, key)
             continue
@@ -111,7 +111,7 @@ def main(laika_broker, redis_host, redis_port):
             buffer=file_buffer,
             externalVars=ExternalVars(
                 filename=filename,
-                source="{}-{}".format("suricata", "redis"),
+                source="{0}-{1}".format("suricata", "redis"),
                 extMetaData=file_meta_dict,
                 contentType=content_type),
             level=level_minimal)
@@ -119,7 +119,7 @@ def main(laika_broker, redis_host, redis_port):
         # send to Laika BOSS for async scanning - no response expected
         client.send(externalObject)
 
-        print("Sent {} for scanning...\n".format(key))
+        print("Sent {0} for scanning...\n".format(key))
 
         # cleanup
         delete_keys(r, key)

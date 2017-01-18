@@ -33,7 +33,7 @@ class EXPLODE_GZIP(SI_MODULE):
             ModuleObject(
                 buffer=new_buffer,
                 externalVars=ExternalVars(
-                    filename="gzip_{}".format(len(new_buffer))
+                    filename="gzip_{0}".format(len(new_buffer))
                 )
             )
         )

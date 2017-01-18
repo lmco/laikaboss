@@ -72,7 +72,7 @@ class SI_MODULE:
                 )
             if type(moduleResult) is not list:
                 msg = (
-                    "{} returned an object with type {}. ".format(
+                    "{0} returned an object with type {1}. ".format(
                         self.module_name, type(moduleResult)) +
                     "Only lists are allowed! Skipping this result."
                 )
@@ -93,11 +93,11 @@ class SI_MODULE:
         except GlobalModuleTimeoutError:
             # If the module times out, add a flag and continue as a normal error
             scanObject.addFlag(
-                "dispatch:err:module_timeout:{}".format(self.module_name))
+                "dispatch:err:module_timeout:{0}".format(self.module_name))
 
             exc_type, exc_value, exc_traceback = sys.exc_info()
             logging.exception(
-                "error on {} running module {}. ".format(
+                "error on {0} running module {1}. ".format(
                     get_scanObjectUID(getRootObject(result)),
                     self.module_name) +
                 "exception details below: "
@@ -121,14 +121,15 @@ class SI_MODULE:
             # exception up the stack
             scanObject.addFlag("dispatch:err:quit_scan")
             logging.warn(
-                "quitting scan while running module {}".format(self.module_name)
+                "quitting scan while running module {0}".format(
+                    self.module_name)
             )
             raise
 
         except Exception:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             logging.exception(
-                "error on {} running module {}. ".format(
+                "error on {0} running module {1}. ".format(
                     get_scanObjectUID(getRootObject(result)),
                     self.module_name) +
                 "exception details below: "
@@ -160,14 +161,14 @@ class SI_MODULE:
             self._close()
         except QuitScanException:
             logging.warn(
-                "quitting destructor early on module {}".format(
+                "quitting destructor early on module {0}".format(
                     self.module_name)
             )
             raise
         except Exception:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             logging.exception(
-                "error closing module {}. exception details below: ".format(
+                "error closing module {0}. exception details below: ".format(
                     self.module_name)
             )
             if moduleLoggingBool:

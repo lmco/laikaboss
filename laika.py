@@ -80,7 +80,7 @@ class QueueMonitor(multiprocessing.Process):
                 ' Processed: ',
                 Counter(),
                 '/',
-                "{}".format(self.task_count),
+                "{0}".format(self.task_count),
                 ' total files (',
                 Timer(),
                 ') ',
@@ -122,13 +122,13 @@ class Consumer(multiprocessing.Process):
             if next_task is None:
                 # Poison pill means shutdown
                 self.task_queue.task_done()
-                logging.debug("{} Got poison pill".format(os.getpid()))
+                logging.debug("{0} Got poison pill".format(os.getpid()))
                 break
             try:
                 with open(next_task) as nextfile:
                     file_buffer = nextfile.read()
             except IOError:
-                logging.debug("Error opening: {}".format(next_task))
+                logging.debug("Error opening: {0}".format(next_task))
                 self.task_queue.task_done()
                 #TODO: where is answer?
                 self.result_queue.put(answer)
@@ -162,32 +162,33 @@ class Consumer(multiprocessing.Process):
                 # TODO: where is SAVE_PATH?
                 if SAVE_PATH:
                     rootObject = getRootObject(result)
-                    UID_SAVE_PATH = "{}/{}".format(SAVE_PATH,
-                                                   get_scanObjectUID(rootObject)
-                                                  )
+                    UID_SAVE_PATH = "{0}/{1}".format(
+                        SAVE_PATH,
+                        get_scanObjectUID(rootObject)
+                    )
                     if not os.path.exists(UID_SAVE_PATH):
                         try:
                             os.makedirs(UID_SAVE_PATH)
                         except (OSError, IOError):
-                            error("\nERROR: unable to write to {}...\n".format(
+                            error("\nERROR: unable to write to {0}...\n".format(
                                 UID_SAVE_PATH))
                             raise
                     for uid, scanObject in result.files.iteritems():
-                        with open("{}/{}".format(UID_SAVE_PATH, uid),
+                        with open("{0}/{1}".format(UID_SAVE_PATH, uid),
                                   "wb") as f:
                             f.write(scanObject.buffer)
                         if scanObject.filename and scanObject.depth != 0:
-                            linkPath = "{}/{}".format(
+                            linkPath = "{0}/{1}".format(
                                 UID_SAVE_PATH,
                                 scanObject.filename.replace("/", "_"))
                             if not os.path.lexists(linkPath):
-                                os.symlink("{}".format(uid), linkPath)
+                                os.symlink("{0}".format(uid), linkPath)
                         elif scanObject.filename:
                             filenameParts = scanObject.filename.split("/")
-                            os.symlink("{}".format(uid),
-                                       "{}/{}".format(UID_SAVE_PATH,
-                                                      filenameParts[-1]))
-                    with open("{}/{}".format(UID_SAVE_PATH,
+                            os.symlink("{0}".format(uid),
+                                       "{0}/{1}".format(UID_SAVE_PATH,
+                                                        filenameParts[-1]))
+                    with open("{0}/{1}".format(UID_SAVE_PATH,
                                              "result.json"), "wb") as f:
                         f.write(resultJSON)
 
@@ -356,21 +357,21 @@ def main():
         SCAN_MODULES = options.scan_modules.split()
     else:
         SCAN_MODULES = None
-    logging.debug("SCAN_MODULES: {}".format(SCAN_MODULES))
+    logging.debug("SCAN_MODULES: {0}".format(SCAN_MODULES))
 
     global PROGRESS_BAR
     if options.progress:
         PROGRESS_BAR = 1
     else:
         PROGRESS_BAR = strtobool(getConfig('progress_bar'))
-    logging.debug("PROGRESS_BAR: {}".format(PROGRESS_BAR))
+    logging.debug("PROGRESS_BAR: {0}".format(PROGRESS_BAR))
 
     global LOG_RESULT
     if options.log_result:
         LOG_RESULT = 1
     else:
         LOG_RESULT = strtobool(getConfig('log_result'))
-    logging.debug("LOG_RESULT: {}".format(LOG_RESULT))
+    logging.debug("LOG_RESULT: {0}".format(LOG_RESULT))
 
     global LOG_JSON
     if options.log_json:
@@ -383,21 +384,21 @@ def main():
         NUM_PROCS = options.num_procs
     else:
         NUM_PROCS = int(getConfig('num_procs'))
-    logging.debug("NUM_PROCS: {}".format(NUM_PROCS))
+    logging.debug("NUM_PROCS: {0}".format(NUM_PROCS))
 
     global MAX_BYTES
     if options.sizeLimit:
         MAX_BYTES = options.sizeLimit * 1024 * 1024
     else:
         MAX_BYTES = int(getConfig('max_bytes'))
-    logging.debug("MAX_BYTES: {}".format(MAX_BYTES))
+    logging.debug("MAX_BYTES: {0}".format(MAX_BYTES))
 
     global MAX_FILES
     if options.fileLimit:
         MAX_FILES = options.fileLimit
     else:
         MAX_FILES = int(getConfig('max_files'))
-    logging.debug("MAX_FILES: {}".format(MAX_FILES))
+    logging.debug("MAX_FILES: {0}".format(MAX_FILES))
 
     global SOURCE
     if options.source:
@@ -416,7 +417,7 @@ def main():
     if options.config_path:
         CONFIG_PATH = options.config_path
         logging.debug(
-            "using alternative config path: {}".format(options.config_path))
+            "using alternative config path: {0}".format(options.config_path))
         if not os.path.exists(options.config_path):
             error("the provided config path is not valid, exiting")
             return 1
@@ -431,7 +432,7 @@ def main():
     else:
         error(
             "A valid framework configuration was not found in either" +
-            " of the following locations: \n{}\n{}".format(
+            " of the following locations: \n{0}\n{1}".format(
                 default_configs['dev_config_path'],
                 default_configs['sys_config_path'])
         )
@@ -451,13 +452,13 @@ def main():
                     if not os.path.isfile(f):
                         error(
                             "One of the specified files does not" +
-                            " exist: {}".format(f)
+                            " exist: {0}".format(f)
                         )
                         return 1
                     if os.path.isdir(f):
                         error(
                             "One of the files you specified is" +
-                            " actually a directory: {}".format(f)
+                            " actually a directory: {0}".format(f)
                         )
                         return 1
                     DATA_PATH.append(f)
@@ -467,24 +468,25 @@ def main():
                 "You must provide files via stdin when no arguments are provided"
             )
             return 1
-        logging.debug("Loaded {} files from stdin".format(len(DATA_PATH)))
+        logging.debug("Loaded {0} files from stdin".format(len(DATA_PATH)))
     elif len(args) == 1:
         if os.path.isdir(args[0]):
             DATA_PATH = args[0]
         elif os.path.isfile(args[0]):
             DATA_PATH = [args[0]]
         else:
-            error("File or directory does not exist: {}".format(args[0]))
+            error("File or directory does not exist: {0}".format(args[0]))
             return 1
     else:
         for f in args:
             if not os.path.isfile(f):
-                error("One of the specified files does not exist: {}".format(f))
+                error("One of the specified files does not exist: {0}".format(
+                    f))
                 return 1
             if os.path.isdir(f):
                 error(
                     "One of the files you specified is actually" +
-                    " a directory: {}".format(f)
+                    " a directory: {0}".format(f)
                 )
                 return 1
 
@@ -509,14 +511,14 @@ def main():
         fileList = fileList[:MAX_FILES]
 
     num_jobs = len(fileList)
-    logging.debug("Loaded {} files for scanning".format(num_jobs))
+    logging.debug("Loaded {0} files for scanning".format(num_jobs))
 
     # Start consumers
     # If there's less files to process than processes, reduce the number
     # of processes
     if num_jobs < NUM_PROCS:
         NUM_PROCS = num_jobs
-    logging.debug("Starting {} processes".format(NUM_PROCS))
+    logging.debug("Starting {0} processes".format(NUM_PROCS))
     consumers = [Consumer(tasks, results) for i in xrange(NUM_PROCS)]
     try:
 

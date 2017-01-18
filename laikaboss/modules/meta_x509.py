@@ -57,7 +57,7 @@ class META_X509(SI_MODULE):
 
             #serial_number
             #print("serial_number: {:x}".format(cert.get_serial_number()))
-            serial_number = "{:x}".format(cert.get_serial_number())
+            serial_number = "{0:x}".format(cert.get_serial_number())
             scanObject.addMetadata(
                 self.module_name,
                 "serial_number",

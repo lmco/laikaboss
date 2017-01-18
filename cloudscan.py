@@ -100,14 +100,14 @@ def worker(nolimit,
     if USE_SSH:
         try:
             logging.debug(
-                "attempting to connect to broker at {} and SSH host {}".format(
+                "attempting to connect to broker at {0} and SSH host {1}".format(
                     (BROKER_HOST, SSH_HOST)
                 )
             )
             client = Client(BROKER_HOST, useSSH=True, sshHost=SSH_HOST)
         except RuntimeError:
             logging.exception(
-                "could not set up SSH tunnel to {}".format(SSH_HOST)
+                "could not set up SSH tunnel to {0}".format(SSH_HOST)
             )
             sys.exit(1)
     else:
@@ -117,13 +117,13 @@ def worker(nolimit,
     randNum = randint(1, 10000)
 
     for fname in iter(job_queue.get, 'STOP'):
-        print("Worker {}: Starting new request".format(randNum))
+        print("Worker {0}: Starting new request".format(randNum))
         try:
             # Try to read the file
             file_buffer = open(fname, 'rb').read()
             file_len = len(file_buffer)
             logging.debug(
-                "opened file {} with len {}".format(fname, file_len)
+                "opened file {0} with len {1}".format(fname, file_len)
             )
             if file_len > 20971520 and not nolimit:
                 print(
@@ -131,22 +131,23 @@ def worker(nolimit,
                     " Are you sure?\n" +
                     "Use the --remove-limit flag if you really" +
                     " want to do this.\n" +
-                    "File has not been scanned: {}".format(fname)
+                    "File has not been scanned: {0}".format(fname)
                 )
                 result_queue.put(
                     "~~~~~~~~~~~~~~~~~~~~\n" +
-                    "File has not been scanned due to size: {}\n".format(fname) +
+                    "File has not been scanned due to size: {0}\n".format(
+                        fname) +
                     "~~~~~~~~~~~~~~~~~~~~"
                 )
                 continue
         except IOError:
             print(
-                "\nERROR: The file does not exist: {}\n".format(fname) +
+                "\nERROR: The file does not exist: {0}\n".format(fname) +
                 "Moving to next file..."
             )
             result_queue.put(
                 "~~~~~~~~~~~~~~~~~~~~\n" +
-                "File has not been scanned due to an IO Error: {}\n".format(
+                "File has not been scanned due to an IO Error: {0}\n".format(
                      fname) +
                 "~~~~~~~~~~~~~~~~~~~~"
             )
@@ -160,9 +161,11 @@ def worker(nolimit,
                     filename=fname,
                     ephID=ephID,
                     extMetaData=ext_metadata,
-                    source="{}-{}-{}".format(SOURCE,
-                                             hostname,
-                                             getpass.getuser()),
+                    source="{0}-{1}-{2}".format(
+                        SOURCE,
+                        hostname,
+                        getpass.getuser()
+                    ),
                     level=return_level)
             )
             starttime = time.time()
@@ -172,29 +175,29 @@ def worker(nolimit,
             if not result:
                 result_queue.put(
                     "~~~~~~~~~~~~~~~~~~~~\n" +
-                    "File timed out in the scanner: {}\n".format(fname) +
+                    "File timed out in the scanner: {0}\n".format(fname) +
                     "~~~~~~~~~~~~~~~~~~~~"
                 )
                 continue
 
             logging.debug(
-                "got reply in {} seconds".format(str(time.time() - starttime))
+                "got reply in {0} seconds".format(str(time.time() - starttime))
             )
             rootObject = getRootObject(result)
 
             jsonResult = getJSON(result)
-            resultText = '{}\n'.format(jsonResult)
+            resultText = '{0}\n'.format(jsonResult)
 
             if return_level == level_full:
-                FILE_SAVE_PATH = "{}/{}".format(SAVE_PATH,
-                                                get_scanObjectUID(rootObject))
+                FILE_SAVE_PATH = "{0}/{1}".format(SAVE_PATH,
+                                                  get_scanObjectUID(rootObject))
                 if not os.path.exists(FILE_SAVE_PATH):
                     try:
                         os.makedirs(FILE_SAVE_PATH)
-                        print("Writing results to {}...".format(
+                        print("Writing results to {0}...".format(
                             FILE_SAVE_PATH))
                     except (OSError, IOError):
-                        print("\nERROR: unable to write to {}...\n".format(
+                        print("\nERROR: unable to write to {0}...\n".format(
                             FILE_SAVE_PATH)
                         )
                         return
@@ -205,23 +208,23 @@ def worker(nolimit,
                     )
                     return
                 for uid, scanObject in result.files.iteritems():
-                    f = open("{}/{}".format(FILE_SAVE_PATH, uid), "wb")
+                    f = open("{0}/{1}".format(FILE_SAVE_PATH, uid), "wb")
                     f.write(scanObject.buffer)
                     f.close()
                     if scanObject.filename and scanObject.depth != 0:
-                        linkPath = "{}/{}".format(FILE_SAVE_PATH,
-                                                  scanObject.filename.replace(
-                                                      "/", "_")
-                                                 )
+                        linkPath = "{0}/{1}".format(FILE_SAVE_PATH,
+                                                    scanObject.filename.replace(
+                                                        "/", "_")
+                                                   )
                         if not os.path.lexists(linkPath):
-                            os.symlink("{}".format(uid), linkPath)
+                            os.symlink("{0}".format(uid), linkPath)
                     elif scanObject.filename:
                         filenameParts = scanObject.filename.split("/")
-                        linkPath = "{}/{}".format(FILE_SAVE_PATH,
-                                                  filenameParts[-1])
+                        linkPath = "{0}/{1}".format(FILE_SAVE_PATH,
+                                                    filenameParts[-1])
                         if not os.path.lexists(linkPath):
-                            os.symlink("{}".format(uid), linkPath)
-                f = open("{}/{}".format(FILE_SAVE_PATH, "results.json"), "wb")
+                            os.symlink("{0}".format(uid), linkPath)
+                f = open("{0}/{1}".format(FILE_SAVE_PATH, "results.json"), "wb")
                 f.write(jsonResult)
                 f.close()
 
@@ -230,7 +233,7 @@ def worker(nolimit,
             #logging.exception("error occured collecting results")
             result_queue.put(
                 "~~~~~~~~~~~~~~~~~~~~\n" +
-                "UNKNOWN ERROR OCCURRED: {}\n".format(fname) +
+                "UNKNOWN ERROR OCCURRED: {0}\n".format(fname) +
                 "~~~~~~~~~~~~~~~~~~~~"
             )
             continue
@@ -373,7 +376,7 @@ def main():
     if options.debug:
         logging.basicConfig(level=logging.DEBUG)
 
-    logging.debug("Host: {}".format(BROKER_HOST))
+    logging.debug("Host: {0}".format(BROKER_HOST))
 
     if options.return_level:
         RETURN_LEVEL = options.return_level
@@ -399,7 +402,7 @@ def main():
         num_procs = int(getConfig('num_procs'))
 
     if options.timeout:
-        logging.debug("default timeout changed to {}".format(options.timeout))
+        logging.debug("default timeout changed to {0}".format(options.timeout))
         REQUEST_TIMEOUT = options.timeout * 1000
     else:
         REQUEST_TIMEOUT = int(getConfig('request_timeout'))
@@ -428,7 +431,7 @@ def main():
 
     # Attempt to set the return level, throw an error if it doesn't exist.
     try:
-        return_level = globals()["level_{}".format(RETURN_LEVEL)]
+        return_level = globals()["level_{0}".format(RETURN_LEVEL)]
     except KeyError:
         print("Please specify a valid return level: minimal, metadata or full")
         sys.exit(1)
@@ -442,7 +445,7 @@ def main():
                 file_buffer = open(args[0], 'rb').read()
                 file_len = len(file_buffer)
                 logging.debug(
-                    "opened file {} with len {}".format(args[0], file_len)
+                    "opened file {0} with len {1}".format(args[0], file_len)
                 )
             else:
                 while sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
@@ -466,7 +469,7 @@ def main():
                 )
                 sys.exit(1)
         except IOError:
-            print("\nERROR: The file does not exist: {}\n".format(args[0]))
+            print("\nERROR: The file does not exist: {0}\n".format(args[0]))
             sys.exit(1)
     else:
         try:
@@ -500,7 +503,7 @@ def main():
                 sys.exit(1)
 
         except IOError:
-            print("\nERROR: Directory does not exist: {}\n".format(args[0]))
+            print("\nERROR: Directory does not exist: {0}\n".format(args[0]))
             sys.exit(1)
 
     if not options.recursive:
@@ -518,9 +521,11 @@ def main():
                 filename=filename,
                 ephID=options.ephID,
                 extMetaData=ext_metadata,
-                source="{}-{}-{}".format(SOURCE,
-                                         hostname,
-                                         getpass.getuser())
+                source="{0}-{1}-{2}".format(
+                    SOURCE,
+                    hostname,
+                    getpass.getuser()
+                )
             ),
             level=return_level
         )
@@ -531,7 +536,7 @@ def main():
                 try:
                     logging.debug(
                         "attempting to connect to broker at" +
-                        " {} and SSH host {}".format(BROKER_HOST, SSH_HOST)
+                        " {0} and SSH host {1}".format(BROKER_HOST, SSH_HOST)
                     )
                     client = Client(BROKER_HOST,
                                     useSSH=True,
@@ -539,7 +544,7 @@ def main():
                                     useGevent=True)
                 except RuntimeError:
                     logging.exception(
-                        "could not set up SSH tunnel to {}".format(SSH_HOST)
+                        "could not set up SSH tunnel to {0}".format(SSH_HOST)
                     )
                     sys.exit(1)
             else:
@@ -551,7 +556,7 @@ def main():
                                  retry=REQUEST_RETRIES,
                                  timeout=REQUEST_TIMEOUT)
             logging.debug(
-                "got reply in {} seconds".format(str(time.time() - starttime))
+                "got reply in {0} seconds".format(str(time.time() - starttime))
             )
             if result:
                 rootObject = getRootObject(result)
@@ -562,17 +567,18 @@ def main():
                     logging.exception("error occured collecting results")
                     return
                 if return_level == level_full:
-                    SAVE_PATH = "{}/{}".format(SAVE_PATH,
-                                               get_scanObjectUID(rootObject))
+                    SAVE_PATH = "{0}/{1}".format(SAVE_PATH,
+                                                 get_scanObjectUID(rootObject))
                     if not os.path.exists(SAVE_PATH):
                         try:
                             os.makedirs(SAVE_PATH)
                             print(
-                                "\nWriting results to {}...\n".format(SAVE_PATH)
+                                "\nWriting results to {0}...\n".format(
+                                    SAVE_PATH)
                             )
                         except (OSError, IOError):
                             print(
-                                "\nERROR: unable to write to {}...\n".format(
+                                "\nERROR: unable to write to {0}...\n".format(
                                     SAVE_PATH)
                             )
                             return
@@ -583,25 +589,26 @@ def main():
                         )
                         return
                     for uid, scanObject in result.files.iteritems():
-                        f = open("{}/{}".format(SAVE_PATH, uid), "wb")
+                        f = open("{0}/{1}".format(SAVE_PATH, uid), "wb")
                         f.write(scanObject.buffer)
                         f.close()
                         try:
                             if scanObject.filename and scanObject.parent:
-                                linkPath = "{}/{}".format(
+                                linkPath = "{0}/{1}".format(
                                     SAVE_PATH,
                                     scanObject.filename.replace("/", "_"))
                                 if not os.path.lexists(linkPath):
-                                    os.symlink("{}".format(uid), linkPath)
+                                    os.symlink("{0}".format(uid), linkPath)
                             elif scanObject.filename:
                                 filenameParts = scanObject.filename.split("/")
-                                os.symlink("{}".format(uid),
-                                           "{}/{}".format(SAVE_PATH,
-                                                          filenameParts[-1]))
+                                os.symlink("{0}".format(uid),
+                                           "{0}/{1}".format(SAVE_PATH,
+                                                            filenameParts[-1]))
                         except Exception:
-                            print("Unable to create symlink for {}".format(uid))
+                            print("Unable to create symlink for {0}".format(
+                                uid))
 
-                    f = open("{}/{}".format(SAVE_PATH, "results.log"), "wb")
+                    f = open("{0}/{1}".format(SAVE_PATH, "results.log"), "wb")
                     f.write(jsonResult)
                     f.close()
                     sys.exit(1)
@@ -621,7 +628,7 @@ def main():
             for i in range(num_procs):
                 job_queue.put("STOP")
 
-            print("File list length: {}".format(len(fileList)))
+            print("File list length: {0}".format(len(fileList)))
 
             for i in range(num_procs):
                 Process(target=worker,
@@ -642,14 +649,14 @@ def main():
 
             results_processed = 0
             while results_processed < len(fileList):
-                logging.debug("Files left: {}".format(
+                logging.debug("Files left: {0}".format(
                     (len(fileList) - results_processed))
                 )
                 resultText = result_queue.get()
                 try:
                     # Process results
                     fh = open('cloudscan.log', 'ab')
-                    fh.write('{}\n'.format(resultText))
+                    fh.write('{0}\n'.format(resultText))
                     fh.close()
                     results_processed += 1
                 except Exception:

@@ -118,9 +118,9 @@ class SCAN_YARA(SI_MODULE):
         for m in matches:
             if m.meta:
                 scanObject.addMetadata(self.module_name, str(m), m.meta)
-                scanObject.addFlag("yr:{}".format(str(m)))
+                scanObject.addFlag("yr:{0}".format(str(m)))
                 # Placeholder for standardized flag format
-                #scanObject.addFlag("s_yr::{}".format(str(m)))
+                #scanObject.addFlag("s_yr::{0}".format(str(m)))
         return moduleResult
 
     def _cleanValue(self, value):
@@ -161,7 +161,7 @@ class SCAN_YARA(SI_MODULE):
         for x in args_externalVars:
             if x not in externalVars:
                 externalVars[x] = 'None'
-        logging.debug('EXTERNAL VARS: {}'.format(externalVars))
+        logging.debug('EXTERNAL VARS: {0}'.format(externalVars))
         return externalVars
 
     @staticmethod

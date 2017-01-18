@@ -56,8 +56,8 @@ def _run_module(sm, scanObject, result, depth, args, earlyQuitTime=0):
             Dispatcher
     '''
     logging.debug(
-        "si_dispatch - Attempting to run module {} against ".format(sm) +
-        "- uid: {}, filename {} with args {}".format(
+        "si_dispatch - Attempting to run module {0} against ".format(sm) +
+        "- uid: {0}, filename {1} with args {2}".format(
             get_scanObjectUID(scanObject),
             scanObject.filename,
             repr(args))
@@ -74,7 +74,7 @@ def _run_module(sm, scanObject, result, depth, args, earlyQuitTime=0):
                 error = traceback.format_exc().splitlines()[-1]
                 errorText = (
                     "Module could not be initialized: " +
-                    "{} Error: {}".format(sm, error)
+                    "{0} Error: {1}".format(sm, error)
                 )
                 log_module_error(
                     "si_dispatch",
@@ -85,12 +85,12 @@ def _run_module(sm, scanObject, result, depth, args, earlyQuitTime=0):
                 logging.debug(errorText)
                 return
         else:
-            logging.debug("module doesn't exist: {}".format(sm))
+            logging.debug("module doesn't exist: {0}".format(sm))
             log_module_error(
                 "si_dispatch",
                 scanObject,
                 result,
-                "module not found: {}".format(sm)
+                "module not found: {0}".format(sm)
             )
             return
     newscan = module_pointers[sm]
@@ -135,7 +135,7 @@ def _conditional_scan(scanObject, externalVars, result, depth):
     try:
         logging.debug(
             "attempting conditional disposition on " +
-            "{} with {} uID: {} parent: {}".format(
+            "{0} with {1} uID: {2} parent: {3}".format(
                 scanObject.filename,
                 listToSSV(scanObject.flags),
                 get_scanObjectUID(scanObject),
@@ -168,13 +168,14 @@ def _conditional_scan(scanObject, externalVars, result, depth):
     except Exception:
         logging.exception(
             "si_dispatch: ERROR occured on conditional_scan on UID:" +
-            "{} Check your configuration!".format(get_scanObjectUID(scanObject))
+            "{0} Check your configuration!".format(
+                get_scanObjectUID(scanObject))
         )
         log_module_error(
             "si_dispatch",
             scanObject,
             result,
-            "error during conditional_scan: {}".format(traceback.format_exc())
+            "error during conditional_scan: {0}".format(traceback.format_exc())
         )
         return
     # Recusively call the Dispatcher if any conditional scans need to be
@@ -280,10 +281,10 @@ def _get_module_queue(yresults, result, scanObject, metaLabel):
             # Check to see if the rule has a priority, if not use the default
             if 'priority' in yr.meta:
                 priority = int(yr.meta['priority'])
-                logging.debug("Rule {} set priority {}".format(yr, priority))
+                logging.debug("Rule {0} set priority {1}".format(yr, priority))
             else:
                 priority = int(config.defaultmodulepriority)
-            scanObject.addMetadata("DISPATCH", metaLabel, "{} ({})".format(
+            scanObject.addMetadata("DISPATCH", metaLabel, "{0} ({1})".format(
                 str(yr), priority))
             moduleQueue.put((priority,
                              uniqueList(yr.meta['scan_modules'].split())))
@@ -295,10 +296,10 @@ def _get_module_queue(yresults, result, scanObject, metaLabel):
             scanObject.fileType.append(yr.meta['file_type'])
     dispatchFlags = set(dispatchFlags)
     for df in dispatchFlags:
-        scanObject.addFlag("dispatch::{}".format(df))
+        scanObject.addFlag("dispatch::{0}".format(df))
     if scanObject.parent in result.files:
         for pdf in parentDispatchFlags:
-            result.files[scanObject.parent].addFlag("dispatch::{}".format(pdf))
+            result.files[scanObject.parent].addFlag("dispatch::{0}".format(pdf))
 
     return moduleQueue
 
@@ -342,7 +343,7 @@ def _process_module_queue(moduleQueue, result, depth, scanObject,
         for sm in scanModules:
             if sm in moduleSeen:
                 logging.debug(
-                    "Already ran {}, continuing to the next module".format(sm))
+                    "Already ran {0}, continuing to the next module".format(sm))
                 continue
             module, args = get_module_arguments(sm)
             _run_module(module, scanObject, result, depth, args, earlyQuitTime)
@@ -412,7 +413,7 @@ def Dispatch(
         MAXBYTES = int(config.dispatchmaxbytes)
         if MAXBYTES < 0:
             MAXBYTES = 0
-        logging.debug('setting dispatch byte limit to {}'.format(MAXBYTES))
+        logging.debug('setting dispatch byte limit to {0}'.format(MAXBYTES))
 
     # This branch is designed for first-pass scanning where file type and scan
     # modules are unknown
@@ -436,7 +437,7 @@ def Dispatch(
 
         logging.debug(
             "si_dispatch - Attempting to dispatch - uid: " +
-            "{}, filename: {}, source module: {}".format(
+            "{0}, filename: {1}, source module: {2}".format(
                 get_scanObjectUID(scanObject),
                 externalVars.filename,
                 externalVars.sourceModule)
@@ -497,7 +498,7 @@ def Dispatch(
 
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 logging.exception(
-                    "error on {}. exception details below: ".format(
+                    "error on {0}. exception details below: ".format(
                         get_scanObjectUID(getRootObject(result)))
                 )
 
@@ -547,7 +548,7 @@ def Dispatch(
 
                 exc_type, exc_value, exc_traceback = sys.exc_info()
                 logging.exception(
-                    "error on {}. exception details below: ".format(
+                    "error on {0}. exception details below: ".format(
                         get_scanObjectUID(getRootObject(result)))
                 )
 
@@ -569,6 +570,6 @@ def Dispatch(
         _process_module_queue(extScanModules, result, depth, scanObject)
 
     logging.debug(
-        "si_dispatch - depth: {}, time: {}".format(
+        "si_dispatch - depth: {0}, time: {1}".format(
             depth, time.time() - starttime)
     )

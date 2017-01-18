@@ -32,7 +32,7 @@ class DECODE_BASE64(SI_MODULE):
                 ModuleObject(
                     buffer=decoded,
                     externalVars=ExternalVars(
-                        filename="d_base64_{}".format(len(decoded))
+                        filename="d_base64_{0}".format(len(decoded))
                     )
                 )
             )

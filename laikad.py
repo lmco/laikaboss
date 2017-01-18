@@ -162,7 +162,7 @@ class AsyncBroker(Process):
 
         while self.keep_running:
             logging.debug(
-                "Broker: beginning loop\n\tavailable: {}".format(
+                "Broker: beginning loop\n\tavailable: {0}".format(
                     str(available_workers))
             )
 
@@ -208,12 +208,12 @@ class AsyncBroker(Process):
 
                     if status == LRU_READY or status == LRU_RESULT_READY:
                         logging.debug(
-                            "Broker: worker ({}) ready".format(worker_id))
+                            "Broker: worker ({0}) ready".format(worker_id))
                         if worker_id not in available_workers:
                             available_workers.append(worker_id)
                     elif status == LRU_RESULT_QUIT or status == LRU_QUIT:
                         logging.debug(
-                            "Broker: worker ({}) quitting".format(worker_id))
+                            "Broker: worker ({0}) quitting".format(worker_id))
                         try:
                             available_workers.remove(worker_id)
                         except ValueError:
@@ -290,8 +290,10 @@ class SyncBroker(Process):
 
         while self.keep_running:
             logging.debug(
-                "Broker: beginning loop\n\tavailable: {}\n\tworking: {}".format(
-                    str(available_workers), str(working_workers))
+                "Broker: beginning loop\n\tavailable: " +
+                "{0}\n\tworking: {1}".format(
+                    str(available_workers), str(working_workers)
+                )
             )
 
             try:
@@ -335,19 +337,19 @@ class SyncBroker(Process):
                     #   reply       --  The content of the reply
                     msg = backend.recv_multipart()
                     #logging.debug(
-                    #    "Broker: received message {}".format(str(msg)))
+                    #    "Broker: received message {0}".format(str(msg)))
                     worker_id = msg[0]
                     status = msg[2]
 
                     if status == LRU_READY:
                         logging.debug(
-                            "Broker: worker ({}) ready".format(worker_id))
+                            "Broker: worker ({0}) ready".format(worker_id))
                         if (worker_id not in available_workers and
                             worker_id not in working_workers):
                             available_workers.append(worker_id)
                     elif status == LRU_RESULT_READY:
                         logging.debug(
-                            "Broker: worker ({}) finished scan, ready".format(
+                            "Broker: worker ({0}) finished scan, ready".format(
                                 worker_id)
                         )
                         try:
@@ -365,8 +367,9 @@ class SyncBroker(Process):
                             available_workers.append(worker_id)
                     elif status == LRU_RESULT_QUIT:
                         logging.debug(
-                            "Broker: worker ({}) finished scan, quitting".format(
-                            worker_id)
+                            "Broker: worker ({0}) finished scan, ".format(
+                                 worker_id) +
+                            "quitting"
                         )
                         try:
                             working_workers.remove(worker_id)
@@ -380,7 +383,7 @@ class SyncBroker(Process):
                         frontend.send_multipart(msg[4:])
                     elif status == LRU_QUIT:
                         logging.debug(
-                            "Broker: worker ({}) quitting".format(worker_id))
+                            "Broker: worker ({0}) quitting".format(worker_id))
                         try:
                             available_workers.remove(worker_id)
                         except ValueError:
@@ -401,7 +404,8 @@ class SyncBroker(Process):
         while(working_workers and
               (time.time() - start_time < self.shutdown_grace_timeout)):
             logging.debug(
-                "Broker: beginning graceful shutdown loop\n\tworking: {}".format(
+                "Broker: beginning graceful shutdown loop\n\tworking:" +
+                " {0}".format(
                     str(working_workers))
             )
             msgs = dict(backend_poller.poll(poll_timeout))
@@ -420,7 +424,7 @@ class SyncBroker(Process):
                 status = msg[2]
                 if status == LRU_RESULT_READY or status == LRU_RESULT_QUIT:
                     logging.debug(
-                        "Broker: worker ({}) finished scan".format(worker_id))
+                        "Broker: worker ({0}) finished scan".format(worker_id))
                     try:
                         working_workers.remove(worker_id)
                     except ValueError:
@@ -464,7 +468,7 @@ class Worker(Process):
         self.keep_running = False
 
         self.broker_address = broker_address
-        self.identity = "{:04X}-{:04X}".format(
+        self.identity = "{0:04X}-{1:04X}".format(
             (randint(0, 0x10000), randint(0, 0x10000)))
         self.broker = None
         self.broker_poller = zmq.Poller()
@@ -493,11 +497,11 @@ class Worker(Process):
         # If task is found, perform scan
         try:
             logging.debug(
-                "Worker ({}): checking for work".format(self.identity))
+                "Worker ({0}): checking for work".format(self.identity))
             tasks = dict(self.broker_poller.poll(poll_timeout))
             if tasks.get(self.broker) == zmq.POLLIN:
                 logging.debug(
-                    "Worker ({}): performing scan".format(self.identity))
+                    "Worker ({0}): performing scan".format(self.identity))
                 # task should be in the following format
                 # ['', client_id, '', request_type, '', request]
                 # where:
@@ -513,7 +517,7 @@ class Worker(Process):
                     request = task[5]
                     if request_type in [REQ_TYPE_PICKLE, REQ_TYPE_PICKLE_ZLIB]:
                         #logging.debug(
-                        #    "Worker: received work {}".format(str(task)))
+                        #    "Worker: received work {0}".format(str(task)))
                         if request_type == REQ_TYPE_PICKLE_ZLIB:
                             externalObject = pickle.loads(
                                 zlib.decompress(request))
@@ -591,9 +595,9 @@ class Worker(Process):
                     except:
                         exc_type, exc_value, exc_traceback = sys.exc_info()
                         log_debug(
-                            "exception on file: {}, ".format(
+                            "exception on file: {0}, ".format(
                                  externalObject.externalVars.filename) +
-                            "detailed exception: {}".format(
+                            "detailed exception: {0}".format(
                                 repr(traceback.format_exception(
                                     exc_type, exc_value, exc_traceback)))
                         )
@@ -616,33 +620,34 @@ class Worker(Process):
         except zmq.ZMQError as zmqerror:
             if "Interrupted system call" not in str(zmqerror):
                 logging.exception(
-                    "Worker ({}): Received ZMQError".format(self.identity))
+                    "Worker ({0}): Received ZMQError".format(self.identity))
             else:
                 logging.debug(
-                    "Worker ({}): ZMQ interrupted by shutdown signal".format(
+                    "Worker ({0}): ZMQ interrupted by shutdown signal".format(
                         self.identity))
         return None
 
     def shutdown(self):
         """Shutdown method to be called by the signal handler"""
         logging.debug(
-            "Worker ({}): shutdown handler triggered".format(self.identity))
+            "Worker ({0}): shutdown handler triggered".format(self.identity))
         self.keep_running = False
         raise QuitScanException()
 
     def run(self):
         """Main process logic"""
-        logging.debug("Worker ({}): starting up".format(self.identity))
+        logging.debug("Worker ({0}): starting up".format(self.identity))
 
         from laikaboss import config
         from laikaboss.dispatch import close_modules
         from laikaboss.util import init_logging
 
-        logging.debug("using config {}".format(self.config_location))
+        logging.debug("using config {0}".format(self.config_location))
         config.init(path=self.config_location)
         init_logging()
 
-        log_debug("Worker {} started at {}".format(self.identity, time.time()))
+        log_debug("Worker {0} started at {1}".format(
+            self.identity, time.time()))
 
         self.keep_running = True
         perform_grace_check = False
@@ -652,7 +657,7 @@ class Worker(Process):
         signal.signal(signal.SIGINT, functools.partial(shutdown_handler, self))
 
         # Connect to broker
-        logging.debug("Worker ({}): connecting broker".format(self.identity))
+        logging.debug("Worker ({0}): connecting broker".format(self.identity))
         context = zmq.Context(1)
         self.broker = context.socket(zmq.DEALER)
         self.broker.setsockopt(zmq.IDENTITY, self.identity)
@@ -711,7 +716,7 @@ class Worker(Process):
                 #   client_id   --  ZMQ identifier of the client socket
                 #   reply       --  The content of the reply
                 #logging.debug(
-                #    "Worker: sending request {}".format(str(reply)))
+                #    "Worker: sending request {0}".format(str(reply)))
                 tracker = self.broker.send_multipart(reply,
                                                      copy=False,
                                                      track=True)
@@ -723,24 +728,25 @@ class Worker(Process):
             except zmq.ZMQError as zmqerror:
                 if "Interrupted system call" not in str(zmqerror):
                     logging.exception(
-                        "Worker ({}): Received ZMQError".format(self.identity))
+                        "Worker ({0}): Received ZMQError".format(self.identity))
                 else:
                     logging.debug(
-                        "Worker ({}): ZMQ interrupted by shutdown signal".format(
-                            self.identity))
+                        "Worker ({0}): ".format(self.identity) +
+                        "ZMQ interrupted by shutdown signal"
+                    )
             except QuitScanException:
                 logging.debug(
-                    "Worker ({}): Caught scan termination exception".format(
+                    "Worker ({0}): Caught scan termination exception".format(
                         self.identity))
                 break
 
         # Begin graceful shutdown
         logging.debug(
-            "Worker ({}): beginning graceful shutdown sequence".format(
+            "Worker ({0}): beginning graceful shutdown sequence".format(
                 self.identity))
         if perform_grace_check:
             logging.debug(
-                "Worker ({}): performing grace check".format(self.identity))
+                "Worker ({0}): performing grace check".format(self.identity))
             try:
                 result = self.perform_scan(self.poll_timeout)
                 if result:
@@ -760,11 +766,12 @@ class Worker(Process):
             except zmq.ZMQError as zmqerror:
                 if "Interrupted system call" not in str(zmqerror):
                     logging.exception(
-                        "Worker ({}): Received ZMQError".format(self.identity))
+                        "Worker ({0}): Received ZMQError".format(self.identity))
                 else:
                     logging.debug(
-                        "Worker ({}): ZMQ interrupted by shutdown signal".format(
-                            self.identity))
+                        "Worker ({0}): ".format(self.identity) +
+                        "ZMQ interrupted by shutdown signal"
+                    )
 
         try:
             with timeout(self.shutdown_grace_timeout,
@@ -772,20 +779,20 @@ class Worker(Process):
                 close_modules()
         except QuitScanException:
             logging.debug(
-                "Worker ({}): Caught scan termination ".format(self.identity) +
+                "Worker ({0}): Caught scan termination ".format(self.identity) +
                 "exception during destruction"
             )
         log_debug(
-            "Worker {} dying after {} objects and {} seconds".format(
+            "Worker {0} dying after {1} objects and {2} seconds".format(
                 self.identity, counter, time.time() - start_time))
         logging.debug(
-            "Worker ({}): finished".format(self.identity))
+            "Worker ({0}): finished".format(self.identity))
 
 
 def log_debug(message):
     """Log a debug message"""
     syslog.syslog(syslog.LOG_DEBUG,
-                  "DEBUG ({}) {}".format(os.getpid(), message))
+                  "DEBUG ({0}) {1}".format(os.getpid(), message))
 
 
 def get_option(option, default=''):
@@ -806,7 +813,7 @@ def shutdown_handler(proc, signum, frame):
     proc    --  The process that should be shutdown.
 
     """
-    logging.debug("Shutdown handler triggered ({})".format(signum))
+    logging.debug("Shutdown handler triggered ({0})".format(signum))
     proc.shutdown()
 
 
@@ -900,7 +907,7 @@ def main():
     else:
         print(
             "A valid laikad configuration was not found in either of the " +
-            "following locations: \n{}\n{}".format(
+            "following locations: \n{0}\n{1}".format(
                 DEFAULT_CONFIGS['laikad_dev_config_path'],
                 DEFAULT_CONFIGS['laikad_sys_config_path'])
         )
@@ -918,7 +925,7 @@ def main():
     if options.laikaboss_config_path:
         laikaboss_config_path = options.laikaboss_config_path
         logging.debug(
-            "using alternative config path: {}".format(
+            "using alternative config path: {0}".format(
                 options.laikaboss_config_path)
         )
         if not os.path.exists(options.laikaboss_config_path):
@@ -938,7 +945,7 @@ def main():
     else:
         print(
             "A valid framework configuration was not found in either of the " +
-            "following locations: \n{}\n{}".format(
+            "following locations: \n{0}\n{1}".format(
                 DEFAULT_CONFIGS['dev_config_path'],
                 DEFAULT_CONFIGS['sys_config_path'])
         )
@@ -1006,7 +1013,7 @@ def main():
             os.setuid(runas_uid)
     except OSError:
         print(
-            "Unable to set user ID to {}, defaulting to current user".format(
+            "Unable to set user ID to {0}, defaulting to current user".format(
                 runas_uid)
         )
 
@@ -1086,7 +1093,7 @@ def main():
 
     logging.debug("Supervisor: beginning graceful shutdown sequence")
     logging.info(
-        "Supervisor: giving workers {} second grace period".format(
+        "Supervisor: giving workers {0} second grace period".format(
             gracetimeout)
     )
     time.sleep(gracetimeout)
