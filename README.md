@@ -78,7 +78,7 @@ Laika BOSS has been tested on the latest versions of CentOS and Ubuntu LTS
 
 	```shell
 	sudo yum install -y epel-release
-	sudo yum install -y autoconf automake libtool libffi-devel python-devel python-pip python-zmq ssdeep-devel swig openssl-devel perl-devel
+	sudo yum install -y autoconf automake libtool libffi-devel python-devel python-pip python-zmq ssdeep-devel swig openssl-devel perl-devel pefile
 	```
 2. Install Python modules
 
@@ -104,16 +104,6 @@ Laika BOSS has been tested on the latest versions of CentOS and Ubuntu LTS
 	unzip master.zip
 	python setup.py build
 	sudo python setup.py install
-	```
-
-5. Install pefile
-	
-	```shell
-	wget https://github.com/erocarrera/pefile/archive/master.zip
-	unzip master.zip
-	cd pefile-master
-	python setup.py build
-	python setup.py install --user
 	```
 
 You may need to set the `LD_LIBRARY_PATH` variable to include `/usr/local/lib` when running Laika.
