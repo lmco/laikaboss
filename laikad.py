@@ -469,7 +469,7 @@ class Worker(Process):
 
         self.broker_address = broker_address
         self.identity = "{0:04X}-{1:04X}".format(
-            (randint(0, 0x10000), randint(0, 0x10000)))
+            randint(0, 0x10000), randint(0, 0x10000))
         self.broker = None
         self.broker_poller = zmq.Poller()
         self.poll_timeout = poll_timeout * 1000 # Poller uses milliseconds
