@@ -41,7 +41,7 @@ from random import randint
 from socket import gethostname
 
 from laikaboss.objectmodel import ExternalObject, ExternalVars
-from laikaboss.constants import level_full
+from laikaboss.constants import level_full, level_metadata, level_minimal
 from laikaboss.clientLib import (
     Client,
     get_scanObjectUID,
