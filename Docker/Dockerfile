@@ -92,12 +92,12 @@ RUN cd /tmp && \
   cd /tmp && \
 
 # Retrieve current version of pefile via wget, verify known good hash and install pefile
-  wget "http://pefile.googlecode.com/files/pefile-1.2.10-139.tar.gz" && \
-  echo 8b7c5d853c97a923d0f6e128d0ae76b962aa75fd608d552f5a32e46276908a16\ \ pefile-1.2.10-139.tar.gz > sha256sum-pefile && \
+  wget "https://github.com/erocarrera/pefile/archive/pefile-1.2.10-139.tar.gz" && \
+  echo 3297cb72e6a51befefc3d9b27ec7690b743ee826538629ecf68f4eee64f331ab\ \ pefile-1.2.10-139.tar.gz > sha256sum-pefile && \
   sha256sum -c sha256sum-pefile && \
 
   tar vxzf pefile-1.2.10-139.tar.gz && \
-  cd pefile-1.2.10-139 && \
+  cd pefile-pefile-1.2.10-139 && \
   python setup.py build && \
   python setup.py install && \
   cd /tmp && \
