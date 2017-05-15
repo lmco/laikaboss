@@ -27,7 +27,7 @@
 # limitations under the License.
 #
 
-FROM ubuntu:14.04
+FROM ubuntu:16.04
 MAINTAINER Zod (@wzod)
 
 ENV DEBIAN_FRONTEND noninteractive
@@ -44,6 +44,7 @@ RUN apt-get update && \
   libfuzzy-dev \
   libimage-exiftool-perl \
   liblzma5 \
+  libssl-dev \
   libtool \
   libzmq3 \
   make \
@@ -52,7 +53,6 @@ RUN apt-get update && \
   python-gevent \
   python-ipy \
   python-m2crypto \
-  python-msgpack \
   python-pexpect \
   python-pip \
   python-progressbar \
@@ -60,21 +60,27 @@ RUN apt-get update && \
   python-zmq \
   unrar \
   unzip \
-  wget
+  wget && \
+
+# Update setuptools
+  pip install --upgrade setuptools
 
 # Retrieve current version of Yara via wget, verify known good hash and install Yara
 RUN cd /tmp && \
-  wget -O yarav3.4.0.tar.gz "https://github.com/plusvic/yara/archive/v3.4.0.tar.gz" && \
-  echo 528571ff721364229f34f6d1ff0eedc3cd5a2a75bb94727dc6578c6efe3d618b\ \ yarav3.4.0.tar.gz > sha256sum-yara && \
+  wget -O yara.v3.5.0.tar.gz "https://github.com/VirusTotal/yara/archive/v3.5.0.tar.gz" && \
+  echo 4bc72ee755db85747f7e856afb0e817b788a280ab5e73dee42f159171a9b5299\ \ yara.v3.5.0.tar.gz > sha256sum-yara && \
   sha256sum -c sha256sum-yara && \
 
-  tar vxzf yarav3.4.0.tar.gz && \
-  cd yara-3.4.0 && \
+  tar vxzf yara.v3.5.0.tar.gz && \
+  cd yara-3.5.0/ && \
   ./bootstrap.sh && \
   ./configure && \
   make && \
   make install && \
+  cd /tmp && \
 
+# Retrieve yara-python from the project's site using recursive option and install yara-python
+  git clone --recursive https://github.com/VirusTotal/yara-python && \
   cd yara-python/ && \
   python setup.py build && \
   python setup.py install && \
@@ -92,12 +98,13 @@ RUN cd /tmp && \
   cd /tmp && \
 
 # Retrieve current version of pefile via wget, verify known good hash and install pefile
-  wget "http://pefile.googlecode.com/files/pefile-1.2.10-139.tar.gz" && \
-  echo 8b7c5d853c97a923d0f6e128d0ae76b962aa75fd608d552f5a32e46276908a16\ \ pefile-1.2.10-139.tar.gz > sha256sum-pefile && \
+  wget -O pefile-1.2.10-139.tar.gz "https://github.com/erocarrera/pefile/archive/pefile-1.2.10-139.tar.gz" && \
+  echo 3297cb72e6a51befefc3d9b27ec7690b743ee826538629ecf68f4eee64f331ab\ \ pefile-1.2.10-139.tar.gz > sha256sum-pefile && \
   sha256sum -c sha256sum-pefile && \
 
   tar vxzf pefile-1.2.10-139.tar.gz && \
-  cd pefile-1.2.10-139 && \
+  cd pefile-pefile-1.2.10-139/ && \
+  sed -i s/1\.2\.10.*/1\.2\.10\.139\'/ pefile.py && \
   python setup.py build && \
   python setup.py install && \
   cd /tmp && \
@@ -112,8 +119,10 @@ RUN cd /tmp && \
 # Install additional dependencies
 RUN cd /tmp && \
   pip install fluent-logger \
+  future \
   interruptingcow \
   javatools \
+  msgpack-python \
   olefile \
   pylzma \
   py-unrar2 \
