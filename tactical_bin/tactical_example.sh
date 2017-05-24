@@ -49,7 +49,7 @@ FILENAME="$1"
 
 if [ ! -e "$FILENAME" ]
 then 
-    echo "ERORR: Could not open input file $FILENAME"
+    echo "ERROR: Could not open input file $FILENAME"
     exit
 fi
 
