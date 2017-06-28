@@ -583,7 +583,7 @@ class Dispositioner():
         try:
             self.client.close()
         except:
-            #If client in not connected check your laikamilter config
+            #If client is not connected check your laikamilter config
             if self.client == None:
                 self.logger.writeLog(syslog.LOG_ERR, "ERROR cannot close non-connected client in ZMQ context")
             else:
