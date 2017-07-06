@@ -43,6 +43,13 @@ def convertToUTF8(thing):
     else:
         return repr(thing)
 
+#Utility function to (conditionally) convert a unicode buffer to UTF-8
+def ensureNotUnicode(buffer):
+    if type(buffer) is unicode:
+        return buffer.encode('utf-8')
+    else:
+        return buffer
+
 def cleanKey(key):
     bad_chars = ['\0', '.', '$']
     new_key = key
@@ -94,7 +101,7 @@ class ScanObject(object):
         self.scanModules = []
         self.flags = []
         self.objectHash = objectHash
-        self.buffer = buffer
+        self.buffer = ensureNotUnicode(buffer)
         self.objectSize = objectSize
         self.filename = filename
         self.ephID = convertToUTF8(ephID)
@@ -221,7 +228,7 @@ class ScanResult(object):
 
 class SI_Object(object):
     def __init__(self, buffer, externalVars):
-        self.buffer = buffer
+        self.buffer = ensureNotUnicode(buffer)
         self.externalVars = externalVars 
     buffer = ""
     externalVars = None
