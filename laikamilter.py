@@ -576,6 +576,7 @@ class Dispositioner():
         self.milterConfig.loadAll()
         self.logger = logger
         self.attachements           = ""
+        self.uuid                   = ""
         
         
     #Required final call to close zmq connection
@@ -588,7 +589,14 @@ class Dispositioner():
         
     #public function to get flags from si-scan
     def zmqGetFlagswithRetry(self, numRetries, milterContext):
+        self.uuid = milterContext.uuid
         sendResponse = self._zmqGetFlags(numRetries, milterContext)
+        if sendResponse == -1:
+            #If your servers list is blank, you need to add servers into your laikamilter config
+            self.logger.writeLog(syslog.LOG_ERR, \
+                        "ERROR Laikamilter failed to get a response from the Laikad servers:"\
+                        + str(milterContext.milterConfig.servers)
+                    )
         
             
     def _getNextScanServer(self):
@@ -628,7 +636,6 @@ class Dispositioner():
     def _zmqSendBuffer(self, milterContext,numRetries, REQUEST_TIMEOUT,SERVER_ENDPOINT):
         gotResponseFromScanner=-1
         self.client = Client(SERVER_ENDPOINT)
-        
         log = milterContext.uuid+" Sending "+ str(milterContext.qid)+" to "+ SERVER_ENDPOINT
         self.logger.writeLog(syslog.LOG_DEBUG, "%s"%(str(log)))
         myhostname = socket.gethostname()
@@ -636,7 +643,8 @@ class Dispositioner():
                                         buffer=milterContext.fileBuffer, 
                                         externalVars=ExternalVars(
                                                                   filename=milterContext.archiveFileName, 
-                                                                  source=milterContext.milterConfig.milterName+"-"+str(myhostname[:myhostname.index(".")]),
+                                                                  source=milterContext.milterConfig.milterName+"-"+ \
+                                                                          (str(myhostname[:myhostname.index(".")]) if "." in myhostname else str(myhostname)),
                                                                   ephID=milterContext.qid,
                                                                   uniqID=milterContext.messageID
                                                                  ),
