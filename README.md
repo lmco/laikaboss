@@ -1,5 +1,15 @@
 # Laika BOSS: Object Scanning System
 
+Laika BOSS is a versatile file-centric scanner and intrusion detection system. 
+
+## Documentation
+
+See the [Wiki](https://github.com/lmco/laikaboss/wiki) for documentation, examples, and other useful information.
+
+Read the ***[whitepaper](http://lockheedmartin.com/content/dam/lockheed/data/isgs/documents/LaikaBOSS%20Whitepaper.pdf)*** "Laika BOSS: Scalable File-Centric Malware Analysis and Intrusion Detection System"
+
+## Overview
+
 Laika is an object scanner and intrusion detection system that strives to achieve the following goals:
 
 + **Scalable**
@@ -14,6 +24,7 @@ Laika is an object scanner and intrusion detection system that strives to achiev
 + **Verbose**
 	+ Generate more metadata than you know what to do with
 
+
 Each scan does three main actions on each object:
 
 + **Extract child objects** Some objects are archives, some are wrappers, and others are obfuscators. Whatever the case may be, find children objects that should be scanned recursively by extracting them out.
@@ -22,7 +33,32 @@ Each scan does three main actions on each object:
 
 + **Add metadata** Discover as much information describing the object for future analysis.
 
-**Feel free to read the [whitepaper](http://lockheedmartin.com/content/dam/lockheed/data/isgs/documents/LaikaBOSS%20Whitepaper.pdf)!**
+## Example Use Cases
+The best way to introduce Laika BOSS is to give several examples of its use.
+
+In example one, you feed Laika an email with a Office document (OLE) attachment. Laika will parse the contents of the email and extract all of the message objects. In this case, it extracts a plain text object, an HTML object, and an Office Word attachment. Before moving on, it generates metadata about the email (e.g. email addreses, IPs, domains, etc.). Next Laika moves on and determines that the Word document is in OLE format so it extracts the OLE streams. In one one of the streams, a VBA macro is discoverd so Laika extracts that too. All objects feed into and extracted by Laika are scanned by Yara and ClamAV. The conclusion is an output of the scan results and collected metadata in JSON format. Optionally, Laika will place the extracted contents into a folder for manual review.
+
+```
+ +------------------------------------------+
+ | EMAIL ---> Text                          |
+ |       ---> HTML                          |  output  +-------------------------------+
+ |       ---> OLE ---> stream 1             | -------> |  Logged scan results (JSON)   |
+ |                ---> stream 2             |          |  Extracted objects (optional) |
+ |                ---> stream 3 ---> macro  |          +-------------------------------+
+ |                ---> stream 4             |
+ +------------------------------------------+
+```
+
+In example two, you feed Laika a ZIP file. Laika extracts the single item from the ZIP file. It determines that the extracted item is an RTF. It extracts all of the embedded objects from the RTF of which one is an EXE. Liaka collects metadata on the EXE. The conclusion is an output of the scan results and collected metadata in JSON format. Optionally, Laika will place the extracted contents into a folder for manual review.
+
+```
+ +-----------------------------------------------+  output  +-------------------------------+
+ | ZIP ---> RTF ---> embedded object 1 ---> exe  | -------> |  Logged scan results (JSON)   |
+ +-----------------------------------------------+          |  Extracted objects (optional) |
+                                                            +-------------------------------+
+```
+
+For detailed use cases, please see See the [Wiki](https://github.com/lmco/laikaboss/wiki/Use-Cases-and-Examples).
 
 ## Components
 
@@ -30,177 +66,38 @@ Laika is composed of the following pieces:
 
 + **Framework** (`laika.py`) This is the core of Laika BOSS. It includes the object model and the dispatching logic.
 
-+ **laikad** This piece contains the code for running Laika as a deamonized, networked service using the ZeroMQ broker.
++ **laikad** (`laikad.py`) This piece contains the code for running Laika as a deamonized, networked service using the ZeroMQ broker.
 
-+ **cloudscan** A command-line client for sending a local system file to a running service instance of Laika (laikad).
++ **cloudscan** (`cloudscan.py`) A command-line client for sending a local system file to a running service instance of Laika (laikad).
 
-+ **modules** The scan itself is composed of the running of modules. Each module is its own program that focuses on a particular sub-component of the overall file analysis.
++ **[modules](https://github.com/lmco/laikaboss/wiki/Scanning-Module-List)** The scan itself is composed of the running of modules. Each module is its own program that focuses on a particular sub-component of the overall file analysis.
 
++ **[milter](https://github.com/lmco/laikaboss/wiki/Install-Instructions:--Milter)** (`laikamilter.py`) Optionally, integrate Laika BOSS with mail transfer agents such as Sendmail or Postfix
+
++ **[Suricata Integration Prototype](https://github.com/lmco/laikaboss/wiki/Install-Instructions:--Suricata-Integration-Prototype)** (`laika_redis_client.py`) Optionally, extract files from Redis and submit them to Laika BOSS for scanning.
 
 ## Getting Started
 
-Laika BOSS has been tested on the latest versions of CentOS and Ubuntu LTS
+### Installation Instructions
+Laika BOSS has been tested on the latest versions of CentOS, Fedora, and Ubuntu LTS
 
-### Installing on Ubuntu
+Full instructions are available in the [Wiki](https://github.com/lmco/laikaboss/wiki)
 
-1. Install framework dependencies:
-
-	```shell
-	apt-get install yara python-yara python-progressbar python-pip
-	pip install interruptingcow
-	```
-
-2. Install network client and server dependencies:
-
-	```shell
-	apt-get install libzmq3 python-zmq python-gevent python-pexpect
-	```
-
-3. Install module dependencies:
-
-	```shell
-	apt-get install python-ipy python-m2crypto python-pyclamd liblzma5 libimage-exiftool-perl python-msgpack libfuzzy-dev python-cffi python-dev unrar
-	pip install fluent-logger olefile ssdeep py-unrar2 pylzma javatools
-	wget https://github.com/smarnach/pyexiftool/archive/master.zip
-	unzip master.zip
-	cd pyexiftool-master
-	python setup.py build
-	python setup.py install
-	wget https://github.com/erocarrera/pefile/archive/pefile-1.2.10-139.tar.gz
-	tar vxzf pefile-1.2.10-139.tar.gz
-	cd pefile-1.2.10-139
-	python setup.py build
-	python setup.py install
-	```
-
-### Installing on CentOS
-1. Install framework dependencies:
-
-	```shell
-	sudo yum install -y epel-release
-	sudo yum install -y autoconf automake libtool libffi-devel python-devel python-pip python-zmq ssdeep-devel swig openssl-devel perl-devel pefile
-	```
-2. Install Python modules
-
-	```shell
-	pip install IPy cffi interruptingcow fluent-logger javatools m2crypto olefile pylzma pyclamd py-unrar2 pexpect
-	pip install six --upgrade --force-reinstall
-	pip install ssdeep
-	```
-3. Install Yara
-
-	Previously there were not packages for CentOS and a manual install was required of yara to get the yara Python library. Now, pip can be used.
-
-	```shell
-	pip install yara-python
-	```
-
-4. Install pyexif
-
-	pyexif is a Python library to communicate with the ExifTool command-line application. Install ExifTool application following instructions at http://www.sno.phy.queensu.ca/~phil/exiftool/install.html#Unix.
-	
-	```shell
-	wget https://github.com/smarnach/pyexiftool/archive/master.zip
-	unzip master.zip
-	python setup.py build
-	sudo python setup.py install
-	```
-
-You may need to set the `LD_LIBRARY_PATH` variable to include `/usr/local/lib` when running Laika.
-
-### Installing Laika BOSS (optional)
-
-You may use the provided setup script to install the Laika BOSS framework, client library, modules and associated scripts (`laika.py`, `laikad.py`, `cloudscan.py`).
-
-```shell
-python setup.py install
-```
-
-#### Standalone instance
-
-From the directory containing the framework code, you may run the standalone scanner, `laika.py` against any file you choose. If you move this file from this directory you'll have to specify various config locations. By default it uses the configurations in the `./etc` directory.
-
-We recommend using installing [jq](http://stedolan.github.io/jq/) to parse Laika output.
-
-```javascript
-$ ./laika.py ~/test_files/testfile.cws.swf | jq '.scan_result[] | { "file type" : .fileType, "flags" : .flags, "md5" : .objectHash }'
-100%[############################################] Processed: 1/1 total files (Elapsed Time: 0:00:00) Time: 0:00:00
-{
-  "md5": "dffcc2464911077d8ecd352f3d611ecc",
-  "flags": [],
-  "file type": [
-    "cws",
-    "swf"
-  ]
-}
-{
-  "md5": "587c8ac651011bc23ecefecd4c253cd4",
-  "flags": [],
-  "file type": [
-    "fws",
-    "swf"
-  ]
-}
-```
-
-#### Networked instance
-
-```javascript
-$ ./laikad.py
-
-$ ./cloudscan.py ~/test_files/testfile.cws.swf | jq '.scan_result[] | { "file type" : .fileType, "flags" : .flags, "md5" : .objectHash }'
-{
-  "md5": "dffcc2464911077d8ecd352f3d611ecc",
-  "flags": [],
-  "file type": [
-    "cws",
-    "swf"
-  ]
-}
-{
-  "md5": "587c8ac651011bc23ecefecd4c253cd4",
-  "flags": [],
-  "file type": [
-    "fws",
-    "swf"
-  ]
-}
-```
-
-#### Milter
+#### Milter Integration
 
 The Laika BOSS milter server allows you to integrate Laika BOSS with mail transfer agents such as Sendmail or Postfix. This enables better visibility (passive visibility can be hampered by TLS) and provides a means to block email according to Laika BOSS disposition.
 
-```
-+----------------+             +---------------+             +----------------+
-|                |    email    |               |   email     |                |
-|    sendmail    +------------->  laikamilter  +------------->     laikad     |
-|                | accept/deny |               | scan result |                |
-|                <-------------+               <-------------+                |
-+----------------+             +---------------+             +----------------+
-```
+For more details, please see the [Wiki](https://github.com/lmco/laikaboss/wiki/Install-Instructions:--Milter).
 
-The Laika BOSS milter server requires the [python-milter](https://pythonhosted.org/milter) module and the Laika BOSS client library. Check out the comments in the source code for more details.
 
 #### Suricata Integration Prototype
 
 We have released a proof of concept feature for Suricata that allows it to store extracted files and their associated metadata in a Redis database. You will find this code under a [new branch](https://github.com/lmco/suricata/tree/file_extract_redis_prototype_v1) in our Suricata fork. We hope to refine the implementation and eventually have it accepted by the project.
 
-Once you've enabled file extraction and the optional Redis integration in Suricata, you can extract these files from Redis and submit them to Laika BOSS for scanning by using the middleware script `laika_redis_client.py` as shown below. Note that it requires the `python-redis` module.
+Once you've enabled file extraction and the optional Redis integration in Suricata, you can extract these files from Redis and submit them to Laika BOSS for scanning by using the middleware script `laika_redis_client.py.`
 
-First, start `laikad.py` in async mode:
+For more details, please see the [Wiki](https://github.com/lmco/laikaboss/wiki/Install-Instructions:--Suricata-Integration-Prototype).
 
-```shell
-./laikad.py -a
-```
-
-Then launch the middleware script and give it the address of the `laikad` broker and Redis database (defaults shown below):
-
-```shell
-./laika_redis_client.py -b tcp://localhost:5558 -r localhost -p 6379
-```
-
-Note that you will need to use a logging module such as `LOG_FLUENT` to export the full scan result of the these file scans from `laikad`.
 
 ## Licensing
 
