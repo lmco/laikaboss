@@ -58,7 +58,7 @@ In example two, you feed Laika a ZIP file. Laika extracts the single item from t
                                                             +-------------------------------+
 ```
 
-For detailed use cases, please see See the [Wiki](https://github.com/lmco/laikaboss/wiki/Use-Cases-and-Examples).
+For detailed use cases, please see the [Wiki](https://github.com/lmco/laikaboss/wiki/Use-Cases-and-Examples).
 
 ## Components
 
