@@ -36,7 +36,7 @@ Each scan does three main actions on each object:
 ## Example Use Cases
 The best way to introduce Laika BOSS is to give several examples of its use.
 
-In example one, you feed Laika an email with a Office document (OLE) attachment. Laika will parse the contents of the email and extract all of the message objects. In this case, it extracts a plain text object, an HTML object, and an Office Word attachment. Before moving on, it generates metadata about the email (e.g. email addreses, IPs, domains, etc.). Next Laika moves on and determines that the Word document is in OLE format so it extracts the OLE streams. In one one of the streams, a VBA macro is discoverd so Laika extracts that too. All objects feed into and extracted by Laika are scanned by Yara and ClamAV. The conclusion is an output of the scan results and collected metadata in JSON format. Optionally, Laika will place the extracted contents into a folder for manual review.
+In [example one](https://github.com/lmco/laikaboss/wiki/Use-Cases-and-Examples#emailattachment), you feed Laika an email with a Office document (OLE) attachment. Laika will parse the contents of the email and extract all of the message objects. In this case, it extracts a plain text object, an HTML object, and an Office Word attachment. Before moving on, it generates metadata about the email (e.g. email addreses, IPs, domains, etc.). Next Laika moves on and determines that the Word document is in OLE format so it extracts the OLE streams. In one one of the streams, a VBA macro is discoverd so Laika extracts that too. All objects feed into and extracted by Laika are scanned by Yara and ClamAV. The conclusion is an output of the scan results and collected metadata in JSON format. Optionally, Laika will place the extracted contents into a folder for manual review.
 
 ```
  +------------------------------------------+
@@ -49,7 +49,7 @@ In example one, you feed Laika an email with a Office document (OLE) attachment.
  +------------------------------------------+
 ```
 
-In example two, you feed Laika a ZIP file. Laika extracts the single item from the ZIP file. It determines that the extracted item is an RTF. It extracts all of the embedded objects from the RTF of which one is an EXE. Liaka collects metadata on the EXE. The conclusion is an output of the scan results and collected metadata in JSON format. Optionally, Laika will place the extracted contents into a folder for manual review.
+In [example two](https://github.com/lmco/laikaboss/wiki/Use-Cases-and-Examples#rtfzip), you feed Laika a ZIP file. Laika extracts the single item from the ZIP file. It determines that the extracted item is an RTF. It extracts all of the embedded objects from the RTF of which one is an EXE. Liaka collects metadata on the EXE. The conclusion is an output of the scan results and collected metadata in JSON format. Optionally, Laika will place the extracted contents into a folder for manual review.
 
 ```
  +-----------------------------------------------+  output  +-------------------------------+
@@ -58,17 +58,17 @@ In example two, you feed Laika a ZIP file. Laika extracts the single item from t
                                                             +-------------------------------+
 ```
 
-For detailed use cases, please see the [Wiki](https://github.com/lmco/laikaboss/wiki/Use-Cases-and-Examples).
+For detailed use cases, please see the [Wiki](https://github.com/lmco/laikaboss/wiki/Use-Cases-and-Examples#usecases).
 
 ## Components
 
 Laika is composed of the following pieces:
 
-+ **Framework** (`laika.py`) This is the core of Laika BOSS. It includes the object model and the dispatching logic.
++ **[Framework](https://github.com/lmco/laikaboss/wiki/Use-Cases-and-Examples#standalone)** (`laika.py`) This is the core of Laika BOSS. It includes the object model and the dispatching logic.
 
-+ **laikad** (`laikad.py`) This piece contains the code for running Laika as a deamonized, networked service using the ZeroMQ broker.
++ **[laikad](https://github.com/lmco/laikaboss/wiki/Use-Cases-and-Examples#network)** (`laikad.py`) This piece contains the code for running Laika as a deamonized, networked service using the ZeroMQ broker.
 
-+ **cloudscan** (`cloudscan.py`) A command-line client for sending a local system file to a running service instance of Laika (laikad).
++ **[cloudscan](https://github.com/lmco/laikaboss/wiki/Use-Cases-and-Examples#network)** (`cloudscan.py`) A command-line client for sending a local system file to a running service instance of Laika (laikad).
 
 + **[modules](https://github.com/lmco/laikaboss/wiki/Scanning-Module-List)** The scan itself is composed of the running of modules. Each module is its own program that focuses on a particular sub-component of the overall file analysis.
 
