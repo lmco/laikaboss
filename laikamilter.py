@@ -644,7 +644,7 @@ class Dispositioner():
                                         externalVars=ExternalVars(
                                                                   filename=milterContext.archiveFileName, 
                                                                   source=milterContext.milterConfig.milterName+"-"+ \
-                                                                          (str(myhostname[:myhostname.index(".")]) if "." in myhostname else str(myhostname)),
+                                                                          myhostname.split(".")[0],
                                                                   ephID=milterContext.qid,
                                                                   uniqID=milterContext.messageID
                                                                  ),
