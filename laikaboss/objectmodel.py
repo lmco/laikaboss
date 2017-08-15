@@ -254,6 +254,7 @@ class SI_Object(object):
     def __init__(self, buffer, externalVars):
         self.buffer = ensureNotUnicode(buffer)
         self.externalVars = externalVars
+>>>>>>> 3a5234b0c127a1684d8c003aa8b5b097d924b0aa
     buffer = ""
     externalVars = None
 
