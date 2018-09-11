@@ -22,7 +22,7 @@ Each scan does three main actions on each object:
 
 + **Add metadata** Discover as much information describing the object for future analysis.
 
-**Feel free to read the [whitepaper](http://lockheedmartin.com/content/dam/lockheed/data/isgs/documents/LaikaBOSS%20Whitepaper.pdf)!**
+**Feel free to read the [whitepaper](https://github.com/lmco/laikaboss/raw/master/LaikaBOSS_Whitepaper.pdf)!**
 
 ## Components
 
