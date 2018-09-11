@@ -244,7 +244,9 @@ class META_PE(SI_MODULE):
 
             result['Rich Header Values'] = data
             result['Checksum'] = pe.RICH_HEADER.checksum
-            result['Hashes'] = self.richHeaderHashes(pe)
+            hashes = self.richHeaderHashes(pe)
+            if hashes:
+                result['Hashes'] = hashes
 
         return result
 
@@ -253,17 +255,15 @@ class META_PE(SI_MODULE):
         """
         Returns hashes of the Rich PE header
         """
-        rich_data = pe.get_data(0x80, 0x80)
-        data = list(struct.unpack('<32I', rich_data))
-        checksum = data[1]
-        rich_end = data.index(0x68636952)
-        md5 = hashlib.md5()
-        sha1 = hashlib.sha1()
-        sha256 = hashlib.sha256()
-        for i in range(rich_end):
-            md5.update(struct.pack('<I', (data[i] ^ checksum)))
-            sha1.update(struct.pack('<I', (data[i] ^ checksum)))
-            sha256.update(struct.pack('<I', (data[i] ^ checksum)))
+        rich = pe.parse_rich_header()
+        if not rich:
+            return None
+        clear_data = rich.get('clear_data', None)
+        if not clear_data:
+            return None
+        md5 = hashlib.md5(clear_data)
+        sha1 = hashlib.sha1(clear_data)
+        sha256 = hashlib.sha256(clear_data)
         data = {
             'MD5': md5.hexdigest(),
             'SHA1': sha1.hexdigest(),
