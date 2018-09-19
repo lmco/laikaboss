@@ -36,7 +36,6 @@ class SCAN_CLAMAV(SI_MODULE):
     def __init__(self,):
         self.module_name = "SCAN_CLAMAV"
         self.flag_prefix = "clam"
-        self.clam = None
 
     def _run(self, scanObject, result, depth, args):
         '''
@@ -54,9 +53,16 @@ class SCAN_CLAMAV(SI_MODULE):
         max_bytes = int(get_option(args, 'maxbytes', 'scanclamavmaxbytes', 20000000))
 
         # Connect to daemon
-        if not self.clam:
+        try:
+            conn = pyclamd.ping()
+        except:
+            conn = False
+
+        if not conn:
             try:
-                self.clam = pyclamd.ClamdUnixSocket(filename=unix_socket)
+                pyclamd.init_unix_socket(filename=unix_socket)
+                if not pyclamd.ping():
+                    raise IOError
             except IOError:
                 logging.debug('IOError: Cannot connect to clamd unix socket file')
                 scanObject.addMetadata(self.module_name, 'Error', 'IOError: clamd socket')
@@ -65,13 +71,13 @@ class SCAN_CLAMAV(SI_MODULE):
         try:
             # Scan the buffer with clamav
             if max_bytes <= 0:
-                clam_result = self.clam.scan_stream(scanObject.buffer)
+                clam_result = pyclamd.scan_stream(scanObject.buffer)
             else:
-                clam_result = self.clam.scan_stream(str(buffer(scanObject.buffer, 0, max_bytes)))
+                clam_result = pyclamd.scan_stream(str(buffer(scanObject.buffer, 0, max_bytes)))
 
             # Process a result
             if clam_result:
-                status, virusname = clam_result['stream']
+                virusname = clam_result['stream'].split('(')[0]
                 scanObject.addFlag("%s:%s" % (self.flag_prefix, str(virusname)))
         except ValueError as e:
             scanObject.addMetadata(self.module_name, 'Error', 'ValueError (BufferTooLong): %s' % str(e))
