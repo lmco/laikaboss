@@ -60,12 +60,13 @@ def ensureStr(child_buffer):
     except:
         # Test cases do not produce any exceptions, but it's here just in case
         raise Exception("Buffer of %s found, not creating child scanObject" % str(type(child_buffer)))
+        
+    child_buffer = ensureNotUnicode(child_buffer)
 
     # refuse to process anything else, as non-string objects can crash the worker
     if not type(child_buffer) is str:
         raise Exception("Buffer of %s found, not creating child scanObject" % str(type(child_buffer)))
-    
-    child_buffer = ensureNotUnicode(child_buffer)
+   
 
     return child_buffer
 
