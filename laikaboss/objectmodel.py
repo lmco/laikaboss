@@ -50,6 +50,26 @@ def ensureNotUnicode(buffer):
     else:
         return buffer
 
+# Utility function to make sure the buffer is a string and not None 
+# (or whatever other weirdness comes through)
+def ensureStr(child_buffer):
+    # buffers and bytearrays can be cast to string
+    try:
+        if type(child_buffer) == buffer or type(child_buffer) == bytearray:
+            child_buffer = str(child_buffer)
+    except:
+        # Test cases do not produce any exceptions, but it's here just in case
+        raise Exception("Buffer of %s found, not creating child scanObject" % str(type(child_buffer)))
+        
+    child_buffer = ensureNotUnicode(child_buffer)
+
+    # refuse to process anything else, as non-string objects can crash the worker
+    if not type(child_buffer) is str:
+        raise Exception("Buffer of %s found, not creating child scanObject" % str(type(child_buffer)))
+   
+
+    return child_buffer
+
 def cleanKey(key):
     bad_chars = ['\0', '.', '$']
     new_key = key
@@ -101,7 +121,7 @@ class ScanObject(object):
         self.scanModules = []
         self.flags = []
         self.objectHash = objectHash
-        self.buffer = ensureNotUnicode(buffer)
+        self.buffer = ensureStr(buffer)
         self.objectSize = objectSize
         self.filename = filename
         self.ephID = convertToUTF8(ephID)
@@ -228,7 +248,7 @@ class ScanResult(object):
 
 class SI_Object(object):
     def __init__(self, buffer, externalVars):
-        self.buffer = ensureNotUnicode(buffer)
+        self.buffer = ensureStr(buffer)
         self.externalVars = externalVars 
     buffer = ""
     externalVars = None
