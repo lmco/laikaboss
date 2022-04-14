@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 # Copyright 2015 Lockheed Martin Corporation
+# Copyright 2020 National Technology & Engineering Solutions of Sandia, LLC 
+# (NTESS). Under the terms of Contract DE-NA0003525 with NTESS, the U.S. 
+# Government retains certain rights in this software.
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,7 +27,7 @@ The milter can be configured to write emails to a local filesystem. It is recomm
 but this option may assist with debugging.
 
 Logging via syslog hardcoded to local0 with tag defined in config
-Output: syslog.alert:       per email/recipient logs formatted in laika legacy log format
+Output: sylog.info:         per email/recipient logs formatted in laika legacy log format
         syslog.debug:       Debug Information 
         syslog.err          Error Information
 
@@ -84,12 +87,17 @@ For example, given the following json file:
 If the MTAs in group gateway are connected to this milter, then emails from from the systems in groups internala and internalb will not be scanned (but emails from other upstream servers will be). Localhost to localhost email is also exempted.
 
 '''
+from __future__ import print_function
 
 
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
+from builtins import str as text
 import sys
 import traceback
 import os
-import StringIO
+import io
 import re
 import json
 import Milter
@@ -101,11 +109,12 @@ import syslog
 import zmq
 import datetime
 import random
-import ConfigParser
+import shutil
 from subprocess import Popen, PIPE, STDOUT
 import zlib
 import uuid
-import cPickle as pickle
+import binascii
+import pickle as pickle
 from email.utils import formatdate
 from email.utils import parsedate_tz
 from email.utils import mktime_tz
@@ -113,6 +122,9 @@ from laikaboss.objectmodel import ExternalObject, ExternalVars
 from laikaboss.constants import level_minimal, level_metadata, level_full
 from laikaboss.clientLib import Client, flagRollup, getAttachmentList, \
                               dispositionFromResult, finalDispositionFromResult
+
+from laikaboss.util import laika_submission_encoder
+from laikaboss.lbconfigparser import LBConfigParser
 
 global_whitelist = {}
 
@@ -132,7 +144,7 @@ class LaikaMilter(Milter.Base):
         self.fph            = None #IO buffer to store headers 
         self.fpb            = None #IO buffer to store body
         self.headers        = []
-        self.fileBuffer     = ""
+        self.fileBuffer     = b""
         self.rulesMatched   = "" #LaikaBOSS flags
         self.warnings       = ""
         self.sender         = ""
@@ -144,7 +156,7 @@ class LaikaMilter(Milter.Base):
         self.qid            = ""
         self.messageID      = ""
         self.messageDate    = ""
-        self.attachments    = ""
+        self.attachments    = b""
         self.CUSTOMHELO       = ""
         self.CUSTOMFROM       = ""
         self.CUSTOMORCPT      = []
@@ -162,7 +174,9 @@ class LaikaMilter(Milter.Base):
         self.endTimeZMQ     = None
         self.rtnToMTA       = Milter.CONTINUE #Fail Closed
         self.alreadyScanned = False
-        self.uuid           = str(uuid.uuid4())[-12:]
+        self.full_uuid      = str(uuid.uuid4())
+        self.uuid           = self.full_uuid[-12:]
+        self.archiveEncoder = None
 
 
     # Handle Aborted Callbacks
@@ -170,9 +184,13 @@ class LaikaMilter(Milter.Base):
     def abort(self):
         try:
             #Try sending it to EOM for scanning and disposition.
-            log = self.uuid+" Aborted QID: "+self.qid+" Attempting to send to direct to EOM"
-            self.logger.writeLog(syslog.LOG_DEBUG, "%s"%(str(log)))
-            self.eom()
+            if self.processOnAbort:
+                log = self.uuid+" Aborted QID: "+self.qid+" Attempting to send to direct to EOM"
+            else:
+                log = self.uuid+" Aborted QID: "+self.qid+" hoping for re-send - exiting without eom"
+            self.logger.writeLog(syslog.LOG_ERROR, "%s"%(str(log)))
+            if self.processOnAbort:
+               self.eom()
         except:
             log = self.uuid+" Uncaught Exception in Abort"
             self.logger.writeLog(syslog.LOG_ERR, "%s"%(str(log)))
@@ -199,8 +217,12 @@ class LaikaMilter(Milter.Base):
     
     def envfrom(self,f,*str):
         try:
-            if self.CUSTOMFROM != "": #If anything is left over from the last email, re -initialize.
+            #If this is a subsequent message over the same connection, re -initialize.
+            if hasattr(self, 'envfrom_flag'):
+                hello = self.CUSTOMHELO
                 self.__init__()
+                self.CUSTOMHELO = hello
+            self.envfrom_flag = True
             self.startTime = time.time()
             self.startTimeDT = datetime.datetime.now()
             if (self.milterConfig.mode == "shutdown"):
@@ -218,12 +240,12 @@ class LaikaMilter(Milter.Base):
             
             self.sender = self.CUSTOMFROM
             
-            self.fph = StringIO.StringIO()
-            self.fpb = StringIO.StringIO()
+            self.fph = io.BytesIO()
+            self.fpb = io.BytesIO()
             
         except:
             log = self.uuid+" Uncaught Exception in EnvFrom"
-            self.logger.writeLog(syslog.LOG_ERR, "%s"%(str(log)))
+            self.logger.writeLog(syslog.LOG_ERR, "%s"%(text(log)))
         return Milter.CONTINUE    #ALWAYS continue to gather the entire email
         
     def envrcpt(self,to,*str):
@@ -250,7 +272,7 @@ class LaikaMilter(Milter.Base):
             headerstring = "%s: %s\n"%(name, 
                                       val
                                      )
-            self.headers.append(headerstring)
+            self.headers.append(headerstring.encode('utf-8'))
             
             self._getSpecialHeaderLines(lname, val)
         except:
@@ -269,8 +291,10 @@ class LaikaMilter(Milter.Base):
         
     def body(self,chunk):        # copy body to temp file
         try:
-            if (isinstance(chunk, str)):
-                chunk = chunk.replace("\r\n", "\n")
+            if isinstance(chunk, text):
+                chunk = chunk.encode('utf-8')
+            if (isinstance(chunk, bytes)):
+                chunk = chunk.replace(b"\r\n", b"\n")
             self.fpb.write(chunk)
             self.fpb.flush()
         except:
@@ -282,6 +306,7 @@ class LaikaMilter(Milter.Base):
     def eom(self):
         try:
             self._getQID()
+
             checklist = "%s_%s" %(str(self._getIfAddr()), str(self._getClientAddr()))
             if checklist in global_whitelist:
                 self.logger.writeLog(syslog.LOG_DEBUG, "%s ACCEPT ON WHITELIST: qid:%s client_addr:%s if_addr:%s" %(self.uuid, str(self.qid), str(self._getClientAddr()), str(self._getIfAddr())))
@@ -291,12 +316,14 @@ class LaikaMilter(Milter.Base):
                     self._getBufferFromFP()#build the header
                     self._generateArchiveFileName()
                     self.rtnToMTA = self._dispositionMessage()
-                    self.fph.write("%s: %s\n"%(self.milterConfig.MailscanResultHeaderString,self.disposition))
-                    self.fph.write("%s: %s\n"%("X-Flags",self.rulesMatched))
+                    self.fph.write(("%s: %s\n"%(self.milterConfig.MailscanResultHeaderString,self.disposition)).encode('utf-8'))
+                    self.fph.write(("%s: %s\n"%("X-Flags",self.rulesMatched)).encode('utf-8'))
                     self._getBufferFromFP()#Rebuild the buffer with the result header
                     self.fph.close()
                     self.fpb.close()
-                    self._writeFileToDisk()
+                    ret = self._writeFileToDisk()
+                    if ret > 0 and self.rtnToMTA in [Milter.CONTINUE, Milter.ACCEPT]:
+                        self.rtnToMTA = ret
                     self._addHeaders()
                     self._logDetails()
                     self._logEachEnvelope()
@@ -310,7 +337,7 @@ class LaikaMilter(Milter.Base):
             exc_type, exc_value, exc_traceback = sys.exc_info()
             ERROR_INFO = repr(traceback.format_exception(exc_type, exc_value, exc_traceback))
             ERROR =  "%s ERROR EOM: RETURNING DEFAULT (%s)   %s" % (self.uuid, self.rtnToMTA, ERROR_INFO)
-            print ERROR
+            print(ERROR)
             self.logger.writeLog(syslog.LOG_ERR, "%s"%(str(ERROR)))
         return self.rtnToMTA
         
@@ -333,12 +360,12 @@ class LaikaMilter(Milter.Base):
     #_addHeaders adds miltiple headers to the mail message sent to the user
     def _addHeaders(self):
         if (self.milterConfig.ApplyMailscanResultHeader):
-            self._addHeader(self.milterConfig.MailscanResultHeaderString, self.disposition)
+            self._addHeader(self.milterConfig.MailscanResultHeaderString.encode('utf-8'), self.disposition.encode('utf-8'))
         
         if (self.milterConfig.ApplyCustomHeaders):
-            self._addHeader("X-%s-HELO" % (self.milterConfig.CustomHeaderBase), self.CUSTOMHELO)
-            self._addHeader("X-%s-FROM" % (self.milterConfig.CustomHeaderBase), self.sender)
-            self._addHeader("X-%s-ORCPT" % (self.milterConfig.CustomHeaderBase), self.receiver)
+            self._addHeader(("X-%s-HELO" % (self.milterConfig.CustomHeaderBase)).encode('utf-8'), self.CUSTOMHELO.encode('utf-8'))
+            self._addHeader(("X-%s-FROM" % (self.milterConfig.CustomHeaderBase)).encode('utf-8'), self.sender.encode('utf-8'))
+            self._addHeader(("X-%s-ORCPT" % (self.milterConfig.CustomHeaderBase)).encode('utf-8'), self.receiver.encode('utf-8'))
             
     #_getMboxLine generates the Mbox line to be stored in the archive to disk
     def _getMboxLine(self):
@@ -382,7 +409,7 @@ class LaikaMilter(Milter.Base):
             self.logger.writeLog(syslog.LOG_ERR, "Value Error in checkOpenFiles")
         except Exception as e:
             exc_type, exc_value, exc_traceback = sys.exc_info()
-            print "ERROR EOM  %s" % (repr(traceback.format_exception(exc_type, exc_value, exc_traceback)))
+            print("ERROR EOM  %s" % (repr(traceback.format_exception(exc_type, exc_value, exc_traceback))))
             self.logger.writeLog(syslog.LOG_ERR, "Error in checkOpenFiles")
         return okToContinue
             
@@ -393,6 +420,8 @@ class LaikaMilter(Milter.Base):
             self.disposition = "Over Process File Handle Limit"
             self.logger.writeLog(syslog.LOG_ERR, "Disposition: %s"%(str(self.disposition)))
             rtnToMTA = self.milterConfig.dispositionModes["OverLimit".lower()]
+        elif not self.milterConfig.sendToLaikad:
+            rtnToMTA = Milter.ACCEPT
         else:
             dispositioner = Dispositioner(self.logger)
             success = dispositioner.zmqGetFlagswithRetry(self.milterConfig.zmqMaxRetry, self)
@@ -412,29 +441,40 @@ class LaikaMilter(Milter.Base):
     #_dispositionMessage_AttachmentHelper helps _dispositionMessage convert the attachment list to string. 
     def _dispositionMessage_AttachmentHelper(self):
         if (len(self.attachments) > 80):
-            commaLoc = self.attachments.find(",", 80, 300)   #Finds the comma that exists between 80 and 300 characters
+            commaLoc = self.attachments.find(b",", 80, 300)   #Finds the comma that exists between 80 and 300 characters
             attachmentsReduced = self.attachments[:commaLoc] #\\
             self.attachments = attachmentsReduced            #== Reduces the string to the first comma after 80 chars and marks with truncated. 
-            self.attachments += "(truncated)"                #//
+            self.attachments += b"(truncated)"                #//
         return True # Return true for now, TODO: return whether or not the list was truncated. 
     
     #_generateArchiveFileName generates the file name used for the archive file location.
     def _generateArchiveFileName(self):
         #Reset file name here.  Bug found where eom callback repeated
         if self.milterConfig.storeEmails:
-            self.archiveFileName = self.milterConfig.storeDir
-            now = datetime.datetime.now()
-            unixNow = time.time()
-            strCustomDateFolderFormat = now.strftime(self.milterConfig.customFolderDateFormat) #Use the custom date format supplied in the config file.
-            randNum = str(random.random())
+            randNum = binascii.hexlify(os.urandom(10)).decode('ascii')
             uniqueNum = self.qid
             if not uniqueNum:
                 uniqueNum = randNum
             ifAddr = self._getIfAddr()
             clientAddr = self._getClientAddr()
-            self.archiveFileName += strCustomDateFolderFormat
-            self._checkFilePath(self.archiveFileName)
-            self.archiveFileName += "email."+str(int(unixNow))+"."+uniqueNum+"."+str(clientAddr)+"."+str(ifAddr) #generates the file name as email.<timestamp><randomNumber><clientAddr>
+            if self.milterConfig.archiveFormat == "submit":
+
+               externalVars = ExternalVars(source=self.milterConfig.extSource, submitID=randNum)
+ 
+               self.archiveEncoder = laika_submission_encoder(submission_dir=self.milterConfig.storeDir, queue = 'email', externalVars = externalVars)
+
+               self.archiveFileName = self.archiveEncoder.get_output_filename()
+
+               parent_dir = os.path.dirname(self.archiveFileName)
+               self._checkFilePath(parent_dir)
+            else:
+               self.archiveFileName = self.milterConfig.storeDir
+               now = datetime.datetime.now()
+               unixNow = time.time()
+               strCustomDateFolderFormat = now.strftime(self.milterConfig.customFolderDateFormat) #Use the custom date format supplied in the config file.
+               self.archiveFileName += strCustomDateFolderFormat
+               self._checkFilePath(self.archiveFileName)
+               self.archiveFileName += str(int(unixNow))+"_"+uniqueNum+"_"+str(self.full_uuid)
         else:
             self.archiveFileName = ""
         
@@ -520,10 +560,12 @@ class LaikaMilter(Milter.Base):
                                                                                                   self._logMail_sanitize(timeDiffZMQ),
                                                                                                   self._logMail_sanitize(self.subject))
         
-        self.logger.writeLog(syslog.LOG_ALERT, "%s"%(str(log)))
+        self.logger.writeLog(syslog.LOG_INFO, "%s"%(str(log)))
         
             
     def _logMail_sanitize(self, inputString):
+        if isinstance(inputString, bytes):
+            inputString = inputString.decode('utf-8')
         strInputString = str(inputString)
         log_delimiter="|"
         log_delimiter_replacement="_"
@@ -532,29 +574,48 @@ class LaikaMilter(Milter.Base):
     def _writeFileToDisk(self):
         if self.archiveFileName:
             try:
-                fp = open(self.archiveFileName, "wb")
-                fp.write(self.fileBuffer)
-                fp.flush()
-                fp.close()
+                partialFileName = self.archiveFileName + ".partial"
+                with open(partialFileName, "wb") as fp:
+                    buf = self.fileBuffer
+                    if self.archiveEncoder:
+                        self.archiveEncoder.externalVars.set_filename(self.archiveFileName)
+
+                        if self.qid:
+                            self.archiveEncoder.externalVars.set_ephID(self.qid)
+
+                        if self.messageID:
+                            self.archiveEncoder.externalVars.set_uniqID(self.messageID)
+
+                        externalObject = ExternalObject(buf, externalVars = self.archiveEncoder.externalVars)
+
+                        buf = ExternalObject.encode(externalObject)
+                    self.logger.writeLog(syslog.LOG_INFO, "Exporting file %s"%(self.archiveFileName))
+                    fp.write(buf)
+                    fp.flush()
+                    shutil.move(partialFileName, self.archiveFileName)
             except IOError:
-                log = self.uuid+" Could not open "+ self.archiveFileName+ " for writing"
+                log = self.uuid+" Could not open "+ partialFileName + " for writing"
                 self.logger.writeLog(syslog.LOG_ERR, "%s"%(str(log)))
+                return self.milterConfig.dispositionModes["ArchiveFail".lower()]
+        return Milter.CONTINUE
+
             
     #Write Custom header to the file pointer to be written to disk
     def _writeHeaderToFP(self):
-        self.fph.write(self._getMboxLine()+"\n")
+        self.fph.write((self._getMboxLine()+"\n").encode('utf-8'))
         for header in self.headers:
             self.fph.write(header)
             
         clientAddr = self._getClientAddr()
-        self.fph.write("X-%s-HELO: %s [%s]\n"%(self.milterConfig.CustomHeaderBase, self.CUSTOMHELO, clientAddr))
-        self.fph.write("X-%s-FROM: %s\n"%(self.milterConfig.CustomHeaderBase, self.sender))
-        self.fph.write("X-%s-ORCPT: %s\n"%(self.milterConfig.CustomHeaderBase, self.receiver))
+        self.fph.write(("X-%s-HELO: %s [%s]\n"%(self.milterConfig.CustomHeaderBase, self.CUSTOMHELO, clientAddr)).encode('utf-8'))
+        self.fph.write(("X-%s-FROM: %s\n"%(self.milterConfig.CustomHeaderBase, self.sender)).encode('utf-8'))
+        self.fph.write(("X-%s-ORCPT: %s\n"%(self.milterConfig.CustomHeaderBase, self.receiver)).encode('utf-8'))
+        self.fph.write(("X-%s-DATE: %s\n"%(self.milterConfig.CustomHeaderBase, datetime.datetime.utcnow().isoformat("T") + "Z")).encode('utf-8'))
             
-        self.fpb.write("\n")
+        self.fpb.write(b"\n")
             
 
-class Dispositioner():
+class Dispositioner(object):
     '''
     Dispositioner: Class used to Dispostion (and with LaikaBOSS, determine response to MTA) input email
     '''
@@ -644,7 +705,7 @@ class Dispositioner():
                                         externalVars=ExternalVars(
                                                                   filename=milterContext.archiveFileName, 
                                                                   source=milterContext.milterConfig.milterName+"-"+ \
-                                                                          myhostname.split(".")[0],
+                                                                          (str(myhostname[:myhostname.index(".")]) if "." in myhostname else str(myhostname)),
                                                                   ephID=milterContext.qid,
                                                                   uniqID=milterContext.messageID
                                                                  ),
@@ -670,7 +731,7 @@ class Dispositioner():
         
         return gotResponseFromScanner
 
-class log2syslog():
+class log2syslog(object):
     def __init__(self, name, facility):
         syslog.openlog(name, 0, facility)
         
@@ -681,7 +742,7 @@ class log2syslog():
         syslog.closelog()
         
 
-class MilterConfig():
+class MilterConfig(object):
     '''
     MilterConfig: Class used to load config file
     
@@ -701,13 +762,16 @@ class MilterConfig():
         self.milterInstance     = "laika"
         self.socketname         = "inet:7226@localhost" #Socket to listen for connections
         self.servers            = []                    #zmq Servers
+        self.sendToLaikad       = True
         self.mode               = "run"                 #Default mode "run" or "shutdown"
         self.zmqMaxRetry        = 1                     
         self.zmqTimeout         = 55000
         self.maxFiles           = 950
         self.heloWhitelist      = ""
+        self.extSource         = "email-$HOSTNAME"
         self.configFileLoc      = "/etc/laikamilter/laikamilter.conf"
         self.storeEmails        = False
+        self.processOnAbort     = True
         self.storeDir           = "/data/mail/"
         self.customFolderDateFormat = ""
         self.ApplyCustomHeaders   = False
@@ -719,6 +783,7 @@ class MilterConfig():
         self.loadError          = False
         self.dispositionModes   = {}
         self.dispositionModes["default"] = Milter.CONTINUE
+        self.archiveFormat      = None
         
         
     def loadAll(self):
@@ -743,22 +808,47 @@ class MilterConfig():
             
             
     def loadConfig(self):
-        Config = ConfigParser.ConfigParser()
+        Config = LBConfigParser()
         try:
             Config.read(self.configFileLoc)
-            self.socketname     = Config.get('COMMON', 'socketname')
-            self.milterName     = Config.get('COMMON', 'MilterName')
-            self.milterInstance = Config.get('COMMON', 'MilterInstance')
+            self.socketname     = str(Config.get('COMMON', 'socketname'))
+            self.milterName     = str(Config.get('COMMON', 'MilterName'))
+            self.milterInstance = str(Config.get('COMMON', 'MilterInstance'))
+            self.sendToLaikad   = self._convertTrueFalse(Config.get('COMMON', 'sendToLaikad'))
+            self.processOnAbort = self._convertTrueFalse(Config.get('COMMON', 'processOnAbort'))
             self.mode           = Config.get('COMMON', 'mode')
             self.zmqMaxRetry    = int(Config.get('COMMON', 'zmqMaxRetry'))
             self.zmqTimeout     = int(Config.get('COMMON', 'zmqTimeout'))
             self.maxFiles       = int(Config.get('COMMON', 'maxFiles'))
             self.heloWhitelist  = str(Config.get('COMMON', 'helowhitelist'))
+
+            hostname = None
+
+            try:
+               hostname = str(Config.get('COMMON', 'hostname'))
+            except configparser.NoOptionError:
+               hostname = socket.gethostname()
+               pass
+ 
+            # shorten hostname
+            hostname = (str(hostname[:hostname.index(".")]) if "." in hostname else str(hostname))
+
+            try:
+               self.extSource = str(Config.get('COMMON', 'ExtSource'))
+            except configparser.NoOptionError:
+                pass
+
+            self.extSource = self.extSource.replace("$HOSTNAME", hostname)
             
             self.storeEmails    = self._convertTrueFalse(Config.get('ArchiveOptions', 'storeEmails'))
-            self.storeDir       = Config.get('ArchiveOptions', 'storeDir')
-            self.customFolderDateFormat = Config.get('ArchiveOptions', 'customFolderDateFormat')
-        except ConfigParser.NoSectionError:
+            try:
+               self.archiveFormat  = str(Config.get('ArchiveOptions', 'ArchiveFormat'))
+            except configparser.NoOptionError as err:
+               pass
+
+            self.storeDir       = str(Config.get('ArchiveOptions', 'storeDir'))
+            self.customFolderDateFormat = str(Config.get('ArchiveOptions', 'customFolderDateFormat'))
+        except configparser.NoSectionError:
             if (self.loadAttempt >= self.maxLoadAttempts):
                 log = "Error loading Config File for COMMON config, USING DEFAULTS"
                 logger = log2syslog(self.milterName, syslog.LOG_LOCAL0)
@@ -770,7 +860,7 @@ class MilterConfig():
                 logger.writeLog(syslog.LOG_ERR, "%s"%(str(log)))
                 
     def loadDispositionModes(self):
-        Config = ConfigParser.ConfigParser()
+        Config = configparser.ConfigParser()
         try:
             Config.read(self.configFileLoc)
             DispositionModes = Config.items('DispositionMode')
@@ -778,7 +868,7 @@ class MilterConfig():
                 self.dispositionModes[DispositionMode[0]] = self._convertDispositionMode(DispositionMode[1])
                     
                     
-        except ConfigParser.NoSectionError:
+        except configparser.NoSectionError:
             if (self.loadAttempt >= self.maxLoadAttempts):
                 log = "Error loading Config File for DispositionMode config, USING DEFAULTS"
                 logger = log2syslog(self.milterName, syslog.LOG_LOCAL0)
@@ -790,14 +880,14 @@ class MilterConfig():
                 logger.writeLog(syslog.LOG_ERR, "%s"%(str(log)))
             
     def loadHeaderOptions(self):
-        Config = ConfigParser.ConfigParser()
+        Config = configparser.ConfigParser()
         try:
             Config.read(self.configFileLoc)
             self.ApplyCustomHeaders           = self._convertTrueFalse(Config.get('HeaderOptions', 'ApplyCustomHeaders'))
-            self.CustomHeaderBase           = Config.get('HeaderOptions', 'CustomHeaderBase')
+            self.CustomHeaderBase           = str(Config.get('HeaderOptions', 'CustomHeaderBase'))
             self.ApplyMailscanResultHeader  = self._convertTrueFalse(Config.get('HeaderOptions', 'ApplyMailscanResultHeader'))
-            self.MailscanResultHeaderString = Config.get('HeaderOptions', 'MailscanResultHeaderString')
-        except ConfigParser.NoSectionError:
+            self.MailscanResultHeaderString = str(Config.get('HeaderOptions', 'MailscanResultHeaderString'))
+        except configparser.NoSectionError:
             if (self.loadAttempt >= self.maxLoadAttempts):
                 log = "Error loading Config File for HeaderOptions config, USING DEFAULTS"
                 logger = log2syslog(self.milterName, syslog.LOG_LOCAL0)
@@ -807,7 +897,7 @@ class MilterConfig():
                 log = "Error loading Config File for HeaderOptions config, should try again"
                 logger = log2syslog(self.milterName, syslog.LOG_LOCAL0)
                 logger.writeLog(syslog.LOG_ERR, "%s"%(str(log)))
-        except ConfigParser.NoOptionError:
+        except configparser.NoOptionError:
             if (self.loadAttempt >= self.maxLoadAttempts):
                 log = "Error loading Config File for HeaderOptions config, USING DEFAULTS"
                 logger = log2syslog(self.milterName, syslog.LOG_LOCAL0)
@@ -819,13 +909,13 @@ class MilterConfig():
                 logger.writeLog(syslog.LOG_ERR, "%s"%(str(log)))
                 
     def loadScanServers(self):
-        Config = ConfigParser.ConfigParser()
+        Config = configparser.ConfigParser()
         try:
             Config.read(self.configFileLoc)
             servers = Config.items('ScanServers')
             for server in servers:
                 self.servers.append(server[1])
-        except ConfigParser.NoSectionError:
+        except configparser.NoSectionError:
             if (self.loadAttempt >= self.maxLoadAttempts):
                 log = "Error loading Config File for ScanServers config, USING DEFAULTS"
                 logger = log2syslog(self.milterName, syslog.LOG_LOCAL0)
@@ -874,10 +964,10 @@ class MilterConfig():
         convertedValue = False
         if (input.upper() == "TRUE"):
             convertedValue = True
-        elif(input.upper == "FALSE"):
+        elif(input.upper() == "FALSE"):
             convertedValue = False
         else:
-            covnertedValue = "Error"
+            convertedValue = "Error"
         
         return convertedValue
         
@@ -890,17 +980,19 @@ if __name__ == "__main__":
     altConfig = None
     if len(sys.argv) == 2:
         altConfig = sys.argv[1]
-        print "Config: "+altConfig
+        print("Config: "+altConfig)
     
     milterConfig = MilterConfig()
     
     
     if altConfig:
-        print "using alternative config path: %s" % altConfig
+        print("using alternative config path: %s" % altConfig)
         if not os.path.exists(altConfig):
-            print "the provided config path is not valid, exiting"
+            print("the provided config path is not valid, exiting")
         else:
             milterConfig.configFileLoc = altConfig
+    else:
+        print("using alternative config path: default")
             
     
     milterConfig.loadConfig()

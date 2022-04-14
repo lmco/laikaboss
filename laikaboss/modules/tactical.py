@@ -1,4 +1,7 @@
 # Copyright 2015 Lockheed Martin Corporation
+# Copyright 2020 National Technology & Engineering Solutions of Sandia, LLC 
+# (NTESS). Under the terms of Contract DE-NA0003525 with NTESS, the U.S. 
+# Government retains certain rights in this software.
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +19,7 @@ import tempfile
 from laikaboss.objectmodel import ModuleObject, ExternalVars, QuitScanException, \
                                 GlobalScanTimeoutError, GlobalModuleTimeoutError
 from laikaboss.si_module import SI_MODULE
-from laikaboss.util import log_module
+from laikaboss.util import log_module, laika_temp_dir
 import logging
 from laikaboss import config
 import subprocess
@@ -28,15 +31,6 @@ from shutil import rmtree
 class TACTICAL(SI_MODULE):
     def __init__(self,):
         self.module_name = "TACTICAL" 
-        self.TEMP_DIR = '/tmp/laikaboss_tmp'
-        if hasattr(config, 'tempdir'):
-            self.TEMP_DIR = config.tempdir.rstrip('/')
-        if not os.path.isdir(self.TEMP_DIR):    
-            try:
-                os.mkdir(self.TEMP_DIR)
-                os.chmod(self.TEMP_DIR, 0777)
-            except:
-                raise
             
     def _run(self, scanObject, result, depth, args):
         logging.debug("tactical: args: %s" % repr(args))
@@ -59,13 +53,13 @@ class TACTICAL(SI_MODULE):
             script_path = args['script'] 
         
             #temp_file_h, temp_file_name = tempfile.mkstemp()
-            with tempfile.NamedTemporaryFile(dir=self.TEMP_DIR) as temp_file:
+            with laika_temp_dir() as temp_dir, tempfile.NamedTemporaryFile(dir=temp_dir) as temp_file:
                 temp_file_name = temp_file.name
             
                 temp_file.write(scanObject.buffer)
                 temp_file.flush() 
                 #use timeout command in the command, if available on the system?
-                output = self._collect("timeout %s %s %s %s" % (timeout, script_path, temp_file_name, self.TEMP_DIR), shell=True)
+                output = self._collect("timeout %s %s %s %s" % (timeout, script_path, temp_file_name, temp_dir), shell=True)
                 logging.debug(output)
                 tmp_dirs = []
                 for line in output.splitlines():

@@ -36,7 +36,13 @@ Laika Dispatcher : 2nd pass
     * ext_source (str)        : source set by client or a module (default: NONE) 
     * ext_size (int)          : the length of the buffer (default: 0)
     * ext_depth (int)         : the depth of the current object (root == 0)
-
+    * ext_scanTime (int)      : timestamp of beginning of processing of current object
+    * ext_parent_scanTime(int): timestamp of beginning of processing of parent object
+    * ext_root_scanTime (int) : timestamp of begining of processing of root object
+    * ext_time (int)          : current timestamp, similar to time.now() of yara 3.7+
+    * ext_depth (int)         : depth of the current object + 1 (root == 1)
+    * ext_args (str)          : args passed to this laikaboss job, flattened into a
+      string and demarcated by '|' characters
 */
 
 /*-----------------------Private Rule Grouping-----------------------------*/
@@ -48,7 +54,38 @@ private rule root_object
 }
 
 /*_________________________________________________________________________*/
+/*-----------------------Timeouts------------------------------------------*/
 
+//timeout for whole scan
+rule timeout_root
+{
+    meta:
+        flags = "timeout_root"
+    condition:
+        (ext_time - ext_root_scanTime) > 900
+}
+
+//timeout for children of root
+//timeout for grandchildren of root or lower
+rule timeout_subtree
+{
+    meta:
+        flags = "timeout_subtree"
+    condition:
+        ext_depth > 2 and (ext_time - ext_parent_scanTime) > 700 or
+        ext_depth > 3 and (ext_time - ext_parent_scanTime) > 500
+}
+
+//use "not timeout" condition for modules that should be skipped after timeout
+private rule timeout
+{
+    condition:
+        timeout_root or timeout_subtree
+}
+
+/*_________________________________________________________________________*/
+/*-----------------------Default Priority Modules--------------------------*/
+//default priority (order)
 rule JAR_FILE
 {
     meta:
@@ -59,21 +96,79 @@ rule JAR_FILE
         any of them
 }
 
-rule send_to_fluent
+rule scaninfo_end
 {
     meta:
-        scan_modules = "LOG_FLUENT"
-        priority = "50"
+        scan_modules = "META_SCANINFO"
+        priority = "49"
     condition:
         root_object
 }
 
+/*_________________________________________________________________________*/
+/*-----------------------High Priority (Late) Modules----------------------*/
+
+rule send_to_splunk
+{
+    meta:
+        scan_modules = "LOG_SPLUNK(type=file,host=localhost,logfile=/var/log/laikaboss/laikaboss_splunk.log,split_log=False)"
+        priority = "90"
+    condition:
+        root_object and (not ext_source contains "CLI" and not ext_source contains "webUI") or ext_args contains "|submit_to_splunk=True|"
+}
+
+
+/* no flags can be created after this call or they will be ignored */
 rule DISPOSITION_FILE
 {
     meta:
         scan_modules = "DISPOSITIONER"
-        priority = "10"
+        priority = "30"
     condition:
         true
 }
 
+
+/*_________________________________________________________________________*/
+/*-----------------------High Priority (Late) Modules----------------------*/
+
+rule send_to_storage_attachments_s3
+{
+    meta:
+        scan_modules = "SUBMIT_STORAGE_S3(type=cache_file,bucket=email,interval=3)"
+        priority = "45"
+    condition:
+        //for root object, depth=1 so it is 1 indexed, not 0 - weird - so ext_depth == 2, means it has attachments
+        //when no flags, buffer = "EMPTY", so if there are flags filesize > 5
+       not ext_source contains "CLI" and not ext_filename contains "e_email_hybrid" and 
+        ((ext_depth == 2 or (ext_depth > 2 and filesize > 5)) or ext_filename contains "text_from_html") and
+        (not ext_source contains "webUI-" or ext_args contains "|submit_to_storage=True|")
+} 
+
+
+rule send_to_storage_gui_s3
+{
+    meta:
+        scan_modules = "SUBMIT_STORAGE_S3(type=cache_file,bucket=gui)"
+        priority = "45"
+    condition:
+        ext_args contains "|save_all_subfiles=True|"
+}
+
+rule scaninfo_end_cli
+{
+    meta:
+        scan_modules = "META_SCANINFO"
+        priority = "85"
+    condition:
+        root_object 
+}
+
+rule send_to_storage_email_json_s3
+{
+    meta:
+        scan_modules = "SUBMIT_STORAGE_S3(clear_log_data=false,type=json,bucket=email)"
+        priority = "99"
+    condition:
+        root_object and not ext_source contains "CLI" and (not ext_source contains "webUI-" or ext_args contains "|submit_to_storage=True|")
+}

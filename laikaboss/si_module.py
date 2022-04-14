@@ -1,4 +1,8 @@
+from __future__ import absolute_import
 # Copyright 2015 Lockheed Martin Corporation
+# Copyright 2020 National Technology & Engineering Solutions of Sandia, LLC 
+# (NTESS). Under the terms of Contract DE-NA0003525 with NTESS, the U.S. 
+# Government retains certain rights in this software.
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,17 +16,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # 
+from builtins import object
 import sys
 import traceback
 import time
 import logging, syslog
 from laikaboss import config
 from interruptingcow import timeout
-from objectmodel import GlobalModuleTimeoutError, GlobalScanTimeoutError, QuitScanException
+from .objectmodel import GlobalModuleTimeoutError, GlobalScanTimeoutError, QuitScanException
 from laikaboss.util import log_module, get_option, log_module_error, get_scanObjectUID, getRootObject
 
 
-class SI_MODULE:
+class SI_MODULE(object):
     '''Base module class for Laika'''
     def __init__(self,):
         '''Empty init method, to be overridden by modules'''

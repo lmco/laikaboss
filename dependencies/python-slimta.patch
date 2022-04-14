@@ -1,0 +1,45 @@
+diff --git a/slimta/envelope.py b/slimta/envelope.py
+index 82e64a9..4da664b 100644
+--- a/slimta/envelope.py
++++ b/slimta/envelope.py
+@@ -83,6 +83,9 @@ class Envelope(object):
+         #: Hostname of the :mod:`slimta` server that received the message.
+         self.receiver = None
+ 
++        # forensic worthy version of original buffer
++        self.buffer = None
++
+         #: Timestamp when the message was received.
+         self.timestamp = None
+ 
+@@ -210,6 +213,8 @@ class Envelope(object):
+             header_data = data[:match.end(0)]
+             payload = data[match.end(0):]
+ 
++        # keep whole buffer
++        self.buffer = data
+         self.headers = self._parse_data(header_data, True)
+         self.message = self._merge_payloads(self.headers, payload)
+ 
+diff --git a/slimta/util/pycompat.py b/slimta/util/pycompat.py
+index f81edad..eea5dac 100644
+--- a/slimta/util/pycompat.py
++++ b/slimta/util/pycompat.py
+@@ -47,9 +47,14 @@ if PY3:
+ 
+     from email.generator import BytesGenerator
+     from email.parser import BytesParser
+-    from email.policy import SMTP
+-    parser = partial(BytesParser, policy=SMTP)
+-    generator = partial(BytesGenerator, policy=SMTP)
++    from email.policy import compat32
++
++    # compat32 doesn't decode headers and leaves
++    # them as-is 7-bit - so less Unicode errors
++
++    custom = compat32.clone(linesep='\r\n')
++    parser = partial(BytesParser, policy=custom)
++    generator = partial(BytesGenerator, policy=custom)
+ else:
+     from itertools import imap
+     map_func = imap

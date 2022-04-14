@@ -1,0 +1,90 @@
+[
+    {
+        "comment": "uur",
+        "config": null,
+        "data": "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",
+        "error_validation": 1,
+        "errors": [],
+        "ext_metadata": {},
+        "filename": "two-files.tnef",
+        "ignore_pattern": "^\\.\"scan_result\"\\[[0-9]+\\]\\.(\"uuid\"|\"rootUID\"|\"scanTime\"|\"parent\")",
+        "name": "explode_tnef_byte_limit_exceed_2_uur-two-two-two-two-files.tnef",
+        "result": {
+            "scan_result": [
+                {
+                    "charset": "",
+                    "contentType": [],
+                    "depth": 0,
+                    "ephID": "",
+                    "fileType": [],
+                    "filename": "two-files.tnef",
+                    "flags": [
+                        "tnef:BYTE_LIMIT_EXCEEDED"
+                    ],
+                    "level": 2,
+                    "moduleMetadata": {
+                        "EXPLODE_TNEF": {
+                            "Date Modified": "1999-10-13 22:51:51",
+                            "Date Sent": "1999-10-13 22:49:09",
+                            "Date Start": "IPM.Microsoft Mail.Note\u0000",
+                            "Message Class": "IPM.Microsoft Mail.Note",
+                            "Message ID": "40017FCFD081D311A7A50008C71BCA8D",
+                            "Priority": "Normal",
+                            "Subject": "two files",
+                            "Total_Objects": 22
+                        }
+                    },
+                    "objectHash": "98fe98d3a6d0d6c4225ba88db6db7d2f",
+                    "objectSize": 3481,
+                    "order": 0,
+                    "origRootUID": "",
+                    "parent": "",
+                    "parent_order": -1,
+                    "rootUID": "7e95d05d-7b49-423f-a1c9-3b8c4ea55727",
+                    "scanModules": [
+                        "EXPLODE_TNEF"
+                    ],
+                    "scanTime": 1580860841,
+                    "source": "test",
+                    "sourceModule": "",
+                    "uniqID": "",
+                    "uuid": "7e95d05d-7b49-423f-a1c9-3b8c4ea55727"
+                },
+                {
+                    "charset": "",
+                    "contentType": [],
+                    "depth": 0,
+                    "ephID": "",
+                    "fileType": [],
+                    "filename": "AUTHORS",
+                    "flags": [],
+                    "level": 2,
+                    "moduleMetadata": {
+                        "EXTERNAL": {
+                            "Creation Date": "1999-10-13 22:51:46",
+                            "Modify Date": "1999-10-13 22:51:46",
+                            "Render Type": "File"
+                        }
+                    },
+                    "objectHash": "64f49fc16e0c885f7bc4c939364dd0a2",
+                    "objectSize": 244,
+                    "order": 1,
+                    "origRootUID": "",
+                    "parent": "7e95d05d-7b49-423f-a1c9-3b8c4ea55727",
+                    "parent_order": 0,
+                    "rootUID": "7e95d05d-7b49-423f-a1c9-3b8c4ea55727",
+                    "scanModules": [],
+                    "scanTime": 1580860841,
+                    "source": "test",
+                    "sourceModule": "EXPLODE_TNEF",
+                    "uniqID": "",
+                    "uuid": "335404b8-5c69-4807-90e5-b9e509326af4"
+                }
+            ],
+            "source": "test"
+        },
+        "runtime": 0.005772113800048828,
+        "runtime_validation": 0.0,
+        "scan_modules": "EXPLODE_TNEF(bytelimit=500)"
+    }
+]

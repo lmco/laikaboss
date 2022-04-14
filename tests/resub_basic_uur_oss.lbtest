@@ -1,0 +1,71 @@
+[
+    {
+        "comment": "uur",
+        "config": null,
+        "data": "eJxLy8+34AIABYYBhw==",
+        "error_validation": 1,
+        "errors": [],
+        "ext_metadata": {},
+        "filename": "retest",
+        "ignore_pattern": "^\\.\"scan_result\"\\[[0-9]+\\]\\.(\"uuid\"|\"rootUID\"|\"scanTime\"|\"parent\")",
+        "name": "resub_basic_uur-retest",
+        "result": {
+            "scan_result": [
+                {
+                    "charset": "",
+                    "contentType": [],
+                    "depth": 0,
+                    "ephID": "",
+                    "fileType": [],
+                    "filename": "retest",
+                    "flags": [],
+                    "level": 2,
+                    "moduleMetadata": {},
+                    "objectHash": "bcd356cd064b74ab78f49b2ca74cce9c",
+                    "objectSize": 5,
+                    "order": 0,
+                    "origRootUID": "",
+                    "parent": "",
+                    "parent_order": -1,
+                    "rootUID": "5836091d-940f-4271-971d-86c8e18d770c",
+                    "scanModules": [
+                        "EXPLODE_RE_SUB"
+                    ],
+                    "scanTime": 1579725459,
+                    "source": "test",
+                    "sourceModule": "",
+                    "uniqID": "",
+                    "uuid": "5836091d-940f-4271-971d-86c8e18d770c"
+                },
+                {
+                    "charset": "",
+                    "contentType": [],
+                    "depth": 0,
+                    "ephID": "",
+                    "fileType": [],
+                    "filename": "retest_829",
+                    "flags": [],
+                    "level": 2,
+                    "moduleMetadata": {},
+                    "objectHash": "97d3e3cde2a84597d0b540e2ccaa32b2",
+                    "objectSize": 5,
+                    "order": 1,
+                    "origRootUID": "",
+                    "parent": "5836091d-940f-4271-971d-86c8e18d770c",
+                    "parent_order": 0,
+                    "rootUID": "5836091d-940f-4271-971d-86c8e18d770c",
+                    "scanModules": [],
+                    "scanTime": 1579725459,
+                    "source": "test",
+                    "sourceModule": "EXPLODE_RE_SUB",
+                    "uniqID": "",
+                    "uuid": "669d9184-3e22-4dce-8bd8-fd9da8ba69f3"
+                }
+            ],
+            "source": "test"
+        },
+        "runtime": 0.002360105514526367,
+        "runtime_validation": 0.0,
+        "scan_modules": "EXPLODE_RE_SUB(name=829,pattern=8,replacement=9)"
+    }
+]

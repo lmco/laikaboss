@@ -1,4 +1,7 @@
 # Copyright 2015 Lockheed Martin Corporation
+# Copyright 2020 National Technology & Engineering Solutions of Sandia, LLC 
+# (NTESS). Under the terms of Contract DE-NA0003525 with NTESS, the U.S. 
+# Government retains certain rights in this software.
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,11 +14,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# 
+#
+from builtins import str
 import email
+import email.feedparser
 import copy
 from laikaboss.objectmodel import QuitScanException, GlobalScanTimeoutError, GlobalModuleTimeoutError
 from laikaboss.si_module import SI_MODULE
+from laikaboss.util import get_option
 import re
 import logging
 from IPy import IP
@@ -31,10 +37,14 @@ class META_EMAIL(SI_MODULE):
         self.ipMatch = re.compile(r'(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)')
         # IPv6 Address
         self.ipv6Match = re.compile(r'((([0-9A-Fa-f]{1,4}:){7}([0-9A-Fa-f]{1,4}|:))|(([0-9A-Fa-f]{1,4}:){6}(:[0-9A-Fa-f]{1,4}|((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){1,2})|:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){1,3})|((:[0-9A-Fa-f]{1,4})?:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){1,4})|((:[0-9A-Fa-f]{1,4}){0,2}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){1,5})|((:[0-9A-Fa-f]{1,4}){0,3}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){1,6})|((:[0-9A-Fa-f]{1,4}){0,4}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(:(((:[0-9A-Fa-f]{1,4}){1,7})|((:[0-9A-Fa-f]{1,4}){0,5}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:)))')
+        #If message_from_bytes not available (Python 2), copy message_from_string
+        if not hasattr(email, 'message_from_bytes'):
+            email.message_from_bytes = email.message_from_string
 
     def _run(self, scanObject, result, depth, args):
-        moduleResult = [] 
-        e = email.message_from_string(scanObject.buffer)
+        moduleResult = []
+        
+        e = email.message_from_bytes(scanObject.buffer)
         
         sIParray = []
         domainArray = []
@@ -45,16 +55,35 @@ class META_EMAIL(SI_MODULE):
         metaDict = {}
         metaDictDecode = {}
         message_id_domain = ""
+        header_order = ""
+        
+        spam_address = get_option(args, 'spamaddressregex', 'spamaddressregex')
+        
+        if spam_address:
+           spam_address = spam_address.strip()
+            
+
+        header_order_symbols = { "mime-version": "V",
+                                "message-id": "M",
+                                "to": "T",
+                                "content-type": "C",
+                                "from": "F",
+                                "subject": "S",
+                                "date": "D" }
+
 
         for key, value in e.items():
             try:
-                key = key.encode('ascii', 'ignore')
+                key = str(key)
             except (QuitScanException, GlobalScanTimeoutError, GlobalModuleTimeoutError):
                 raise
             except:
                 key = "UNPARSEABLE KEY"
             try:
-                value = value.encode('ascii', 'ignore')
+                if isinstance(value, bytes):
+                    value = value.decode('utf-8', errors='replace').encode('utf-8', errors='replace')
+                else:
+                    value = str(value)
             except (QuitScanException, GlobalScanTimeoutError, GlobalModuleTimeoutError):
                 raise
             except:
@@ -68,7 +97,16 @@ class META_EMAIL(SI_MODULE):
                 detailArray = value.lower().split()
                 for detail in detailArray: #add one at a time due to current implementation
                     metaDict = self._addToMetaDict(metaDict, "dkim-signature-search", detail)
-                    
+
+            if key.lower() == "x-laika-addr":
+                if spam_address:
+                    lst_emails = self.emailMatch.findall(value.lower())
+
+                    #check the first one in case other ones are spoofed
+                    if re.match(spam_address, lst_emails[0]):
+                       scanObject.addFlag('m_email:spam_inbox')
+                continue
+
             if key.lower() == "to" or key.lower() == "cc" or key.lower() == "bcc" or key.lower() == "x-cirt-orcpt":
                 lst_emails = self.emailMatch.findall(value.lower())
                 for singleEmail in lst_emails:
@@ -85,7 +123,9 @@ class META_EMAIL(SI_MODULE):
             if key.lower() == 'message-id':
                 if '@' in value:
                     message_id_domain = value.split('@')[1].strip('>')
-                    
+            
+            if key.lower() in header_order_symbols:
+                header_order = header_order + header_order_symbols[key.lower()]
 
             #for every value, try finding IPs and domains
             #escape single quotes
@@ -120,20 +160,31 @@ class META_EMAIL(SI_MODULE):
                     domainArray.append(str(strDomain))
  
         # Copy the headers and run them through decode to pull out the printable ASCII version
-        metaDictDecode = copy.deepcopy(metaDict)
-        for key, value in metaDictDecode.iteritems():
+        metaDictDecode = {} #copy.deepcopy(metaDict)
+        for key, value in metaDict.items():
             try:
-                decoded, format = email.Header.decode_header(value)[0]
-                # if the encoding it something other than utf-8, attempt to convert it
-                if format and format != 'utf-8':
-                    metaDictDecode[key] = unicode(decoded, format).encode('utf-8')
-                # format is either empty (assumes ASCII) or utf-8 (our preferred encoding)
-                else:
-                    metaDictDecode[key] = decoded
+                if not isinstance(value, list):
+                    value = [value]
+                for header_piece in value:
+                    h = email.header.decode_header(header_piece)
+                    final_decoded_vals = []
+                    for (decoded, format) in h:
+                        # if it's encoded, attempt to convert it
+                        if format:
+                            decoded_val = str(decoded, format, errors='replace')
+                            final_decoded_vals.append(decoded_val.encode('utf-8'))
+                        # format is empty (assumes ASCII)
+                        else:
+                            if isinstance(decoded, str):
+                                final_decoded_vals.append(decoded.encode('utf-8'))
+                            else:
+                                final_decoded_vals.append(decoded)
+                    
+                    self._addToMetaDict(metaDictDecode, key, b' '.join(final_decoded_vals))
                     
             except (QuitScanException, GlobalScanTimeoutError, GlobalModuleTimeoutError):
                 raise
-            except: 
+            except:
                 metaDictDecode[key] = ""
 
         # Add Message-ID to scan object as uniqID
@@ -152,6 +203,7 @@ class META_EMAIL(SI_MODULE):
         scanObject.addMetadata(self.module_name, "Senders_reverse", rfrArray)
         scanObject.addMetadata(self.module_name, "Headers", metaDict)
         scanObject.addMetadata(self.module_name, "Headers-Decode", metaDictDecode)
+        scanObject.addMetadata(self.module_name, "Header_Order", header_order)
             
         return moduleResult
     
@@ -166,7 +218,7 @@ class META_EMAIL(SI_MODULE):
             else:
                 newHeader.append(metaDict[str(thisKey.lower())])
             try:
-                newHeader.append(str(thisValue))
+                newHeader.append(thisValue)
             except (QuitScanException, GlobalScanTimeoutError, GlobalModuleTimeoutError):
                 raise
             except:

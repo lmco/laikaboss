@@ -1,0 +1,52 @@
+[
+    {
+        "comment": "uur",
+        "config": null,
+        "data": "eJxzLCkpykwqLUlVCHOK90vMTVWwVVAKycgsdslPLs1NzStR4uVyRFbjlFgMVmPol1+Um5ijh0+tc1FqYkliUg5Ig1tiTnEqmnxAUWpKanJOIpDyTAGqCSkqRVfiWlGQX5yKQzIkNbcgJ7Ek1SW1KLMMlyLn0uKS/NzMKqg7ICoAygdUUw==",
+        "error_validation": 1,
+        "errors": [],
+        "ext_metadata": {},
+        "filename": "null_macro",
+        "ignore_pattern": "^\\.\"scan_result\"\\[[0-9]+\\]\\.(\"uuid\"|\"rootUID\"|\"scanTime\"|\"parent\")",
+        "name": "meta_macro_simple-null_macro",
+        "result": {
+            "scan_result": [
+                {
+                    "charset": "",
+                    "contentType": [],
+                    "depth": 0,
+                    "ephID": "",
+                    "fileType": [],
+                    "filename": "null_macro",
+                    "flags": [],
+                    "level": 2,
+                    "moduleMetadata": {
+                        "META_MACRO": {
+                            "VB_Base": "1Normal.ThisDocument",
+                            "VB_Name": "ThisDocument"
+                        }
+                    },
+                    "objectHash": "1671f8947cc4cfbf649c00d29fdb3cdd",
+                    "objectSize": 247,
+                    "order": 0,
+                    "origRootUID": "",
+                    "parent": "",
+                    "parent_order": -1,
+                    "rootUID": "31862e59-7edf-4ff6-be3e-c77fa844a981",
+                    "scanModules": [
+                        "META_MACRO"
+                    ],
+                    "scanTime": 1579725468,
+                    "source": "test",
+                    "sourceModule": "",
+                    "uniqID": "",
+                    "uuid": "31862e59-7edf-4ff6-be3e-c77fa844a981"
+                }
+            ],
+            "source": "test"
+        },
+        "runtime": 0.0006670951843261719,
+        "runtime_validation": 0.0,
+        "scan_modules": "META_MACRO"
+    }
+]

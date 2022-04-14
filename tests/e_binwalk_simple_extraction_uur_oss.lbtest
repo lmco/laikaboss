@@ -1,0 +1,64 @@
+[
+    {
+        "comment": "uur",
+        "config": null,
+        "data": "eJyT7+ZgWLLrWDQD89sr+70PO4gc+CiuL3ql/sBCD7b0naefHn+jsXBC09w5RjcuHfXIdZVh+S/9nyP9P0dh0af5Gl/WCWo5vZwy7dB35unlMXL67pPKD++ati1T/XywvO+8V/s/hisdu3VmidlmM8Fcn0mZnSWvrYvT+C9nCbl+iuhVu3q3JPfest/VWRHXj+++x1x2vPZ/9/OPtavP37jyv3BR+N/3131l0tv+3W/bFJBYzFAz73t1/vaP3i+e1Wm8/LU/uaBW5dXrv4+f3e69ebmT5WF/keS/R/z9mzj4zl3ZJbT89NcDvT9Xz9flLpvV9L9rquvzDZ58T04dPa27n5MBARr+bmEQYD09h0GDgSHAm5mFCyx6SyXQd0WqUR0LkA3CzAwyDGn5+aEhnAzMd/Yci34ExKUV3AyMLC+YgSpABFCaK8CbkUmOGZcREmBxRiD+2whigQ1khRiIZliANysbRDEjgyeQdgRrBQCldKZ8",
+        "error_validation": 1,
+        "errors": [],
+        "ext_metadata": {},
+        "filename": "outputfile",
+        "ignore_pattern": "^\\.\"scan_result\"\\[[0-9]+\\]\\.(\"uuid\"|\"rootUID\"|\"scanTime\"|\"parent\")",
+        "name": "e_binwalk_simple_extraction-outputfile",
+        "result": {
+            "scan_result": [
+                {
+                    "charset": "",
+                    "contentType": [],
+                    "depth": 0,
+                    "ephID": "",
+                    "fileType": [],
+                    "filename": "outputfile",
+                    "flags": [],
+                    "level": 2,
+                    "moduleMetadata": {
+                        "EXPLODE_BINWALK": {
+                            "embedded_info": [
+                                {
+                                    "description": "gzip compressed data, from Unix, last modified: 2018-10-17 04:29:24",
+                                    "offset": 0
+                                },
+                                {
+                                    "description": "Zip archive data, at least v1.0 to extract, compressed size: 4, uncompressed size: 4, name: foo",
+                                    "offset": 265
+                                },
+                                {
+                                    "description": "End of Zip archive, footer length: 22",
+                                    "offset": 403
+                                }
+                            ]
+                        }
+                    },
+                    "objectHash": "6e52686fa4a07ca6710457e2bdfc8a6b",
+                    "objectSize": 425,
+                    "order": 0,
+                    "origRootUID": "",
+                    "parent": "",
+                    "parent_order": -1,
+                    "rootUID": "92ea5139-6786-478d-9f05-a01ef774048c",
+                    "scanModules": [
+                        "EXPLODE_BINWALK"
+                    ],
+                    "scanTime": 1579725483,
+                    "source": "test",
+                    "sourceModule": "",
+                    "uniqID": "",
+                    "uuid": "92ea5139-6786-478d-9f05-a01ef774048c"
+                }
+            ],
+            "source": "test"
+        },
+        "runtime": 0.3945119380950928,
+        "runtime_validation": 0.0,
+        "scan_modules": "EXPLODE_BINWALK"
+    }
+]

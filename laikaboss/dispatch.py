@@ -1,4 +1,8 @@
+from __future__ import absolute_import
 # Copyright 2015 Lockheed Martin Corporation
+# Copyright 2020 National Technology & Engineering Solutions of Sandia, LLC 
+# (NTESS). Under the terms of Contract DE-NA0003525 with NTESS, the U.S. 
+# Government retains certain rights in this software.
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,13 +16,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # 
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str as text
 import time
 import logging
-import Queue
-from util import get_scanObjectUID, listToSSV, yara_on_demand, \
+import queue
+import uuid
+import os
+import socket
+import binascii
+from .util import get_scanObjectUID, listToSSV, yara_on_demand, \
                  log_module, log_module_error, getObjectHash, \
-                 uniqueList, get_module_arguments, getRootObject
-from objectmodel import ScanObject, QuitScanException, GlobalScanTimeoutError
+                 uniqueList, get_module_arguments, getRootObject, \
+                 getParentObject
+from .objectmodel import ScanObject, QuitScanException, GlobalScanTimeoutError
 from laikaboss import modules
 import sys
 import traceback
@@ -99,16 +111,42 @@ def _conditional_scan(scanObject, externalVars, result, depth):
     # Attempt to disposition based on flags from the first scan
     try:
         logging.debug("attempting conditional disposition on %s with %s uID: %s parent: %s" % (scanObject.filename, listToSSV(scanObject.flags), get_scanObjectUID(scanObject), scanObject.parent))
+        # Get scan arguments from external metadata
+        scanArgs = externalVars.extMetaData.get('args')
+
+        # Get scan arguments from the root object's external metadata if not present in this object
+        if not scanArgs:
+            rootObj = getRootObject(result)
+            scanArgs = rootObj.getMetadata('EXTERNAL', 'args')
+        flattenedArgs = [key + '=' + str(scanArgs[key]) for key in scanArgs] if scanArgs else []
+
+        cluster = 'default'
+        if hasattr(config, 'cluster'):
+            cluster = str(config.cluster)
+        cluster = "|" + cluster + "|"
+
+        ext_args = '|' + '|'.join(flattenedArgs) + '|' if scanArgs else 'NONE'
+
+        # Filenames need to be converted to native strings to pass to yara
+        ext_filename = externalVars.filename
+        if not isinstance(ext_filename, str):
+            ext_filename = ext_filename.encode('utf-8')
         externals = {
                         'ext_parentModules': listToSSV(externalVars.parentModules) or 'NONE',
                         'ext_sourceModule': externalVars.sourceModule or 'NONE',
                         'ext_contentType': listToSSV(scanObject.contentType) or 'NONE',
                         'ext_fileType': listToSSV(scanObject.fileType) or 'NONE',
-                        'ext_filename': externalVars.filename or 'NONE',
+                        'ext_filename': ext_filename or 'NONE',
                         'ext_timestamp': externalVars.timestamp or 'NONE',
                         'ext_source': externalVars.source or 'NONE',
                         'ext_size': scanObject.objectSize,
-                        'ext_depth': depth or 0
+                        'ext_scanTime': scanObject.scanTime,
+                        'ext_parent_scanTime': scanObject.parent and getParentObject(result, scanObject).scanTime or 0,
+                        'ext_root_scanTime': getRootObject(result).scanTime,
+                        'ext_time': int(time.time()),
+                        'ext_depth': depth or 0,
+                        'ext_cluster': cluster,
+                        'ext_args': ext_args,
                     }
         yresults = yara_on_demand(config.yaraconditionalrules, listToSSV(scanObject.flags), externals)
         moduleQueue = _get_module_queue(yresults, result, scanObject, "Conditional Rules")
@@ -138,11 +176,33 @@ def _addExtMetadata(scanObject, data):
         scanObject.addMetadata("EXTERNAL", "data", data)
     # If the data is a dict, loop through the dictionary and add each key, value
     elif isinstance(data, dict):
-        for key, value in data.iteritems():
+        for key, value in data.items():
             scanObject.addMetadata("EXTERNAL", key, value)
     # If it is none of these, then add the repr() string to the 'object' key
     else:
         scanObject.addMetadata("EXTERNAL", "object", repr(data))
+
+def _generate_uuid(source=None):
+    '''
+    Description: Generates a UUID for a ScanObject based on configuration settings.
+    Currently, only type 1 and type 4 UUIDs are supported
+    '''
+    uuidmethod = 'uuid4'
+    newId = ''
+
+    if hasattr(config, 'scanobjectuuid'):
+        uuidmethod = config.scanobjectuuid
+    #Type UUIDs, which are entirely random
+    if uuidmethod == 'uuid4':
+        newId = uuid.uuid4()
+    #Type 1 UUIDs, which contain a timestamp
+    elif uuidmethod == 'uuid1':
+        #We replace the "node" part of the UUID (normally a MAC address) with a random one for security
+        newId = uuid.uuid1(uuid._random_getnode())
+    else:
+        logging.warn("Scan Object UUID method of " + uuidmethod + " not supported, defaulting to uuid4")
+        newId = uuid.uuid4()
+    return str(newId)
  
 def _gather_metadata(buffer, externalVars, result, depth, maxBytes):
     '''
@@ -164,6 +224,7 @@ def _gather_metadata(buffer, externalVars, result, depth, maxBytes):
                             objectSize=len(buffer),
                             filename=externalVars.filename,
                             contentType=contentType,
+                            charset=externalVars.charset,
                             fileType=[],
                             uniqID=externalVars.uniqID,
                             ephID=externalVars.ephID,
@@ -172,7 +233,8 @@ def _gather_metadata(buffer, externalVars, result, depth, maxBytes):
                             source=result.source,
                             level=result.level,
                             depth=depth,
-                            order=len(result.files))
+                            order=len(result.files),
+                            uuid=_generate_uuid(externalVars.source))
 
     # Add the object to the scan result
     uid = get_scanObjectUID(scanObject)
@@ -196,7 +258,7 @@ def _get_module_queue(yresults, result, scanObject, metaLabel):
     Description: Takes the results from a dispatch yara scan and creates a priority queue from them.
                  The function also adds dispatch flags if they exist in the rule.
     '''
-    moduleQueue = Queue.PriorityQueue() 
+    moduleQueue = queue.PriorityQueue() 
     dispatchFlags = []
     parentDispatchFlags = []
 
@@ -209,7 +271,7 @@ def _get_module_queue(yresults, result, scanObject, metaLabel):
             else:
                 priority = int(config.defaultmodulepriority)
             scanObject.addMetadata("DISPATCH", metaLabel, "%s (%i)" % (str(yr), priority))
-            moduleQueue.put((priority, uniqueList(yr.meta['scan_modules'].split())))
+            moduleQueue.put((priority, list(uniqueList(yr.meta['scan_modules'].split()))))
         if 'flags' in yr.meta:
             dispatchFlags.extend(yr.meta['flags'].split())
         if 'parent_flags' in yr.meta:
@@ -319,6 +381,11 @@ def Dispatch(buffer, result, depth, externalVars=None,
             MAXBYTES = 0
         logging.debug('setting dispatch byte limit to %i' % (MAXBYTES))
 
+    cluster = 'default'
+    if hasattr(config, 'cluster'):
+        cluster = str(config.cluster)
+    cluster = "|" + cluster + "|"
+
     #
     #  This branch is designed for first-pass scanning where file type and scan modules are unknown
     #  Yara is used to disposition the file and determine which modules should be run against it
@@ -330,24 +397,40 @@ def Dispatch(buffer, result, depth, externalVars=None,
         scanObject = _gather_metadata(buffer, externalVars, result, depth, MAXBYTES)
 
         # Increase the depth only if it is the first time scanning an object
-        depth += 1        
+        depth += 1
 
         logging.debug("si_dispatch - Attempting to dispatch - uid: %s, filename: %s, \
 source module: %s" % (get_scanObjectUID(scanObject), 
                        externalVars.filename, 
                        externalVars.sourceModule))
         #  check to see if this object has a parent, get the modules run against the parent if it exists
-        #
+        ## Get scan arguments from external metadata
+        scanArgs = externalVars.extMetaData.get('args')
+        # Get scan arguments from the root object's external metadata if not present in this object
+        if not scanArgs:
+            rootObj = getRootObject(result)
+            scanArgs = rootObj.getMetadata('EXTERNAL', 'args')
+        flattenedArgs = [key + '=' + str(scanArgs[key]) for key in scanArgs] if scanArgs else []
+        # Filenames need to be converted to native strings to pass to yara
+        ext_filename = externalVars.filename
+        if not isinstance(ext_filename, str):
+            ext_filename = ext_filename.encode('utf-8')
         externals = {
                         'ext_parentModules': listToSSV(externalVars.parentModules) or 'NONE',
                         'ext_sourceModule': externalVars.sourceModule or 'NONE',
                         'ext_contentType': listToSSV(scanObject.contentType) or 'NONE',
-                        'ext_filename': externalVars.filename or 'NONE',
+                        'ext_filename': ext_filename or 'NONE',
                         'ext_timestamp': externalVars.timestamp or 'NONE',
                         'ext_source': externalVars.source or 'NONE',
                         'ext_flags': listToSSV(externalVars.flags) or 'NONE',
                         'ext_size': scanObject.objectSize,
-                        'ext_depth': int(depth) or 0
+                        'ext_scanTime': scanObject.scanTime,
+                        'ext_parent_scanTime': scanObject.parent and getParentObject(result, scanObject).scanTime or 0, 
+                        'ext_root_scanTime': getRootObject(result).scanTime,
+                        'ext_time': int(time.time()),
+                        'ext_depth': int(depth) or 0,
+                        'ext_cluster': cluster,
+                        'ext_args': '|' + '|'.join(flattenedArgs) + '|' if flattenedArgs else 'NONE'
                     }
 
         dispatch_rule_start = time.time()

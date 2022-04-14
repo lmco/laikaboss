@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 # Copyright 2015 Lockheed Martin Corporation
+# Copyright 2020 National Technology & Engineering Solutions of Sandia, LLC 
+# (NTESS). Under the terms of Contract DE-NA0003525 with NTESS, the U.S. 
+# Government retains certain rights in this software.
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,18 +18,22 @@
 # 
 from __future__ import print_function
 
-import sys, traceback
+from builtins import str
+import sys
 import os
 import multiprocessing
 from optparse import OptionParser
 import logging, time
-from laikaboss.objectmodel import ExternalVars, ScanResult
-from laikaboss.constants import level_minimal, level_metadata, level_full
+from laikaboss.objectmodel import ExternalVars, ExternalObject, ScanResult
+from laikaboss.constants import level_metadata
 from laikaboss.dispatch import Dispatch, close_modules
 from laikaboss import config
-from laikaboss.util import init_yara, init_logging, log_result
+from laikaboss.util import init_logging, log_result
 from laikaboss.clientLib import getJSON, getRootObject, get_scanObjectUID
 from distutils.util import strtobool
+from laikaboss.extras.extra_util import config_path
+import os.path
+import requests
 import zlib
 import json
 
@@ -47,6 +54,8 @@ default_configs = {
     'log_result' : 'false',
     'log_json' : '',
     'ephID' : '',
+    'uniqID' : '',
+    'contentType' : '',
     'dev_config_path' : 'etc/framework/laikaboss.conf',
     'sys_config_path' : '/etc/laikaboss/laikaboss.conf'
 }
@@ -73,6 +82,10 @@ def main():
                       action="store_true",
                       dest="debug",
                       help="enable debug messages to the console.")
+    parser.add_option("--format",
+                      action="store", type="string",
+                      dest="format",
+                      help="This currently only supports the submit file format - which embeds the metadata, source, ephid, etc in the file itself")
     parser.add_option("-c", "--config-path",
                       action="store", type="string",
                       dest="config_path",
@@ -102,6 +115,10 @@ def main():
                       action="store", type="string",
                       dest="scan_modules",
                       help="Specify individual module(s) to run and their arguments. If multiple, must be a space-separated list.")
+    parser.add_option("-u", "--rootUID",
+                      action="store", type="string",
+                      dest="rootUID",
+                      help="Specify a rootUID from storage to re-run.  If multiple, must be space seperated")
     parser.add_option("--parent",
                       action="store", type="string",
                       dest="parent", default="",
@@ -110,6 +127,14 @@ def main():
                       action="store", type="string",
                       dest="ephID", default="",
                       help="Specify an ephemeralID to send with the object")
+    parser.add_option("-i", "--uniqID",
+                      action="store", type="string",
+                      dest="uniqID", default="",
+                      help="Specify a uniqID to send with the object")
+    parser.add_option("-t", "--contentType",
+                      action="store", type="string",
+                      dest="contentType", default="",
+                      help="Specify a contentType to associate with object")
     parser.add_option("--metadata",
                       action="store",
                       dest="ext_metadata",
@@ -131,6 +156,11 @@ def main():
     
     logger = logging.getLogger()
 
+    # keep track of which options are hard coded in command line
+    # so they can't be overwridden in format=submit
+    global OPTIONS
+    OPTIONS = []
+
     if options.debug:
         # stdout is added by default, we'll capture this object here
         #lhStdout = logger.handlers[0]
@@ -145,6 +175,9 @@ def main():
 
     global EXT_METADATA
     if options.ext_metadata:
+
+        OPTIONS.append("ext_metadata");
+
         if os.path.exists(options.ext_metadata):
             with open(options.ext_metadata) as metafile:
                 EXT_METADATA = json.loads(metafile.read())
@@ -156,8 +189,29 @@ def main():
     global EPHID
     if options.ephID:
         EPHID = options.ephID
+        OPTIONS.append("ephid");
     else:
         EPHID = getConfig("ephID")
+
+    global CONTENT_TYPE
+    if options.contentType:
+        CONTENT_TYPE = options.contentType
+        OPTIONS.append("contentType")
+    else:
+        CONTENT_TYPE = getConfig("contentType")
+
+    global UNIQID
+    if options.uniqID:
+        UNIQID = options.uniqID
+        OPTIONS.append("uniqID")
+    else:
+        UNIQID = getConfig("uniqID")
+
+    global FORMAT
+    if options.format:
+        FORMAT = options.format
+    else:
+        FORMAT = ""
 
     global SCAN_MODULES
     if options.scan_modules:
@@ -210,6 +264,7 @@ def main():
     global SOURCE
     if options.source:
         SOURCE = options.source
+        OPTIONS.append("source");
     else:
         SOURCE = getConfig('source')
 
@@ -238,12 +293,21 @@ def main():
         error('A valid framework configuration was not found in either of the following locations:\
 \n%s\n%s' % (default_configs['dev_config_path'],default_configs['sys_config_path']))
         return 1
-       
 
+    DATA_PATH = []
+
+    if options.rootUID:
+        ids = [options.rootUID]
+        if ' ' in options.rootUID:
+            ids = options.rootUID.split(' ')
+
+        for id1 in ids:
+            id1 = id1.strip()
+            if id1:
+               DATA_PATH.append(("uuid", id1))
+ 
     # Check for stdin in no arguments were provided
     if len(args) == 0:
-
-        DATA_PATH = []
 
         if not sys.stdin.isatty():
             while True:
@@ -260,7 +324,7 @@ def main():
                     DATA_PATH.append(f)
 
         if not DATA_PATH:
-            error("You must provide files via stdin when no arguments are provided")
+            error("You must provide files via stdin or a --rootUID param when no arguments are provided")
             return 1
         logging.debug("Loaded %s files from stdin" % (len(DATA_PATH)))
     elif len(args) == 1:
@@ -310,7 +374,7 @@ def main():
         NUM_PROCS = num_jobs
     logging.debug("Starting %s processes" % (NUM_PROCS))
     consumers = [ Consumer(tasks, results)
-                  for i in xrange(NUM_PROCS) ]
+                  for i in range(NUM_PROCS) ]
     try:
         
         for w in consumers:
@@ -321,7 +385,7 @@ def main():
             tasks.put(fname)
         
         # Add a poison pill for each consumer
-        for i in xrange(NUM_PROCS):
+        for i in range(NUM_PROCS):
             tasks.put(None)
 
         if PROGRESS_BAR:
@@ -335,7 +399,7 @@ def main():
 
         while num_jobs:
             answer = zlib.decompress(results.get())
-            print(answer)
+            print(answer.decode('utf-8'))
             num_jobs -= 1
 
     except KeyboardInterrupt:
@@ -354,12 +418,12 @@ class QueueMonitor(multiprocessing.Process):
         self.task_count = task_count
     def run(self):
         try:
-            from progressbar import ProgressBar, Bar, Counter, Timer, ETA, Percentage, RotatingMarker
+            from progressbar import ProgressBar, Bar, Counter, Timer, ETA, Percentage
             widgets = [Percentage(), Bar(left='[', right=']'), ' Processed: ', Counter(), '/', "%s" % self.task_count, ' total files (', Timer(), ') ', ETA()]
             pb = ProgressBar(widgets=widgets, maxval=self.task_count).start()
             while self.task_queue.qsize():
                 pb.update(self.task_count - self.task_queue.qsize())
-                
+
                 time.sleep(0.5)
             pb.finish()
         except KeyboardInterrupt:
@@ -377,42 +441,130 @@ class Consumer(multiprocessing.Process):
     def __init__(self, task_queue, result_queue):
         self.task_queue = task_queue
         self.result_queue = result_queue
+        self.auth_user_pass = None
         multiprocessing.Process.__init__(self)
+
+    def load_auth_config(self):
+        try:
+            if hasattr(config, 'storage_s3_creds_file'):
+                password_file = config_path(config.storage_s3_creds_file)
+                if os.path.exists(password_file):
+                   password_entries = open(password_file).read().split(":")
+                   self.auth_user_pass = tuple([x.strip() for x in password_entries])
+        except Exception as e:
+          print("error:" + str(e))
+
+    def load_buffer(self, task):
+        uuid1 = None
+
+        if isinstance(task, tuple):
+           task_type = task[0]
+           uuid1 = task[1]
+        else:
+           task_type = "file"
+
+        if task_type == "file":
+           with open(task, 'rb') as file1:
+              return file1.read()
+        elif task_type == "uuid":
+            if hasattr(config, 'storage_rest_api') and self.auth_user_pass:
+                uri = '%s/api/get/object/%s' % (config.storage_rest_api, uuid1)
+                r = requests.get(uri, auth=self.auth_user_pass, verify=False)
+                if r.status_code == 200:
+                   return r.content
+                else:
+                   raise IOError('error loading uuid from server uuid:%s, status:%d, err:%s uri:%s' % (uuid1, r.status_code, r.text[:50], uri))
+            else:
+                raise IOError('storage_rest_api or storage_s3_creds_file are not valid in the config file: uuid:%s' % (uuid1,))
+        else:
+            raise IOError('error unknown type for file:%s, type:%d' % (uuid1, task_type))
 
     def run(self):
         global CONFIG_PATH
+
+
         config.init(path=CONFIG_PATH)
         init_logging()
+        self.load_auth_config()
+
         ret_value = 0
 
         # Loop and accept messages from both channels, acting accordingly
         while True:
             next_task = self.task_queue.get()
+
+            myexternalVars = None
+
+            source = SOURCE
+            ephid = EPHID
+            ext_metadata = EXT_METADATA
+            contentType = CONTENT_TYPE
+            uniqID = UNIQID
+
             if next_task is None:
                 # Poison pill means shutdown
                 self.task_queue.task_done()
                 logging.debug("%s Got poison pill" % (os.getpid()))
                 break
             try:
-                with open(next_task) as nextfile:
-                    file_buffer = nextfile.read()
-            except IOError:
-                logging.debug("Error opening: %s" % (next_task))
+
+               if FORMAT=="submit":
+                     with open(next_task, 'rb') as f:
+                          obj_txt = f.read()
+                          externalObject = ExternalObject.decode(obj_txt)
+                          myexternalVars = externalObject.externalVars
+
+                          file_buffer = externalObject.buffer
+
+                          if source:
+                              myexternalVars.set_source(source)
+
+                          if ephid:
+                              myexternalVars.set_ephid(ephid)
+
+                          if ext_metadata:
+                              myexternalVars.set_extMetadata(ext_metadata)
+
+                          if contentType:
+                              myexternalVars.set_contentType(contentType)
+
+                          if uniqID:
+                              myexternalVars.set_setUniqID(uniqID)
+
+               else:
+                  file_buffer = self.load_buffer(next_task)
+
+            except IOError as e:
+                err_msg = "Error opening: %s" % (str(next_task))
+                logging.exception(err_msg)
                 self.task_queue.task_done()
-                self.result_queue.put(answer)
+                tmp_result = {'source': source,'scan_result': {}}
+                self.result_queue.put(zlib.compress(json.dumps(tmp_result, ensure_ascii=False).encode("utf-8")))
                 continue
 
             resultJSON = ""
             try:
                 # perform the work
                 result = ScanResult()
-                result.source = SOURCE 
+                result.source = source 
                 result.startTime = time.time()
                 result.level = level_metadata
-                myexternalVars = ExternalVars(filename=next_task,
-                                             source=SOURCE,
-                                             ephID=EPHID,
-                                             extMetaData=EXT_METADATA)
+                if not myexternalVars:
+
+
+                    origRootUID = None
+                    filename = next_task
+                    if isinstance(next_task, tuple):
+                        filename  = next_task[1]
+                        origRootUID = filename
+
+                    myexternalVars = ExternalVars(contentType = contentType,
+                                                 filename=filename,
+                                                 source=source,
+                                                 ephID=ephid,
+                                                 origRootUID = origRootUID,
+                                                 uniqID = uniqID,
+                                                 extMetaData=ext_metadata)
 
                 Dispatch(file_buffer, result, 0, externalVars=myexternalVars, extScanModules=SCAN_MODULES)
 
@@ -426,7 +578,7 @@ class Consumer(multiprocessing.Process):
                         except (OSError, IOError) as e:
                             error("\nERROR: unable to write to %s...\n" % (UID_SAVE_PATH))
                             raise
-                    for uid, scanObject in result.files.iteritems():
+                    for uid, scanObject in result.files.items():
                         with open("%s/%s" % (UID_SAVE_PATH, uid), "wb") as f:
                             f.write(scanObject.buffer)
                         if scanObject.filename and scanObject.depth != 0:
@@ -436,7 +588,7 @@ class Consumer(multiprocessing.Process):
                         elif scanObject.filename:
                             filenameParts = scanObject.filename.split("/")
                             os.symlink("%s" % (uid), "%s/%s" % (UID_SAVE_PATH, filenameParts[-1]))
-                    with open("%s/%s" % (UID_SAVE_PATH, "result.json"), "wb") as f: 
+                    with open("%s/%s" % (UID_SAVE_PATH, "result.json"), "w") as f: 
                         f.write(resultJSON)
                 
                 if LOG_RESULT:
@@ -444,7 +596,7 @@ class Consumer(multiprocessing.Process):
 
                 if LOG_JSON:
                     LOCAL_PATH = LOG_JSON
-                    with open(LOCAL_PATH, "ab") as f:
+                    with open(LOCAL_PATH, "a") as f:
                         f.write(resultJSON + "\n")
             except:
                 logging.exception("Scan worker died, shutting down")
@@ -452,7 +604,7 @@ class Consumer(multiprocessing.Process):
                 break
             finally:
                 self.task_queue.task_done()
-                self.result_queue.put(zlib.compress(resultJSON))
+                self.result_queue.put(zlib.compress(resultJSON.encode("utf-8")))
 
         close_modules()
         return ret_value

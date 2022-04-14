@@ -1,4 +1,7 @@
 # Copyright 2015 Lockheed Martin Corporation
+# Copyright 2020 National Technology & Engineering Solutions of Sandia, LLC 
+# (NTESS). Under the terms of Contract DE-NA0003525 with NTESS, the U.S. 
+# Government retains certain rights in this software.
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,9 +21,10 @@
 # Client Library for laikaboss framework.
 #
 ########################################
-
+from __future__ import print_function
+from builtins import object
 import os, sys
-import zlib, cPickle as pickle
+import zlib, pickle as pickle
 import logging
 from random import randint
 import json
@@ -29,8 +33,8 @@ import uuid
 from laikaboss.objectmodel import QuitScanException
 from copy import deepcopy as clone_object
 
-REQ_TYPE_PICKLE = '1'
-REQ_TYPE_PICKLE_ZLIB = '2'
+REQ_TYPE_PICKLE = b'1'
+REQ_TYPE_PICKLE_ZLIB = b'2'
 
 def dispositionFromResult(result):
     '''
@@ -62,10 +66,10 @@ def finalDispositionFromResult(result):
 def getAttachmentList(result):
     children = []
     rootObject = None
-    for uid, scanObject in result.files.iteritems():
+    for uid, scanObject in result.files.items():
         if not scanObject.parent:
             rootObject = uid
-    for uid, scanObject in result.files.iteritems():
+    for uid, scanObject in result.files.items():
         if scanObject.parent == rootObject:
             if scanObject.filename:
                 children.append(scanObject.filename)
@@ -83,7 +87,7 @@ def flagRollup(result):
     A sorted/unique list of all flags in the result
     '''
     flag_rollup = [] 
-    for id, scanObject in result.files.iteritems():
+    for id, scanObject in result.files.items():
         flag_rollup.extend(scanObject.flags)
     flag_rollup = set(flag_rollup)
     return sorted(flag_rollup)
@@ -129,7 +133,7 @@ def getJSON(result):
     # scan. The list will contain all of the buffers that were exploded from
     # a root buffer's scan in the order they were processed.
     buffer_results = [None] * len(result.files)
-    for scan_object in result.files.itervalues():
+    for scan_object in result.files.values():
         # Do not damage the original result -> clone
         buffer_result = clone_object(scan_object.__dict__)
         # Don't log buffers here, just metadata
@@ -147,7 +151,7 @@ def getJSON(result):
     resultText = json.dumps(log_record)
     return resultText
 
-class Client:
+class Client(object):
     _CONTEXT = None
     _CLIENT = None
     _TIMEOUT = None
@@ -234,7 +238,7 @@ class Client:
         
         # Send (if _TIMEOUT=None, there is unlimited time)
         try:
-            self._CLIENT.send_multipart([self._REQUEST_TYPE, '', zmo])
+            self._CLIENT.send_multipart([self._REQUEST_TYPE, b'', zmo])
         # An error will occur if the ZMQ socket is in the wrong state
         # In this case, we disconnect and then reconnect before retrying
         #except self.zmq.core.error.ZMQError:
@@ -242,7 +246,7 @@ class Client:
             logging.debug("ID %i : ZMQ socket in wrong state, reconnecting." % self._ID)
             self._disconnect()
             self._connect()
-            self._CLIENT.send_multipart([self._REQUEST_TYPE, '', zmo])
+            self._CLIENT.send_multipart([self._REQUEST_TYPE, b'', zmo])
 
         socks = dict(self._POLL.poll(self._TIMEOUT))
         if socks.get(self._CLIENT) == self.zmq.POLLIN:
@@ -278,10 +282,10 @@ class Client:
         # Send (if _TIMEOUT=None, there is unlimited time)
         try:
             if timeout:
-                tracker = self._CLIENT.send_multipart([self._REQUEST_TYPE, '', zmo], copy=False, track=True)
+                tracker = self._CLIENT.send_multipart([self._REQUEST_TYPE, b'', zmo], copy=False, track=True)
                 tracker.wait(timeout)
             else:
-                self._CLIENT.send_multipart([self._REQUEST_TYPE, '', zmo])
+                self._CLIENT.send_multipart([self._REQUEST_TYPE, b'', zmo])
         # An error will occur if the ZMQ socket is in the wrong state
         # In this case, we disconnect and then reconnect before retrying
         # If the second attempt fails, return False
@@ -294,10 +298,10 @@ class Client:
                 self._disconnect()
                 self._connect()
                 if timeout:
-                    tracker = self._CLIENT.send_multipart([self._REQUEST_TYPE, '', zmo], copy=False, track=True)
+                    tracker = self._CLIENT.send_multipart([self._REQUEST_TYPE, b'', zmo], copy=False, track=True)
                     tracker.wait(timeout)
                 else:
-                    self._CLIENT.send_multipart([self._REQUEST_TYPE, '', zmo])
+                    self._CLIENT.send_multipart([self._REQUEST_TYPE, b'', zmo])
             except:
                 return False
         # Return the result
@@ -325,7 +329,7 @@ class Client:
             return result
 
         except KeyboardInterrupt:
-            print "Interrupted by user, exiting..."
+            print("Interrupted by user, exiting...")
             sys.exit()
         except:
             raise

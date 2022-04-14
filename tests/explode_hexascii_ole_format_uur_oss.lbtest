@@ -1,0 +1,99 @@
+[
+    {
+        "comment": "Test hex extraction from OLE macros with the signature 'hello world'",
+        "config": null,
+        "data": "eJxLzcwtL1DIrcpMTquoSNNRcCwqSqzUUPMwN9ZRoIw0swCTpmDSGYl0A5FGBmCV5ggRcyMkNSaU2j5KDiZSk4srlVBCo1k6AyczMB+cyDDSGBqBzzUKKBROEqIGt7mohAKGFFGWoFuog2418RaSYhWhMCNGmlx7NAE6bO5R",
+        "error_validation": 1,
+        "errors": [],
+        "ext_metadata": {},
+        "filename": "hextest.txt",
+        "ignore_pattern": "^\\.\"scan_result\"\\[[0-9]+\\]\\.(\"uuid\"|\"rootUID\"|\"scanTime\"|\"parent\")",
+        "name": "explode_hexascii_ole_format_uur-hextest.txt",
+        "result": {
+            "scan_result": [
+                {
+                    "charset": "",
+                    "contentType": [],
+                    "depth": 0,
+                    "ephID": "",
+                    "fileType": [],
+                    "filename": "hextest.txt",
+                    "flags": [],
+                    "level": 2,
+                    "moduleMetadata": {},
+                    "objectHash": "e0e2b92c9b1df3745f669dfa86b4298d",
+                    "objectSize": 1198,
+                    "order": 0,
+                    "origRootUID": "",
+                    "parent": "",
+                    "parent_order": -1,
+                    "rootUID": "5c5c25ac-39b9-4284-b623-cfe0f2341174",
+                    "scanModules": [
+                        "EXPLODE_HEXASCII"
+                    ],
+                    "scanTime": 1579725459,
+                    "source": "test",
+                    "sourceModule": "",
+                    "uniqID": "",
+                    "uuid": "5c5c25ac-39b9-4284-b623-cfe0f2341174"
+                },
+                {
+                    "charset": "",
+                    "contentType": [
+                        "None"
+                    ],
+                    "depth": 0,
+                    "ephID": "",
+                    "fileType": [],
+                    "filename": "ascii_hex_bytes_at_22",
+                    "flags": [],
+                    "level": 2,
+                    "moduleMetadata": {},
+                    "objectHash": "a364adceebee7a223c1cb7200017203b",
+                    "objectSize": 99,
+                    "order": 1,
+                    "origRootUID": "",
+                    "parent": "5c5c25ac-39b9-4284-b623-cfe0f2341174",
+                    "parent_order": 0,
+                    "rootUID": "5c5c25ac-39b9-4284-b623-cfe0f2341174",
+                    "scanModules": [],
+                    "scanTime": 1579725459,
+                    "source": "test",
+                    "sourceModule": "EXPLODE_HEXASCII",
+                    "uniqID": "",
+                    "uuid": "93159076-5548-417c-bd9f-1423dbf5246f"
+                },
+                {
+                    "charset": "",
+                    "contentType": [
+                        "None"
+                    ],
+                    "depth": 0,
+                    "ephID": "",
+                    "fileType": [],
+                    "filename": "ascii_hex_bytes_at_639",
+                    "flags": [],
+                    "level": 2,
+                    "moduleMetadata": {},
+                    "objectHash": "a364adceebee7a223c1cb7200017203b",
+                    "objectSize": 99,
+                    "order": 2,
+                    "origRootUID": "",
+                    "parent": "5c5c25ac-39b9-4284-b623-cfe0f2341174",
+                    "parent_order": 0,
+                    "rootUID": "5c5c25ac-39b9-4284-b623-cfe0f2341174",
+                    "scanModules": [],
+                    "scanTime": 1579725459,
+                    "source": "test",
+                    "sourceModule": "EXPLODE_HEXASCII",
+                    "uniqID": "",
+                    "uuid": "4476fc71-858a-40dd-8827-615581f7e20a"
+                }
+            ],
+            "source": "test"
+        },
+        "runtime": 0.007883071899414062,
+        "runtime_validation": 0.0,
+        "scan_modules": "EXPLODE_HEXASCII"
+    }
+]

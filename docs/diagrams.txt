@@ -1,0 +1,3 @@
+pip3 install diagrams
+apt-get install graphviz
+python3 ./gen_diagrams.py

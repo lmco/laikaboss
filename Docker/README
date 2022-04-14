@@ -1,0 +1,9 @@
+docker build . -t laikaboss
+
+sudo docker run --rm -it -v ~/malware:/home/nonroot/workdir:Z laikaboss:latest
+
+or for development, you can can additionally mount the source code, config, and logging directories to the current system
+
+sudo docker run --rm -it -v ~/malware:/home/nonroot/workdir -v ~/laikaboss:/home/nonroot/laikaboss -v ~/laikaboss_config/laikaboss:/etc/laikaboss -v ~/laikaboss_config/laikamilter/etc/laikamilter -v /var/log/laikaboss/:/tmp laikaboss:latest
+
+***Before running Laika BOSS, create the ~/malware and make its group owned by uid 0 group-readable and writable (“chmod a+xwr").***

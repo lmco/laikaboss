@@ -1,0 +1,47 @@
+[
+    {
+        "comment": "uur",
+        "config": null,
+        "data": "eJwtkE1uxCAMhfecwkcwGfJTdV91XXXpDWFMgkphBGQy0mjuXkK68XvG37MsnpSKlaRDdq2Y2yK7viMTTdTHSKE6m7zNtVcjiifZGEqZPVkkm3eXM1mz6pS5IHyyv3NxRr+/Kmmij6mi75T42vU9LYk5HGb2G1c9B3I8B1K2d6xZ+tVp8VIpbC41d3e87xInPO06qX/348IVBd10ulJ5jB3W2hLl0cmhyTQdchnwEHVpSI8N6ceGDKohNd3krSHTUJFjr0tBly1pf3TFLWvhYLUpMaEQ51d0CshYhJUFzeB9rIIQI4myOkEOMrgMujqEADWU643w9f0hzjDQ5sE6z1VDDAwk6r4O9pWZX3+I847E",
+        "error_validation": 1,
+        "errors": [],
+        "ext_metadata": {},
+        "filename": "doc.rtf",
+        "ignore_pattern": "^\\.\"scan_result\"\\[[0-9]+\\]\\.(\"uuid\"|\"rootUID\"|\"scanTime\"|\"parent\")",
+        "name": "explode_rtf_simple_rtf_doc_uur-doc.rtf",
+        "result": {
+            "scan_result": [
+                {
+                    "charset": "",
+                    "contentType": [],
+                    "depth": 0,
+                    "ephID": "",
+                    "fileType": [],
+                    "filename": "doc.rtf",
+                    "flags": [],
+                    "level": 2,
+                    "moduleMetadata": {},
+                    "objectHash": "0f692baf3afb5d237b13d1894215530b",
+                    "objectSize": 428,
+                    "order": 0,
+                    "origRootUID": "",
+                    "parent": "",
+                    "parent_order": -1,
+                    "rootUID": "e4bfc1aa-5001-40f9-ba79-6d19a14ff653",
+                    "scanModules": [
+                        "EXPLODE_RTF"
+                    ],
+                    "scanTime": 1579725505,
+                    "source": "test",
+                    "sourceModule": "",
+                    "uniqID": "",
+                    "uuid": "e4bfc1aa-5001-40f9-ba79-6d19a14ff653"
+                }
+            ],
+            "source": "test"
+        },
+        "runtime": 0.0019011497497558594,
+        "runtime_validation": 0.0,
+        "scan_modules": "EXPLODE_RTF"
+    }
+]

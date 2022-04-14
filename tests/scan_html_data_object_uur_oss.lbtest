@@ -1,0 +1,113 @@
+[
+    {
+        "comment": "UUR: Tests the flags and extraction of data objects embedded in HTML",
+        "config": null,
+        "data": "eJztU11vmzAUfc+v8HjapFXQdkmqhEQy0BBGUkpJsi5vDjbYrcHUmGRs2n+fCdU09XF73X24H+fq2NY91/Y7LFLVVgRQVfD5YGB3EXBU5jODlMZcAwTh+QAAuyAKgZQiWRM1MxqVXdzoftdRTHEy31AClpv1agiWRCKObbPHf3NLVJCZgUmdSlYpJkoDpKJUpNTHvSUbb2moUVTIPxgJU+ResFK9PqJWbX8ZZ+CHDgeUPudSNCWe6AqARvL3GCk0YQXKiZmzbHpANRl9+vhgcT/yOL2FMIbrGMLoYbmMdknY4CxquEyi6vpL1Hr7ZhTjo5vSe1/wLLKE+ejUZnZ3yp72Vib5tfm9HZvaTvDfzF0OHfgMoQPhqkfiLodwtwvcJNr73I2hqD+PimacsXZPwpe7cCNi36vXN9SBXr59FD5kLzQ5VsMYlnHoB/mWnhbbryt35y1cGW5vL7mDjnDHFoHHN0FxCN2hX1xRx0q44zrrmDnW9imI4fjDeX6luJCkIkidK04yBVItBJFTDVQIY1bmEzCsvgHr7K+0mw5+dtKYr9pos81+nwb2QeC2i6zIwYlhRWfG5cgAlLCcqj5HXCe1Qlr2WqZ6df7L9xfyGcDs5mz2A9cCdD/9F441N4M=",
+        "error_validation": 1,
+        "errors": [],
+        "ext_metadata": {},
+        "filename": "data_test.html",
+        "ignore_list_ordering": false,
+        "ignore_pattern": "^\\.\"scan_result\"\\[[0-9]+\\]\\.(\"uuid\"|\"rootUID\"|\"scanTime\"|\"parent\")",
+        "name": "scan_html_data_object_uur-data_test.html",
+        "result": {
+            "scan_result": [
+                {
+                    "charset": "",
+                    "contentType": [],
+                    "depth": 0,
+                    "ephID": "",
+                    "fileType": [],
+                    "filename": "data_test.html",
+                    "flags": [
+                        "html:DATA_URI_PRESENT:IMAGE"
+                    ],
+                    "level": 2,
+                    "moduleMetadata": {
+                        "EXTERNAL": {
+                            "laikaboss_ext": {
+                                "comment": "",
+                                "submitID": "",
+                                "submitter": ""
+                            }
+                        },
+                        "SCAN_HTML": {
+                            "HTML_IMG_TAG": [
+                                {
+                                    "height": 16,
+                                    "src": "data:image/gif;base64,R0lGODlhEAAQAMQAAORHHOVSKudfOulrSOp3WOyDZu6QdvCchPGolfO0o/XBs/fNwfjZ0frl3/zy7////wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACH5BAkAABAALAAAAAAQABAAAAVVICSOZGlCQAosJ6mu7fiyZeKqNKToQGDsM8hBADgUXoGAiqhSvp5QAnQKGIgUhwFUYLCVDFCrKUE1lBavAViFIDlTImbKC5Gm2hB0SlBCBMQiB0UjIQA7",
+                                    "width": 16
+                                }
+                            ],
+                            "HTML_IMG_TAG_COUNT": 1,
+                            "author": "SitePoint",
+                            "charset": "utf-8",
+                            "child_data_object_size": [
+                                216
+                            ],
+                            "description": "The HTML5 Herald",
+                            "html_links": [],
+                            "percent_javascript": [
+                                0
+                            ],
+                            "title": "The HTML5 Herald"
+                        }
+                    },
+                    "objectHash": "d05b95e1e5d8a53863e2bbf32a9d8709",
+                    "objectSize": 1017,
+                    "order": 0,
+                    "origRootUID": "",
+                    "parent": "",
+                    "parent_order": -1,
+                    "rootUID": "1c9ffff0-c805-41ac-972b-e20a3e853a95",
+                    "scanModules": [
+                        "SCAN_HTML"
+                    ],
+                    "scanTime": 1601485282,
+                    "source": "test",
+                    "sourceModule": "",
+                    "uniqID": "",
+                    "uuid": "1c9ffff0-c805-41ac-972b-e20a3e853a95"
+                },
+                {
+                    "charset": "",
+                    "contentType": [
+                        "image/gif"
+                    ],
+                    "depth": 0,
+                    "ephID": "",
+                    "fileType": [],
+                    "filename": "data_test.html_data_object_1",
+                    "flags": [],
+                    "level": 2,
+                    "moduleMetadata": {
+                        "EXTERNAL": {
+                            "laikaboss_ext": {
+                                "comment": "",
+                                "submitID": "",
+                                "submitter": ""
+                            }
+                        }
+                    },
+                    "objectHash": "4c7d225b43162f89d93ca41e691ff537",
+                    "objectSize": 216,
+                    "order": 1,
+                    "origRootUID": "",
+                    "parent": "1c9ffff0-c805-41ac-972b-e20a3e853a95",
+                    "parent_order": 0,
+                    "rootUID": "1c9ffff0-c805-41ac-972b-e20a3e853a95",
+                    "scanModules": [],
+                    "scanTime": 1601485282,
+                    "source": "test",
+                    "sourceModule": "SCAN_HTML",
+                    "uniqID": "",
+                    "uuid": "8c37b8fc-8b31-4f62-920c-e15e71ec208d"
+                }
+            ],
+            "source": "test"
+        },
+        "runtime": 0.008430957794189453,
+        "runtime_validation": 0.0,
+        "scan_modules": "SCAN_HTML"
+    }
+]

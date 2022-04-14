@@ -1,4 +1,7 @@
 # Copyright 2015 Lockheed Martin Corporation
+# Copyright 2020 National Technology & Engineering Solutions of Sandia, LLC 
+# (NTESS). Under the terms of Contract DE-NA0003525 with NTESS, the U.S. 
+# Government retains certain rights in this software.
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,10 +15,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # 
-import ConfigParser
+from future import standard_library
+standard_library.install_aliases()
+import configparser
+from laikaboss.lbconfigparser import LBConfigParser
 import logging
+import os
 
-Config = ConfigParser.ConfigParser()
+Config = LBConfigParser()
 
 defaults = { 
                 'yaradispatchrules' : 'etc/framework/dispatch.yara',
@@ -28,6 +35,7 @@ defaults = {
                 'logfacility' : 'LOG_LOCAL0',
                 'logidentity' : 'laikad',
                 'moduleloglevel' : 'LOG_INFO',
+                'objecthashmethod' : 'md5',
                 'scanloglevel' : 'LOG_INFO',
                 'modulelogging' : True,
                 'logresultfromsource' : 'all'
@@ -39,7 +47,7 @@ def _ConfigSectionMap(section):
     dict1 = {}
     try:
         options = Config.options(section)
-    except ConfigParser.NoSectionError:
+    except configparser.NoSectionError:
         logging.debug("Section %s does not exist in the config" % section)
         return dict1
     for option in options:
@@ -55,7 +63,7 @@ def _ConfigSectionMap(section):
 
 def _map_to_globals(dictionary):
     """Map the values in the dictionary into globals()"""
-    for name, value in dictionary.iteritems():
+    for name, value in dictionary.items():
         base = '%s' % (name,)
         if value.lower() == 'true': 
             globals()['%s' % (base,)] = True 
@@ -68,6 +76,7 @@ def init(path):
     logging.debug("Initializing with config: %s" % (path))
     Config.read(path)
 
+    _map_to_globals(_ConfigSectionMap('DEFAULT'))
     _map_to_globals(_ConfigSectionMap('General'))
     _map_to_globals(_ConfigSectionMap('ModuleHelpers'))
     _map_to_globals(_ConfigSectionMap('Logging'))
@@ -79,4 +88,3 @@ def init(path):
                 proxies.pop(protocol, None)
         if proxies:
             globals()['proxies'] = proxies
-

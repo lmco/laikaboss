@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 # Copyright 2015 Lockheed Martin Corporation
+# Copyright 2020 National Technology & Engineering Solutions of Sandia, LLC
+# (NTESS). Under the terms of Contract DE-NA0003525 with NTESS, the U.S.
+# Government retains certain rights in this software.
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,11 +24,17 @@ Command line program for running the broker and worker processes for the Laika
 framework. This program becomes the supervisor process that ensures the broker
 and worker processes remain up and alive (replaces those that go missing).
 '''
+from __future__ import division
+from __future__ import print_function
 
 # Follows the Simple Pirate Pattern for ZMQ connections
 
-from ConfigParser import ConfigParser
-import cPickle as pickle
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from past.utils import old_div
+from laikaboss.lbconfigparser import LBConfigParser
+import pickle as pickle
 import functools
 from interruptingcow import timeout
 import logging
@@ -48,14 +57,14 @@ from distutils.util import strtobool
 SHUTDOWN_GRACE_TIMEOUT_DEFAULT = 30
 
 # Status values for the state of a worker
-LRU_READY = "\x01"          # Ready for work
-LRU_RESULT_READY = "\x02"   # Here is the previous result, ready for more work
-LRU_RESULT_QUIT = "\x03"    # Here is the previous result, I quit
-LRU_QUIT = "\x04"           # I quit
-REQ_TYPE_PICKLE = '1'
-REQ_TYPE_PICKLE_ZLIB = '2'
-REQ_TYPE_JSON = '3'
-REQ_TYPE_JSON_ZLIB = '4'
+LRU_READY = b"\x01"          # Ready for work
+LRU_RESULT_READY = b"\x02"   # Here is the previous result, ready for more work
+LRU_RESULT_QUIT = b"\x03"    # Here is the previous result, I quit
+LRU_QUIT = b"\x04"           # I quit
+REQ_TYPE_PICKLE = b'1'
+REQ_TYPE_PICKLE_ZLIB = b'2'
+REQ_TYPE_JSON = b'3'
+REQ_TYPE_JSON_ZLIB = b'4'
 
 # Class to serialize laikaboss objects to json
 class ResultEncoder(json.JSONEncoder):
@@ -71,7 +80,7 @@ class ResultEncoder(json.JSONEncoder):
             res['level'] = obj.level
             res['startTime'] = obj.startTime
             tmpFiles = {}
-            for uid, sO in obj.files.iteritems():
+            for uid, sO in obj.files.items():
                 tmpFiles[str(uid)] = sO
             res['files'] = tmpFiles
             return res
@@ -199,7 +208,7 @@ class AsyncBroker(Process):
                     #   worker_id   --  ZMQ identifier of the worker socket
                     #   request     --  The content of the request to be sent to
                     #                   the worker
-                    backend.send_multipart([worker_id, '', worker_id, ''] + msg)
+                    backend.send_multipart([worker_id, b'', worker_id, b''] + msg)
 
                 # Check in with workers
                 if msgs.get(backend) == zmq.POLLIN:
@@ -322,7 +331,7 @@ class SyncBroker(Process):
                     #   client_id   --  ZMQ identifier of the client socket
                     #   request     --  The content of the request to be sent to
                     #                   the worker
-                    backend.send_multipart([worker_id, ''] + msg)
+                    backend.send_multipart([worker_id, b''] + msg)
                     working_workers.append(worker_id)
 
                 # Check in with workers
@@ -392,7 +401,7 @@ class SyncBroker(Process):
         # Begin graceful shutdown
         logging.debug("Broker: beginning graceful shutdown sequence")
         # Wait for a grace period to allow workers to finish working
-        poll_timeout = (self.shutdown_grace_timeout / 3) * 1000 or 1
+        poll_timeout = (old_div(self.shutdown_grace_timeout, 3)) * 1000 or 1
         start_time = time.time()
         while(working_workers and
             (time.time() - start_time < self.shutdown_grace_timeout)):
@@ -453,7 +462,7 @@ class Worker(Process):
         self.keep_running = False
 
         self.broker_address = broker_address
-        self.identity = "%04X-%04X" % (randint(0, 0x10000), randint(0, 0x10000))
+        self.identity = b"%04X-%04X" % (randint(0, 0x10000), randint(0, 0x10000))
         self.broker = None
         self.broker_poller = zmq.Poller()
         self.poll_timeout = poll_timeout * 1000 # Poller uses milliseconds
@@ -547,7 +556,7 @@ class Worker(Process):
                                                         externalVars=externalVars)
 
                     else:
-                        return [client_id, '', 'INVALID REQUEST']
+                        return [client_id, b'', b'INVALID REQUEST']
                      
                     result = ScanResult(
                         source=externalObject.externalVars.source,
@@ -577,10 +586,12 @@ class Worker(Process):
                             json.dumps(result, cls=ResultEncoder))
                     elif request_type == REQ_TYPE_JSON:  
                         result = json.dumps(result, cls=ResultEncoder)
-                    return [client_id, '', result]
+                    if not isinstance(result, bytes):
+                        result = result.encode("utf-8")
+                    return [client_id, b'', result]
 
                 else:
-                    return [client_id, '', 'INVALID REQUEST']
+                    return [client_id, b'', b'INVALID REQUEST']
         except zmq.ZMQError as zmqerror:
             if "Interrupted system call" not in str(zmqerror):
                 logging.exception("Worker (%s): Received ZMQError", self.identity)
@@ -629,7 +640,7 @@ class Worker(Process):
         # where:
         #   status      --  One of our defined status constants, determines
         #                   how we handle this request
-        self.broker.send_multipart(['', LRU_READY])
+        self.broker.send_multipart([b'', LRU_READY])
 
         # Indicators for worker expiration
         counter = 0
@@ -643,7 +654,7 @@ class Worker(Process):
                     counter += 1
                 should_quit = (
                     counter >= self.max_scan_items or
-                    ((time.time() - start_time)/60) >= self.ttl or
+                    (old_div((time.time() - start_time),60)) >= self.ttl or
                     not self.keep_running)
 
                 # Determine next status
@@ -662,9 +673,9 @@ class Worker(Process):
 
                 # Build reply
                 if result:
-                    reply = ['', status, ''] + result
+                    reply = [b'', status, b''] + result
                 else:
-                    reply = ['', status]
+                    reply = [b'', status]
 
                 # reply should be in one of the following formats
                 # ['', status]
@@ -800,7 +811,7 @@ def main():
     if options.laikad_config_path:
         config_location = options.laikad_config_path
         if not os.path.exists(options.laikad_config_path):
-            print "the provided config path is not valid, exiting"
+            print("the provided config path is not valid, exiting")
             return 1
     # Next, check to see if we're in the top level source directory (dev environment)
     elif os.path.exists(DEFAULT_CONFIGS['laikad_dev_config_path']):
@@ -810,12 +821,12 @@ def main():
         config_location = DEFAULT_CONFIGS['laikad_sys_config_path']
     # Exit
     else:
-        print 'A valid laikad configuration was not found in either of the following locations:\
-\n%s\n%s' % (DEFAULT_CONFIGS['laikad_dev_config_path'],DEFAULT_CONFIGS['laikad_sys_config_path'])
+        print('A valid laikad configuration was not found in either of the following locations:\
+\n%s\n%s' % (DEFAULT_CONFIGS['laikad_dev_config_path'],DEFAULT_CONFIGS['laikad_sys_config_path']))
         return 1
     
     # Read the laikad config file
-    config_parser = ConfigParser()
+    config_parser = LBConfigParser()
     config_parser.read(config_location)
 
     # Parse through the config file and append each section to a single dict
@@ -827,7 +838,7 @@ def main():
         laikaboss_config_path = options.laikaboss_config_path
         logging.debug("using alternative config path: %s" % options.laikaboss_config_path)
         if not os.path.exists(options.laikaboss_config_path):
-            print "the provided config path is not valid, exiting"
+            print("the provided config path is not valid, exiting")
             return 1
     #Next, check for a config path in the laikad config
     elif os.path.exists(get_option('configpath')):
@@ -840,8 +851,8 @@ def main():
         laikaboss_config_path = DEFAULT_CONFIGS['sys_config_path']
     # Exit
     else:
-        print 'A valid framework configuration was not found in either of the following locations:\
-\n%s\n%s' % (DEFAULT_CONFIGS['dev_config_path'],DEFAULT_CONFIGS['sys_config_path'])
+        print('A valid framework configuration was not found in either of the following locations:\
+\n%s\n%s' % (DEFAULT_CONFIGS['dev_config_path'],DEFAULT_CONFIGS['sys_config_path']))
         return 1
 
     if options.num_procs:
@@ -897,7 +908,7 @@ def main():
         runas_gid = getpwnam(options.runas_uid).pw_gid
 
     if options.debug:
-        logging.basicConfig(level=logging.DEBUG)
+        logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(process)d - %(message)s")
 
     # Lower privileges if a UID has been set
     try:
@@ -905,7 +916,7 @@ def main():
             os.setgid(runas_gid)
             os.setuid(runas_uid)
     except OSError:
-        print "Unable to set user ID to %i, defaulting to current user" % runas_uid
+        print("Unable to set user ID to %i, defaulting to current user" % runas_uid)
 
     # Add intercept for graceful shutdown
     def shutdown(signum, frame):

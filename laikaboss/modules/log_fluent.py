@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # 
+from builtins import object
 from copy import deepcopy as clone_object
 from fluent.sender import FluentSender
 from math import isnan, isinf
@@ -20,15 +21,16 @@ from laikaboss.util import get_option, log_module_error
 from uuid import UUID
 
 # XXX: Stub class for scanObject for spoofing log_module_error
-class ScanObjectStub:
+class ScanObjectStub(object):
     def __init__(self,):
         self.parent = ''
         self.uuid = ''
 
 # XXX: Stub class for result for spoofing log_module_error
-class ResultStub:
+class ResultStub(object):
     def __init__(self,):
         self.files = {}
+        self.source = ''
 
 class LOG_FLUENT(SI_MODULE):
     '''Laika module for logging scan results using fluentd.'''
@@ -57,7 +59,7 @@ class LOG_FLUENT(SI_MODULE):
 
     def _close(self,):
         '''Laika framework destructor'''
-        for sender in self._senders.itervalues():
+        for sender in self._senders.values():
             if sender.pendings:
                 sender.emit('flush',
                     {'message':
@@ -106,7 +108,7 @@ class LOG_FLUENT(SI_MODULE):
         # scan. The list will contain all of the buffers that were exploded from
         # a root buffer's scan in no particular order.
         buffer_results = []
-        for scan_object in result.files.itervalues():
+        for scan_object in result.files.values():
             # Do not damage the original result -> clone
             buffer_result = clone_object(scan_object.__dict__)
             # Don't log buffers here, just metadata
@@ -143,7 +145,7 @@ class LOG_FLUENT(SI_MODULE):
             return new_thing
         elif thing_type is dict:
             new_thing = {}
-            for key, value in thing.iteritems():
+            for key, value in thing.items():
                 new_key = self._log_record_strainer(key)
                 new_value = self._log_record_strainer(value)
                 new_thing[new_key] = new_value

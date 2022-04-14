@@ -1,0 +1,59 @@
+[
+    {
+        "comment": "Test the refresh vs the redirect flag, UUR",
+        "config": null,
+        "data": "eJyz8XB1dLHjsvF1DXFU8AgJCdB1DQz1DLNVKkpNK0otzlBScPb3C3H1C7FVMjMwUAKq1Ifq0Hfyd4m0AwAu5xC3",
+        "error_validation": 1,
+        "errors": [],
+        "ext_metadata": {},
+        "filename": "lb_refresh_test.html",
+        "ignore_pattern": "^\\.\"scan_result\"\\[[0-9]+\\]\\.(\"uuid\"|\"rootUID\"|\"scanTime\"|\"parent\")",
+        "name": "scan_html_auto_refresh_uur-lb_refresh_test.html",
+        "result": {
+            "scan_result": [
+                {
+                    "charset": "",
+                    "contentType": [],
+                    "depth": 0,
+                    "ephID": "",
+                    "fileType": [],
+                    "filename": "lb_refresh_test.html",
+                    "flags": [
+                        "html:AUTO_REFRESH"
+                    ],
+                    "level": 2,
+                    "moduleMetadata": {
+                        "SCAN_HTML": {
+                            "html_links": [],
+                            "percent_javascript": [
+                                0
+                            ],
+                            "refresh_time": [
+                                "600"
+                            ]
+                        }
+                    },
+                    "objectHash": "1ad6a9e004c58d5ba7ec5a8fbbde5913",
+                    "objectSize": 64,
+                    "order": 0,
+                    "origRootUID": "",
+                    "parent": "",
+                    "parent_order": -1,
+                    "rootUID": "974ec09d-1109-4308-8de5-4249bc0a7e4e",
+                    "scanModules": [
+                        "SCAN_HTML"
+                    ],
+                    "scanTime": 1579725496,
+                    "source": "test",
+                    "sourceModule": "",
+                    "uniqID": "",
+                    "uuid": "974ec09d-1109-4308-8de5-4249bc0a7e4e"
+                }
+            ],
+            "source": "test"
+        },
+        "runtime": 0.0014488697052001953,
+        "runtime_validation": 0.0,
+        "scan_modules": "SCAN_HTML"
+    }
+]

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # 
+from builtins import str
 import olefile
 from laikaboss.objectmodel import ModuleObject, ExternalVars, QuitScanException, \
                                 GlobalScanTimeoutError, GlobalModuleTimeoutError
@@ -35,7 +36,7 @@ class EXPLODE_OLE(SI_MODULE):
                 pass 
         if 'useUnvalidatedFilenames' in args:
             try:
-                minFileSize = int(args['useUnvalidatedFilenames'])
+                useUnvalidatedFilenames = int(args['useUnvalidatedFilenames'])
             except (QuitScanException, GlobalScanTimeoutError, GlobalModuleTimeoutError):
                 raise
             except:
@@ -53,7 +54,7 @@ class EXPLODE_OLE(SI_MODULE):
                     if childBuffer:
                         filename = "e_ole_stream_"+str(numStreams)
                         try:
-                            u = unicode( str(stream), "utf-8" )
+                            u = str(stream)
                             filename = u.encode( "utf-8" )
                             
                         except (QuitScanException, GlobalScanTimeoutError, GlobalModuleTimeoutError):

@@ -1,0 +1,66 @@
+[
+    {
+        "comment": "UUR: Tests the src extraction and flags for object and embed tags",
+        "config": null,
+        "data": "eJyNkDsOwyAMhvecAnEAHEWdKsLWuWcI4AYqEqpgCfX2pZClTJ38/n7b0tEW1CAdLlZJ8hRQ3TaNli27ZXf9REMSWl5C7RqkjvZdTKxVlr0lN/PLOHLm0K+OziAdZuYOQ4g5HsFOIuUHL5Q2p9i/BKJXugLknAVhokmYuMHX8/sqyv6/TKzbd9pNuqt23B4b6gCcx0J91AdsUmSO",
+        "error_validation": 1,
+        "errors": [],
+        "ext_metadata": {},
+        "filename": "obj_embed_test.html",
+        "ignore_pattern": "^\\.\"scan_result\"\\[[0-9]+\\]\\.(\"uuid\"|\"rootUID\"|\"scanTime\"|\"parent\")",
+        "name": "scan_html_object_embed_uur-obj_embed_test.html",
+        "result": {
+            "scan_result": [
+                {
+                    "charset": "",
+                    "contentType": [],
+                    "depth": 0,
+                    "ephID": "",
+                    "fileType": [],
+                    "filename": "obj_embed_test.html",
+                    "flags": [
+                        "html:EMBED_TAG_PRESENT",
+                        "html:OBJECT_TAG_PRESENT"
+                    ],
+                    "level": 2,
+                    "moduleMetadata": {
+                        "SCAN_HTML": {
+                            "embed_tag_src": [
+                                "helloworld.swf",
+                                "https://www.test.com/testing.html"
+                            ],
+                            "html_links": [],
+                            "object_tag_src": [
+                                "helloworld2.swf",
+                                "https://www.test2.com/testing.htm"
+                            ],
+                            "percent_javascript": [
+                                0
+                            ],
+                            "title": "Embed and Object"
+                        }
+                    },
+                    "objectHash": "b244b411c41db540257e96c3d3a8d0b2",
+                    "objectSize": 303,
+                    "order": 0,
+                    "origRootUID": "",
+                    "parent": "",
+                    "parent_order": -1,
+                    "rootUID": "d3e14e4f-55bd-4c40-b04e-0fd8eb2e58cb",
+                    "scanModules": [
+                        "SCAN_HTML"
+                    ],
+                    "scanTime": 1580140183,
+                    "source": "test",
+                    "sourceModule": "",
+                    "uniqID": "",
+                    "uuid": "d3e14e4f-55bd-4c40-b04e-0fd8eb2e58cb"
+                }
+            ],
+            "source": "test"
+        },
+        "runtime": 0.005990028381347656,
+        "runtime_validation": 0.0,
+        "scan_modules": "SCAN_HTML"
+    }
+]

@@ -1,4 +1,7 @@
 # Copyright 2015 Lockheed Martin Corporation
+# Copyright 2020 National Technology & Engineering Solutions of Sandia, LLC 
+# (NTESS). Under the terms of Contract DE-NA0003525 with NTESS, the U.S. 
+# Government retains certain rights in this software.
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -43,7 +46,7 @@ class META_X509(SI_MODULE):
             #scanObject.addMetadata(self.module_name, key, value)    
 
             #simple check for PEM or DER
-            if buffer[:1] == "0":
+            if buffer[:1] == b"0":
                 format =  M2Crypto.X509.FORMAT_DER
             else:
                 format =  M2Crypto.X509.FORMAT_PEM
@@ -89,28 +92,31 @@ class META_X509(SI_MODULE):
             start = datetime.datetime.strptime(str(cert.get_not_before()), "%b %d %H:%M:%S %Y %Z")
             end = datetime.datetime.strptime(str(cert.get_not_after()), "%b %d %H:%M:%S %Y %Z")
             dur = end - start
-            scanObject.addMetadata(self.module_name, "duration", dur.days) 
+            scanObject.addMetadata(self.module_name, "duration", dur.days)
 
             extensions = {}
             for i in range(cert.get_ext_count()):
-                extensions[str(cert.get_ext_at(i).get_name())] = str(cert.get_ext_at(i).get_value()).strip();
+                try:
+                    extensions[str(cert.get_ext_at(i).get_name())] = str(cert.get_ext_at(i).get_value()).strip();
+                except TypeError:
+                    extensions[str(cert.get_ext_at(i).get_name())] = None
             
             scanObject.addMetadata(self.module_name, "extensions", extensions)
-            
-        
+
         except (QuitScanException, GlobalScanTimeoutError, GlobalModuleTimeoutError):
             raise
         except:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             logging.exception("Error parsing cert in "+str(get_scanObjectUID(getRootObject(result))))
-            
+
             ugly_error_string = str(exc_value)
-            nicer_error_string = string.split(string.split(ugly_error_string,":")[4])[0]
-                        
-            scanObject.addFlag("x509:err:"+nicer_error_string)
-            
-            
-       
+            error_split = ugly_error_string.split(":")
+            if len(error_split) > 4:
+                nicer_error_string = error_split[4].split()[0]        
+                scanObject.addFlag("x509:err:"+nicer_error_string)
+            else:
+                raise
+
         return moduleResult 
     
     
@@ -128,28 +134,16 @@ class META_X509(SI_MODULE):
 
     @staticmethod
     def _parseDN( dn ):
+        interesting_fields = ['CN', 'C', 'L', 'ST', 'O', 'OU', 
+                            'emailAddress', 'GN', 'SN', 'serialNumber']
         return_value = {}
-        if dn.CN:
-            return_value['CN'] = dn.CN
-        if dn.C:
-            return_value['C'] = dn.C
-        if dn.L:
-            return_value['L'] = dn.L
-        if dn.ST:
-            return_value['ST'] = dn.ST
-        if dn.O:
-            return_value['O'] = dn.O
-        if dn.OU:
-            return_value['OU'] = dn.OU
-        if dn.Email:
-            return_value['emailAddress'] = dn.Email
-        if dn.GN:
-            return_value['GN'] = dn.GN
-        if dn.SN:
-            return_value['SN'] = dn.SN
-        if dn.serialNumber:
-            return_value['serialNumber'] = dn.serialNumber
-             
+        for field in interesting_fields:
+            try:
+                if getattr(dn, field):
+                    return_value[field] = getattr(dn, field)
+            except TypeError: #Ignore if field name is None
+                pass
+                     
         return return_value
 
 

@@ -1,4 +1,7 @@
 # Copyright 2015 Lockheed Martin Corporation
+# Copyright 2020 National Technology & Engineering Solutions of Sandia, LLC 
+# (NTESS). Under the terms of Contract DE-NA0003525 with NTESS, the U.S. 
+# Government retains certain rights in this software.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,12 +15,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from builtins import hex
+from builtins import chr
+from builtins import range
 import struct
 import hashlib
 import binascii
 import logging
 import pefile
+import pytz
 from datetime import datetime
+from laikaboss.util import get_option
 from laikaboss.objectmodel import (ModuleObject,
                                    ExternalVars,
                                    ScanError)
@@ -29,6 +37,36 @@ IMAGE_MAGIC_LOOKUP = {
     0x107: 'ROM_IMAGE',
 }
 
+VALID_SECTION_NAMES = [
+    '.rdata', 
+    '.data', 
+    '.pdata', 
+    '.ndata',
+    '.idata',
+    'data',
+    'DATA',
+    '.text',
+    'text',
+    '.itext',
+    '.rsrc',
+    '.tls',
+    '.boxld01',
+    '.WISE',
+    'CODE',
+    '.bss',
+    'BSS',
+    '_winzip_',
+    'UPX0',
+    'UPX1',
+    'UPX2',
+    '.CRT',
+    '.stab',
+    '.stabstr',
+    '.reloc',
+    # TODO: There may be other standard section names that are not on this list.
+    # https://msdn.microsoft.com/en-us/library/sf9b18xk.aspx
+]
+
 class META_PE(SI_MODULE):
     def __init__(self):
         self.module_name = "META_PE"
@@ -38,6 +76,14 @@ class META_PE(SI_MODULE):
         imports = {}
         sections = {}
         exports = []
+        unexpected_sections = []
+        suspicious_md5_config = get_option(args, 'suspiciousresourcemd5s',
+                               'pe_suspicious_resource_md5s')
+        if(suspicious_md5_config):
+            with open(suspicious_md5_config, 'r') as in_file:
+                suspicious_resource_md5s = [line.rstrip('\n') for line in in_file]
+        else:
+            suspicious_resource_md5s = []
 
         try:
             pe = pefile.PE(data=scanObject.buffer)
@@ -45,7 +91,7 @@ class META_PE(SI_MODULE):
 
             # Parse sections
             for section in dump_dict.get('PE Sections', []):
-                secName = section.get('Name', {}).get('Value', '').strip('\0')
+                secName = ''.join(section.get('Name', {}).get('Value', '')).strip('\0').strip('\\x00')
                 ptr = section.get('PointerToRawData', {}).get('Value')
                 virtAddress = section.get('VirtualAddress', {}).get('Value')
                 virtSize = section.get('Misc_VirtualSize', {}).get('Value')
@@ -58,7 +104,7 @@ class META_PE(SI_MODULE):
                     'MD5': section.get('MD5', ''),
                     'SHA1': section.get('SHA1', ''),
                     'SHA256': section.get('SHA256', ''),
-                    'Entropy': section.get('Entropy', ''),
+                    'Entropy': round(section.get('Entropy', 0.0), 11),
                     'Section Characteristics': section.get('Flags', []),
                     'Structure': section.get('Structure', ''),
                 }
@@ -70,10 +116,18 @@ class META_PE(SI_MODULE):
             sections['Total'] = pe.FILE_HEADER.NumberOfSections
             scanObject.addMetadata(self.module_name, 'Sections', sections)
 
+            invalidSectionNames = []
+            if secName not in VALID_SECTION_NAMES:
+                invalidSectionNames.append(secName)
+
+            if invalidSectionNames:
+                unexpected_sections.append(invalidSectionNames[0])
+                scanObject.addFlag('pe:UNEXPECTED_SECTION')
             # Parse imports and exports
             try:
                 for exp in pe.DIRECTORY_ENTRY_EXPORT.symbols:
                     exports.append(exp.name)
+                scanObject.addMetadata(self.module_name, 'ExportName', pe.get_string_from_data(pe.get_offset_from_rva(pe.DIRECTORY_ENTRY_EXPORT.struct.Name), pe.__data__))
                 scanObject.addMetadata(self.module_name, 'Exports', exports)
             except ScanError:
                 raise
@@ -98,6 +152,11 @@ class META_PE(SI_MODULE):
             try:
                 for resource in pe.DIRECTORY_ENTRY_RESOURCE.entries:
                     res_type = pefile.RESOURCE_TYPE.get(resource.id, 'Unknown')
+                    
+                    if resource.name:
+                        res_name = "%s" % resource.name
+                        if res_name.upper().startswith('PYTHON'):
+                            scanObject.addFlag('pe:SCAN_PY_2_EXE_BINARY')
                     for entry in resource.directory.entries:
                         for e_entry in entry.directory.entries:
                             sublang = pefile.get_sublang_name_for_lang(
@@ -109,6 +168,7 @@ class META_PE(SI_MODULE):
                             r_data = pe.get_data(offset, size)
                             language = pefile.LANG.get(
                                 e_entry.data.lang, 'Unknown')
+                            resource_md5 = hashlib.md5(r_data).hexdigest()
                             data = {
                                 'Type': res_type,
                                 'Id': e_entry.id,
@@ -117,10 +177,14 @@ class META_PE(SI_MODULE):
                                 'Size': size,
                                 'SHA256': hashlib.sha256(r_data).hexdigest(),
                                 'SHA1': hashlib.sha1(r_data).hexdigest(),
-                                'MD5': hashlib.md5(r_data).hexdigest(),
+                                'MD5': resource_md5,
                                 'Language': language,
                                 'Sub Language': sublang,
                             }
+
+                            # Check if MD5 of resource is in list of suspicious MD5s
+                            if resource_md5 in suspicious_resource_md5s:
+                                scanObject.addFlag('pe:SUSPICIOUS_ICONS')
                             scanObject.addMetadata(
                                 self.module_name, 'Resources', data)
             except ScanError:
@@ -141,7 +205,7 @@ class META_PE(SI_MODULE):
             scanObject.addMetadata(
                 self.module_name, 'Image Characteristics', imgChars)
             # Make a pretty date format
-            date = datetime.fromtimestamp(pe.FILE_HEADER.TimeDateStamp)
+            date = datetime.fromtimestamp(pe.FILE_HEADER.TimeDateStamp, tz=pytz.utc)
             isoDate = date.isoformat()
             scanObject.addMetadata(self.module_name, 'Date', isoDate)
             scanObject.addMetadata(
@@ -204,25 +268,29 @@ class META_PE(SI_MODULE):
                 debug = dict()
                 for e in pe.DIRECTORY_ENTRY_DEBUG:
                     rawData = pe.get_data(e.struct.AddressOfRawData, e.struct.SizeOfData)
-                    if rawData.find('RSDS') != -1 and len(rawData) > 24:
-                        pdb = rawData[rawData.find('RSDS'):]
+                    if rawData.find(b'RSDS') != -1 and len(rawData) > 24:
+                        pdb = rawData[rawData.find(b'RSDS'):]
                         debug["guid"] = "%s-%s-%s-%s" % (
-                            binascii.hexlify(pdb[4:8]),
-                            binascii.hexlify(pdb[8:10]),
-                            binascii.hexlify(pdb[10:12]),
-                            binascii.hexlify(pdb[12:20]))
+                            binascii.hexlify(pdb[4:8]).decode('utf-8'),
+                            binascii.hexlify(pdb[8:10]).decode('utf-8'),
+                            binascii.hexlify(pdb[10:12]).decode('utf-8'),
+                            binascii.hexlify(pdb[12:20]).decode('utf-8'))
                         debug["age"] = struct.unpack('<L', pdb[20:24])[0]
-                        debug["pdb"] = pdb[24:].rstrip('\x00')
+                        debug["pdb"] = pdb[24:].rstrip(b'\x00')
                         scanObject.addMetadata(self.module_name, 'RSDS', debug)
-                    elif rawData.find('NB10') != -1 and len(rawData) > 16:
-                        pdb = rawData[rawData.find('NB10')+8:]
+                    elif rawData.find(b'NB10') != -1 and len(rawData) > 16:
+                        pdb = rawData[rawData.find(b'NB10')+8:]
                         debug["created"] = datetime.fromtimestamp(struct.unpack('<L', pdb[0:4])[0]).isoformat()
                         debug["age"] = struct.unpack('<L', pdb[4:8])[0]
-                        debug["pdb"] = pdb[8:].rstrip('\x00')
+                        debug["pdb"] = pdb[8:].rstrip(b'\x00')
                         scanObject.addMetadata(self.module_name, 'NB10', debug)
 
         except pefile.PEFormatError:
             logging.debug("Invalid PE format")
+
+        if unexpected_sections:
+            scanObject.addMetadata(self.module_name, 'Unexpected Sections', unexpected_sections)
+            
         return moduleResult
 
     def parseRich(self, pe):

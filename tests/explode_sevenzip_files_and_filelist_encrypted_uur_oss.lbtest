@@ -1,0 +1,203 @@
+[
+    {
+        "comment": "uur",
+        "config": {},
+        "data": "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",
+        "error_validation": 1,
+        "errors": [],
+        "ext_metadata": {},
+        "filename": "linuxEncryptedFileList.7z",
+        "ignore_list_ordering": false,
+        "ignore_pattern": "^\\.\"scan_result\"\\[[0-9]+\\]\\.(\"uuid\"|\"rootUID\"|\"scanTime\"|\"parent\")",
+        "name": "explode_sevenzip_files_and_filelist_encrypted-linuxEncryptedFileList.7z",
+        "result": {
+            "scan_result": [
+                {
+                    "charset": "",
+                    "contentType": [],
+                    "depth": 0,
+                    "ephID": "",
+                    "fileType": [],
+                    "filename": "linuxEncryptedFileList.7z",
+                    "flags": [
+                        "sevenzip:ENCRYPTED_7Z",
+                        "sevenzip:DECRYPT_SUCCESS"
+                    ],
+                    "level": 2,
+                    "moduleMetadata": {
+                        "EXPLODE_SEVENZIP": {
+                            "Password": "test",
+                            "Total_Files": 4,
+                            "filename": [
+                                "Test_1.txt",
+                                "Test_2.txt",
+                                "Test_3.txt",
+                                "Test_4.txt"
+                            ],
+                            "size": [
+                                1247,
+                                1596,
+                                1380,
+                                2366
+                            ]
+                        },
+                        "EXTERNAL": {
+                            "laikaboss_ext": {
+                                "comment": "",
+                                "submitID": "",
+                                "submitter": ""
+                            }
+                        }
+                    },
+                    "objectHash": "52f8a1f4cb9c5691175815b675b2668c",
+                    "objectSize": 2183,
+                    "order": 0,
+                    "origRootUID": "",
+                    "parent": "",
+                    "parent_order": -1,
+                    "rootUID": "8fc8cace-bdc1-460d-b15d-4fb466fd89cd",
+                    "scanModules": [
+                        "EXPLODE_SEVENZIP"
+                    ],
+                    "scanTime": 1593126801,
+                    "source": "test",
+                    "sourceModule": "",
+                    "uniqID": "",
+                    "uuid": "8fc8cace-bdc1-460d-b15d-4fb466fd89cd"
+                },
+                {
+                    "charset": "",
+                    "contentType": [],
+                    "depth": 0,
+                    "ephID": "",
+                    "fileType": [],
+                    "filename": "e_sevenzip_Test_1.txt",
+                    "flags": [],
+                    "level": 2,
+                    "moduleMetadata": {
+                        "EXTERNAL": {
+                            "laikaboss_ext": {
+                                "comment": "",
+                                "submitID": "",
+                                "submitter": ""
+                            }
+                        }
+                    },
+                    "objectHash": "bb0679db077ddd567e280b5bd0867751",
+                    "objectSize": 1247,
+                    "order": 1,
+                    "origRootUID": "",
+                    "parent": "8fc8cace-bdc1-460d-b15d-4fb466fd89cd",
+                    "parent_order": 0,
+                    "rootUID": "8fc8cace-bdc1-460d-b15d-4fb466fd89cd",
+                    "scanModules": [],
+                    "scanTime": 1593126802,
+                    "source": "test",
+                    "sourceModule": "EXPLODE_SEVENZIP",
+                    "uniqID": "",
+                    "uuid": "38113609-d876-407b-94d3-544777b0ea1d"
+                },
+                {
+                    "charset": "",
+                    "contentType": [],
+                    "depth": 0,
+                    "ephID": "",
+                    "fileType": [],
+                    "filename": "e_sevenzip_Test_2.txt",
+                    "flags": [],
+                    "level": 2,
+                    "moduleMetadata": {
+                        "EXTERNAL": {
+                            "laikaboss_ext": {
+                                "comment": "",
+                                "submitID": "",
+                                "submitter": ""
+                            }
+                        }
+                    },
+                    "objectHash": "ce92c9e09aea9923f434c9ac31f6c782",
+                    "objectSize": 1596,
+                    "order": 2,
+                    "origRootUID": "",
+                    "parent": "8fc8cace-bdc1-460d-b15d-4fb466fd89cd",
+                    "parent_order": 0,
+                    "rootUID": "8fc8cace-bdc1-460d-b15d-4fb466fd89cd",
+                    "scanModules": [],
+                    "scanTime": 1593126802,
+                    "source": "test",
+                    "sourceModule": "EXPLODE_SEVENZIP",
+                    "uniqID": "",
+                    "uuid": "fd45f64d-3147-4297-862b-61487b3103eb"
+                },
+                {
+                    "charset": "",
+                    "contentType": [],
+                    "depth": 0,
+                    "ephID": "",
+                    "fileType": [],
+                    "filename": "e_sevenzip_Test_3.txt",
+                    "flags": [],
+                    "level": 2,
+                    "moduleMetadata": {
+                        "EXTERNAL": {
+                            "laikaboss_ext": {
+                                "comment": "",
+                                "submitID": "",
+                                "submitter": ""
+                            }
+                        }
+                    },
+                    "objectHash": "6e4df26506bbb1fdacd08c8b3f76ea09",
+                    "objectSize": 1380,
+                    "order": 3,
+                    "origRootUID": "",
+                    "parent": "8fc8cace-bdc1-460d-b15d-4fb466fd89cd",
+                    "parent_order": 0,
+                    "rootUID": "8fc8cace-bdc1-460d-b15d-4fb466fd89cd",
+                    "scanModules": [],
+                    "scanTime": 1593126802,
+                    "source": "test",
+                    "sourceModule": "EXPLODE_SEVENZIP",
+                    "uniqID": "",
+                    "uuid": "f069f5eb-8618-4722-b31a-372e4365e6f3"
+                },
+                {
+                    "charset": "",
+                    "contentType": [],
+                    "depth": 0,
+                    "ephID": "",
+                    "fileType": [],
+                    "filename": "e_sevenzip_Test_4.txt",
+                    "flags": [],
+                    "level": 2,
+                    "moduleMetadata": {
+                        "EXTERNAL": {
+                            "laikaboss_ext": {
+                                "comment": "",
+                                "submitID": "",
+                                "submitter": ""
+                            }
+                        }
+                    },
+                    "objectHash": "5deadb25ec9d385b69ec96a31ef12958",
+                    "objectSize": 2366,
+                    "order": 4,
+                    "origRootUID": "",
+                    "parent": "8fc8cace-bdc1-460d-b15d-4fb466fd89cd",
+                    "parent_order": 0,
+                    "rootUID": "8fc8cace-bdc1-460d-b15d-4fb466fd89cd",
+                    "scanModules": [],
+                    "scanTime": 1593126802,
+                    "source": "test",
+                    "sourceModule": "EXPLODE_SEVENZIP",
+                    "uniqID": "",
+                    "uuid": "6b58fc12-3313-4f84-8cc3-64f322a6ece4"
+                }
+            ],
+            "source": "test"
+        },
+        "runtime": 0.5146210193634033,
+        "runtime_validation": 0.0,
+        "scan_modules": "EXPLODE_SEVENZIP(password=test)"
+    }
+]

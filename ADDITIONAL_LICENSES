@@ -1,0 +1,321 @@
+*---------------
+laikaboss/extras/oledump.py
+
+__description__ = 'Analyze OLE files (Compound Binary Files)'
+__author__ = 'Didier Stevens'
+__version__ = '0.0.45'
+__date__ = '2020/01/06'
+
+"""
+Source code put in public domain by Didier Stevens, no Copyright
+https://DidierStevens.com
+Use at your own risk
+# http://www.wordarticles.com/Articles/Formats/StreamCompression.php
+----------------
+dependencies/GetNETGUIDs.tar.gz: MIT License
+
+Copyright (c) 2015 CylanceSPEAR
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+----------------
+dependencies/binwalk.tar.gz: MIT License
+https://github.com/ReFirmLabs/binwalk
+
+Copyright (c) 2010-2015 Craig Heffner
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+----------------
+dependencies/redis-py.zip: MIT License
+includes unpublished patches from   https://github.com/andymccurdy/redis-py/pull/952 and possibly a few other related items from his tree https://github.com/mnunberg/redis-py/tree/ssl-sentinel                                   
+
+The changes allow redis sentinel over SSL
+
+Copyright (c) 2012 Andy McCurdy
+
+ Permission is hereby granted, free of charge, to any person
+ obtaining a copy of this software and associated documentation
+ files (the "Software"), to deal in the Software without
+ restriction, including without limitation the rights to use,
+ copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the
+ Software is furnished to do so, subject to the following
+ conditions:
+
+ The above copyright notice and this permission notice shall be
+ included in all copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ OTHER DEALINGS IN THE SOFTWARE.
+
+----------------
+dependencies/python-slimta.zip: MIT License
+
+Copyright (c) 2021 Ian Good
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+dependencies/pyre2.tar.gz: BSD 3-Clause License
+https://github.com/facebook/pyre2
+
+Copyright (c) 2010, David Reiss and Facebook, Inc. All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+* Redistributions of source code must retain the above copyright
+  notice, this list of conditions and the following disclaimer.
+* Redistributions in binary form must reproduce the above copyright
+  notice, this list of conditions and the following disclaimer in the
+  documentation and/or other materials provided with the distribution.
+* Neither the name of Facebook nor the names of its contributors
+  may be used to endorse or promote products derived from this software
+  without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+---------------
+laikarest/routes/storage.py
+
+dict/json flattening functions - Flattens a dictionary with nested structure to a dictionary with no hierarchy
+Consider ignoring keys that you are not interested in to prevent unnecessary processing 
+
+MIT License
+Copyright (c) 2016 Amir Ziai
+
+"""                                                                                          
+# laikaboss/modules/meta_dotnet.py:# Copyright 2017 Chuck DiRaimondi
+https://github.com/cdiraimondi/laikaboss-modules
+
+# Modified by Sandia National Labs
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Dependency List
+
+## dependencies/GetNETGUIDs.tar.gz  
+GetNETGUIDs is required for the META_DOTNET module  
+MIT License  
+https://github.com/cylance/GetNETGUIDs  
+
+## castleblack
+Castleblack is a package that can monitor directories for changes to files. Used in laikarestd, laikacollector, and the laikarest client  
+Developed by Sandia National Laboratories, licensed with Apache 2 license
+
+## pyre2.tar.gz
+pyre2 contains python bindings for Google's RE2 regular expression engine. It has been modified to support flags on regular expression searches. Not required, but will greatly speed up the META_CRYPTOCURRENCY modules.  
+This version has been heavily modified and also includes a pre-compiled version of Google's re2 library.
+BSD 3-Clause License  
+https://github.com/axiak/pyre2  
+
+Copyright (c) 2010, Michael Axiak <mike@axiak.net>
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+Neither the name of the <ORGANIZATION> nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+Who forked code on https://github.com/facebook/pyre2
+BSD 3-Clause License
+
+Copyright (c) 2010, David Reiss and Facebook, Inc. All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+* Redistributions of source code must retain the above copyright
+  notice, this list of conditions and the following disclaimer.
+* Redistributions in binary form must reproduce the above copyright
+  notice, this list of conditions and the following disclaimer in the
+  documentation and/or other materials provided with the distribution.
+* Neither the name of Facebook nor the names of its contributors
+  may be used to endorse or promote products derived from this software
+  without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+and includes google re2 libs https://github.com/google/re2/
+under BSD-3-Clause License
+
+## python-slimta.zip
+python-slimta is required for the laikamail mail server. 
+MIT License  
+https://github.com/slimta/python-slimta  
+
+## rarfile.zip
+rarfile is required for the EXPLODE_RAR2 module (usually more reliable than EXPLODE_RAR). It has been modified slightly to add support for self-extracting archives.  
+ISC License  
+https://github.com/markokr/rarfile  
+
+## redis-py.zip
+redis is required to use the laikacollector and laikadq scripts. It has been modified somewhat to support laikaboss.  
+MIT License  
+https://github.com/andymccurdy/redis-py  
+
+Microsoft® C++ Runtime Library files
+tests/explode_cab_dlls_uur.lbtest_DLLs.cab
+
+https://github.com/myst729/vue-json-tree/blob/master/src/json-tree.vue
+frontend/src/components/scanPresentation/JsonTree.vue:40
+MIT License (MIT)
+Copyright © 2019 Leo Deng
+
+laikaboss/modules/meta_java_class.py:# Copyright 2016 Josh Liburdi
+https://github.com/jshlbrd/laikaboss-modules
+apache v2
+Copyright 2016 Josh Liburdi
+
+laikaboss/modules/meta_java_manifest.py:# Copyright 2016 Josh Liburdi
+https://github.com/jshlbrd/laikaboss-modules
+apache v2
+Copyright 2016 Josh Liburdi
+
+#versioneer
+https://github.com/python-versioneer/python-versioneer/releases/tag/0.18
+Meta
+License: public domain
+Author: Brian Warner
+
+#snappy
+/*                                                                                                                                                                                   
+ * Copyright 2011 Martin Gieseking <martin.gieseking@uos.de>.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are 
+ * met:
+ *
+ *     * Redistributions of source code must retain the above copyright
+ * notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above
+ * copyright notice, this list of conditions and the following disclaimer
+ * in the documentation and/or other materials provided with the 
+ * distribution.
+ *     * Neither the name of Google Inc. nor the names of its 
+ * contributors may be used to endorse or promote products derived from
+ * this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Plain C interface (a wrapper around the C++ implementation).
+ */
+
+laikaboss/modules/explode_rtf.py
+https://github.com/lmco/laikaboss/pull/62/commits/816c5d8c07807d8f4159f597c10cdd6b30abda87
+Apache v2
+# Copyright 2017 Kemp Langhorne
+
+laikaboss/xyz.py
+https://github.com/lmco/laikaboss/pull/62 
+Contains some Python Software Foundation License code
+
+laikaboss/modules/explode_pdf.py
+https://raw.githubusercontent.com/jshlbrd/laikaboss-modules
+Copyright 2016 Josh Liburdi
+
+tests/explode_msg_simple_msg_with_two_attachments_uur.lbtest
+contains test email messages from the extract-msg package
+License: GPL
+Author: Destiny Peterson & Matthew Walker
+https://pypi.org/project/extract-msg/
+
+* https://github.com/koodaamo/tnefparse/tree/master/tests/examples
+contains examples from tnef parse package
+GNU Lesser General Public License v3 (LGPLv3)
+Author: Petri Savolainen
+tests/explode_tnef_byte_limit_exceed_1_uur.lbtest
+tests/explode_tnef_simple_with_body_uur.lbtest
+tests/explode_tnef_byte_limit_exceed_2_uur.lbtest
+tests/explode_tnef_with_two_attachments_1_uur.lbtest
+
+explode_pdf_uri_filelimit_uur.lbtest
+meta_pdfurl_simpleurl.lbtest
+tests/meta_emf_urr.lbtest
+Public IRS TAX documents used in tests
+
+meta_pe_python_26_dll_uur.lbtest
+includes python 2.6 dll
+https://www.python.org/download/releases/2.6/license/

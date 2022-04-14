@@ -1,0 +1,57 @@
+[
+    {
+        "comment": "uur",
+        "config": null,
+        "data": "eJxLKsjJLC4xMEiqTMoEMw31DK4yMjGzsLKxc3ByhZaUFuSkhoAkAg2C8/LLQxK9UysXc/PwBiYGJgUmL+bjFxBgFGASYFa2/6r2suLK3y/GjvtiZvNnnjAKSwxLzClNFZFX1dIxMLX3DIq2tLZ1dnVnAANGRgjNIMiACpIA3KglBg==",
+        "error_validation": 1,
+        "errors": [],
+        "ext_metadata": {},
+        "filename": "example.bplist",
+        "ignore_list_ordering": true,
+        "ignore_pattern": "^\\.\"scan_result\"\\[[0-9]+\\]\\.(\"uuid\"|\"rootUID\"|\"scanTime\"|\"parent\")",
+        "name": "explode_plist_simple_xml_uur-example.bplist",
+        "result": {
+            "scan_result": [
+                {
+                    "charset": "",
+                    "contentType": [],
+                    "depth": 0,
+                    "ephID": "",
+                    "fileType": [],
+                    "filename": "example.bplist",
+                    "flags": [],
+                    "level": 2,
+                    "moduleMetadata": {
+                        "EXTERNAL": {
+                            "args": {},
+                            "laikaboss_ext": {
+                                "comment": "",
+                                "submitID": "",
+                                "submitter": ""
+                            }
+                        }
+                    },
+                    "objectHash": "62ad4299d43f148ae1f05a3a24ff36d6",
+                    "objectSize": 147,
+                    "order": 0,
+                    "origRootUID": "",
+                    "parent": "",
+                    "parent_order": -1,
+                    "rootUID": "e34bc877-2720-4b1d-8b6e-7e18b0140871",
+                    "scanModules": [
+                        "EXPLODE_PLIST"
+                    ],
+                    "scanTime": 1585848513,
+                    "source": "test",
+                    "sourceModule": "",
+                    "uniqID": "",
+                    "uuid": "e34bc877-2720-4b1d-8b6e-7e18b0140871"
+                }
+            ],
+            "source": "test"
+        },
+        "runtime": 0.0009198188781738281,
+        "runtime_validation": 0.0,
+        "scan_modules": "EXPLODE_PLIST"
+    }
+]

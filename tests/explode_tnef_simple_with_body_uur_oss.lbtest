@@ -1,0 +1,55 @@
+[
+    {
+        "comment": "uur",
+        "config": null,
+        "data": "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",
+        "error_validation": 1,
+        "errors": [],
+        "ext_metadata": {},
+        "filename": "body.tnef",
+        "ignore_pattern": "^\\.\"scan_result\"\\[[0-9]+\\]\\.(\"uuid\"|\"rootUID\"|\"scanTime\"|\"parent\")",
+        "name": "explode_tnef_simple_with_body_uur-body.tnef",
+        "result": {
+            "scan_result": [
+                {
+                    "charset": "",
+                    "contentType": [],
+                    "depth": 0,
+                    "ephID": "",
+                    "fileType": [],
+                    "filename": "body.tnef",
+                    "flags": [],
+                    "level": 2,
+                    "moduleMetadata": {
+                        "EXPLODE_TNEF": {
+                            "Date Modified": "2005-04-25 10:15:36",
+                            "Date Sent": "2005-04-25 10:15:35",
+                            "Message ID": "0DDA0FCBCC07C14192EE86FC42D15B95",
+                            "Priority": "Normal",
+                            "Total_Objects": 8
+                        }
+                    },
+                    "objectHash": "11da56e317d12e95f169a884b1335ef0",
+                    "objectSize": 7769,
+                    "order": 0,
+                    "origRootUID": "",
+                    "parent": "",
+                    "parent_order": -1,
+                    "rootUID": "711f0006-5826-45ce-9a72-fcc303ab07b7",
+                    "scanModules": [
+                        "EXPLODE_TNEF"
+                    ],
+                    "scanTime": 1580860841,
+                    "source": "test",
+                    "sourceModule": "",
+                    "uniqID": "",
+                    "uuid": "711f0006-5826-45ce-9a72-fcc303ab07b7"
+                }
+            ],
+            "source": "test"
+        },
+        "runtime": 0.0028738975524902344,
+        "runtime_validation": 0.0,
+        "scan_modules": "EXPLODE_TNEF"
+    }
+]

@@ -1,0 +1,58 @@
+[
+    {
+        "comment": "UUR: Tests the detection of an auto-redirect present in the page",
+        "config": null,
+        "data": "eJyz8XB1dLHjsvF1DXFU8AgJCdB1DQz1DLNVKkpNK0otzlBScPb3C3H1C7FVMrAODfKxzSgpKSi20tcvLy/XK0ktLtFLzs/Vz8xLSa3QK8goUAIapQ81Ut/J3yXSTgEAm/MdJA==",
+        "error_validation": 1,
+        "errors": [],
+        "ext_metadata": {},
+        "filename": "redirect_test.html",
+        "ignore_pattern": "^\\.\"scan_result\"\\[[0-9]+\\]\\.(\"uuid\"|\"rootUID\"|\"scanTime\"|\"parent\")",
+        "name": "scan_html_redirect_uur-redirect_test.html",
+        "result": {
+            "scan_result": [
+                {
+                    "charset": "",
+                    "contentType": [],
+                    "depth": 0,
+                    "ephID": "",
+                    "fileType": [],
+                    "filename": "redirect_test.html",
+                    "flags": [
+                        "html:AUTO_REDIRECT"
+                    ],
+                    "level": 2,
+                    "moduleMetadata": {
+                        "SCAN_HTML": {
+                            "html_links": [],
+                            "percent_javascript": [
+                                0
+                            ],
+                            "redirect_url": "https://www.test.com/index.php",
+                            "refresh_time": "0"
+                        }
+                    },
+                    "objectHash": "24a67ee0b2ff6dcc220e87f0eebfe4eb",
+                    "objectSize": 98,
+                    "order": 0,
+                    "origRootUID": "",
+                    "parent": "",
+                    "parent_order": -1,
+                    "rootUID": "b88807de-84da-4049-8c28-8079ffdf8884",
+                    "scanModules": [
+                        "SCAN_HTML"
+                    ],
+                    "scanTime": 1579725449,
+                    "source": "test",
+                    "sourceModule": "",
+                    "uniqID": "",
+                    "uuid": "b88807de-84da-4049-8c28-8079ffdf8884"
+                }
+            ],
+            "source": "test"
+        },
+        "runtime": 0.0035691261291503906,
+        "runtime_validation": 0.0,
+        "scan_modules": "SCAN_HTML"
+    }
+]

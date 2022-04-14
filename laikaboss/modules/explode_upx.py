@@ -1,4 +1,7 @@
 # Copyright 2015 Lockheed Martin Corporation
+# Copyright 2020 National Technology & Engineering Solutions of Sandia, LLC 
+# (NTESS). Under the terms of Contract DE-NA0003525 with NTESS, the U.S. 
+# Government retains certain rights in this software.
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,6 +18,7 @@
 from laikaboss.objectmodel import ModuleObject, ExternalVars, QuitScanException, \
                                 GlobalScanTimeoutError, GlobalModuleTimeoutError
 from laikaboss.si_module import SI_MODULE
+from laikaboss.util import laika_temp_dir
 from laikaboss import config
 import tempfile
 import pexpect
@@ -25,12 +29,6 @@ class EXPLODE_UPX(SI_MODULE):
     def __init__(self,):
         ''' __init__ function merely needs to set its module_name and nothing more'''
         self.module_name = "EXPLODE_UPX" 
-        self.TEMP_DIR = '/tmp/laikaboss_tmp'
-        if hasattr(config, 'tempdir'):
-            self.TEMP_DIR = config.tempdir.rstrip('/')
-        if not os.path.isdir(self.TEMP_DIR):
-            os.mkdir(self.TEMP_DIR)
-            os.chmod(self.TEMP_DIR, 0777)
 
     def _run(self, scanObject, result, depth, args):
         ''' The core of your laika module. This is how your code will be invoked
@@ -58,14 +56,14 @@ class EXPLODE_UPX(SI_MODULE):
         '''
         moduleResult = []
         try:
-            with tempfile.NamedTemporaryFile(dir=self.TEMP_DIR) as temp_file_input:
+            with laika_temp_dir() as temp_dir, tempfile.NamedTemporaryFile(dir=temp_dir) as temp_file_input:
                 temp_file_input_name = temp_file_input.name
                 temp_file_input.write(scanObject.buffer)
                 temp_file_input.flush() 
                 temp_file_output_name = temp_file_input_name+"_output"
                 strCMD = "upx -d "+temp_file_input_name+" -o "+temp_file_output_name
                 outputString = pexpect.run(strCMD)
-                f = open(temp_file_output_name) #if strCMD failed, this will throw a file not exists exception
+                f = open(temp_file_output_name, 'rb') #if strCMD failed, this will throw a file not exists exception
                 newbuf = f.read()
                 f.close()
                 os.remove(temp_file_output_name)

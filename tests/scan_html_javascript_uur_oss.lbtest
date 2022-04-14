@@ -1,0 +1,82 @@
+[
+    {
+        "comment": "UUR: Tests the flag for when a page has more than 80% Javascript",
+        "config": null,
+        "data": "eJztVk9P2zAUv+dTPHwhVUdMKS3QppWAdhqIAWKd2I4meU08JU7lOLTVxHef47gFo124cagPifP7896z/SI53JvcXc5+308hVXkG9z8vbq4ugRxQ+ti9pHQym8Cvb7PvN9AJDmEmmSi54oVgGaXTWwIkVWoxoHS5XAbLblDIhM4e6KqO1anNdnqg3jiDWMVk7IUm4SrPRDn6T5jO2dlZ4yYQZazUIvhTAhmHKbJ4HJaR5AsFN0wkFUtwtH/NnlkD7o+9ZyZhgbIsBIzgrwd6zLks1S3LcQDkukgF+WJgHdqgoOFJgRblMTRjAL1ev9+A8yrLrHReiahejd+y0fWQqCopQKW8DLbJoA16l/TTwJtkQ+N58V6GnhcXUZWjUEGCapphPb1YX8U+iTEvSCvgQqA0RzCySwo2hfgt7a+XqnClNE2I+eJ6emgi2+IM3dZ8+CTHsxRBVPkTamFpSuNNObzdHnov3jLlGYLPIYTOYWsI8LES61w6t5Jrm5zFcZyhVD55xCwq9JYkFZZqj7TqbBFTUeqjlJuN/EgubQtyLEt9/nUss/hVRxMCl3D39Acj5dcrAErh/A0IhXk1+iOr/6EkF8k7fQM6+q7V35o9fKdvQEd/bPUXRZEhE8aw1VvQMfSs4VxKtm7ivxoM6Mj7Vv6AyXS1eFdPAzr6E6v/um3h4at+AzqOU+uYMIW2nldHDW7UH2kUj6w6g+bPWC+wmNcH1246VIOaPXLZI5ftumzXZY9d9thley7bc9m+y/Zd9sRlT1z21GVPt+xw15u73vy0vblrzl1zftrmDGlzq9M3RmqufvVbXwvH/wCr+R9U",
+        "error_validation": 1,
+        "errors": [],
+        "ext_metadata": {},
+        "filename": "javascript_test.html",
+        "ignore_pattern": "^\\.\"scan_result\"\\[[0-9]+\\]\\.(\"uuid\"|\"rootUID\"|\"scanTime\"|\"parent\")",
+        "name": "scan_html_javascript_uur-javascript_test.html",
+        "result": {
+            "scan_result": [
+                {
+                    "charset": "",
+                    "contentType": [],
+                    "depth": 0,
+                    "ephID": "",
+                    "fileType": [],
+                    "filename": "javascript_test.html",
+                    "flags": [
+                        "html:EXCESSIVE_JAVASCRIPT:91%"
+                    ],
+                    "level": 2,
+                    "moduleMetadata": {
+                        "SCAN_HTML": {
+                            "html_links": [],
+                            "percent_javascript": [
+                                0.9133600291226793
+                            ]
+                        }
+                    },
+                    "objectHash": "61cb724e4bee6eb6675816060f81758a",
+                    "objectSize": 2747,
+                    "order": 0,
+                    "origRootUID": "",
+                    "parent": "",
+                    "parent_order": -1,
+                    "rootUID": "60c67f82-387c-4964-b04c-7a8a1025d2ea",
+                    "scanModules": [
+                        "SCAN_HTML"
+                    ],
+                    "scanTime": 1579725449,
+                    "source": "test",
+                    "sourceModule": "",
+                    "uniqID": "",
+                    "uuid": "60c67f82-387c-4964-b04c-7a8a1025d2ea"
+                },
+                {
+                    "charset": "",
+                    "contentType": [
+                        "javascript"
+                    ],
+                    "depth": 0,
+                    "ephID": "",
+                    "fileType": [],
+                    "filename": "javascript_tes_js_script_0",
+                    "flags": [],
+                    "level": 2,
+                    "moduleMetadata": {},
+                    "objectHash": "e1a93cd6bedd304a7a8ebb939216c034",
+                    "objectSize": 2508,
+                    "order": 1,
+                    "origRootUID": "",
+                    "parent": "60c67f82-387c-4964-b04c-7a8a1025d2ea",
+                    "parent_order": 0,
+                    "rootUID": "60c67f82-387c-4964-b04c-7a8a1025d2ea",
+                    "scanModules": [],
+                    "scanTime": 1579725449,
+                    "source": "test",
+                    "sourceModule": "SCAN_HTML",
+                    "uniqID": "",
+                    "uuid": "a40562db-9c84-47f8-bf89-029d8f28fe7a"
+                }
+            ],
+            "source": "test"
+        },
+        "runtime": 0.0020058155059814453,
+        "runtime_validation": 0.0,
+        "scan_modules": "SCAN_HTML"
+    }
+]

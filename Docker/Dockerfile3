@@ -1,0 +1,212 @@
+# This Docker image encapsulates the Laika BOSS: Object Scanning System by 
+# Lockheed Martin Corporation from https://github.com/lmco/laikaboss 
+#
+# To run this image after installing Docker using a standalone instance, use a command like 
+# the following, replacing “~/laikaboss-workdir" with the path to the location of your 
+# Laika BOSS working directory:
+#
+# sudo docker run --rm -it -v ~/laikaboss-workdir:/home/laikaboss/workdir wzod/laikaboss
+#
+# To run this image using a networked instance, use a command like this:
+#
+# sudo docker run --rm -it -v ~/laikaboss-workdir:/home/laikaboss/workdir wzod/laikaboss
+#
+# Before running Laika BOSS, create the  ~/laikaboss-workdir and make it world-accessible
+# (“chmod a+xwr").
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+#     http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+#FROM ubuntu:18.04 
+FROM  ubuntu:18.04 
+
+ENV NODE_EXTRA_CA_CERTS /etc/ssl/certs/ca-certificates.crt 
+ENV REQUESTS_CA_BUNDLE  /etc/ssl/certs/ca-certificates.crt
+
+RUN apt-get update && \
+  apt-get -y install software-properties-common && \
+  apt-add-repository -y multiverse && \
+  apt-get -qq update && apt-get install -y \
+  automake \
+  build-essential \
+  git \
+  jq \
+  libtool \
+  make \
+  unzip \
+  wget \
+  vim \
+  sudo \
+  dumb-init \
+  apt-utils \
+  libpython3.6-dev \
+  python3-pip \
+  libssl1.0-dev
+
+# For installing a newer version of node and npm than what Ubuntu defaults to.
+RUN curl -fsSL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+
+RUN apt-get update
+
+RUN apt-get install -y \
+  nodejs \
+  node-gyp 
+
+# Add laikaboss user
+RUN groupadd -r laikaboss -g 21043 && \
+  useradd -r -u 21043 -g laikaboss -d /home/laikaboss -s /sbin/nologin -c "Nonroot User" laikaboss && \
+  mkdir /home/laikaboss && \
+  #echo "%laikaboss ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/laikaboss && \
+  chown -R laikaboss:laikaboss /home/laikaboss
+
+ENV PYTHONUSERBASE /opt/venvs/laikaboss
+ENV PATH="/opt/venvs/laikaboss/bin:${PATH}"
+
+COPY dependencies/ /var/run/laikaboss/dependencies/
+
+
+COPY scripts/ /var/run/laikaboss/scripts/
+
+COPY deb-requirements-1804.txt /var/run/laikaboss/
+
+RUN  cd /var/run/laikaboss/ && \
+     /var/run/laikaboss/scripts/install-pkg-deps.sh deb-requirements-1804.txt
+
+RUN ln -s llvm-config-10 llvm-config
+# base items - and items which take a long time to build and rarely change
+COPY requirements3.txt /var/run/laikaboss/
+
+# due to a bug in setuptools the package gets named UNKNOWN if installed from a directory and not a tarball
+RUN /bin/tar -cvzf /var/run/laikaboss/dependencies/castleblack.tar.gz -C /var/run/laikaboss/dependencies/ castleblack
+
+# Requires a pip upgrade
+RUN pip3 install pip --user --upgrade
+
+# Update setuptools
+RUN pip3 install setuptools --upgrade --user 
+
+RUN cd /var/run/laikaboss/ && \
+    python3 -m pip install --user --upgrade -r /var/run/laikaboss/requirements3.txt
+
+#items which for whatever reason can't be combined with the same pip install as above
+#and items which are added later and as an optimization it speeds up the builds
+#since the slow items were already built in a previous layer
+#(for example libtiff and numpy conflict
+
+COPY requirements-extra.txt /var/run/laikaboss/
+
+RUN cd /var/run/laikaboss && \
+    python3 -m pip install --user --upgrade -r /var/run/laikaboss/requirements-extra.txt
+
+RUN mkdir -p /var/log/laikaboss && \
+    mkdir -p /var/laikaboss/submission-queue && \
+    mkdir -p /var/laikaboss/submission-error && \
+    mkdir -p /var/laikaboss/storage-queue && \
+    mkdir -p /var/laikaboss/storage-error && \
+    mkdir -p /var/laikaboss/tmp && \
+    mkdir -p /var/laikaboss/tmp/gunicorn && \
+    # make sure it exists to fix the permissions
+    touch /var/log/laikaboss/laikarestd.log && \
+    chown laikaboss -Rf /var/log/laikaboss && \
+    chmod 774 -Rf /var/log/laikaboss && \
+    chown laikaboss -Rf /var/laikaboss/ && \
+    mkdir -p /var/log/laikaboss /var/www/html/webui-export /var/www/html/webui/ && \
+    touch /var/laika_version && \
+    chown laikaboss:laikaboss /var/laika_version /var/www/html/webui-export /var/www/html/webui/ && \
+    chmod 775 /var/log/laikaboss && \
+    chown laikaboss -Rf /var/laikaboss/
+
+# Run setup script to install Laika BOSS framework, client library, modules and associated scripts (laika.py, laikadq.py, cloudscan.py)
+
+COPY tests /opt/venvs/laikaboss/tests 
+COPY scripts /opt/venvs/laikaboss/scripts
+
+COPY frontend/ /home/laikaboss/laikaboss/frontend/
+
+RUN cd /home/laikaboss/laikaboss/frontend && \
+    rm -rf /home/laikaboss/laikaboss/frontend/node_modules && \
+    npm i && \
+    npm run build && \
+    mkdir -p /var/www/html/webui-export && \
+    mkdir -p /var/www/html/webui && \
+    npm run copy && \
+    chown -R laikaboss:laikaboss /var/www/html/webui-export && \
+    chown -R laikaboss:laikaboss /var/www/html/webui
+
+COPY code/ /home/laikaboss/laikaboss/code/
+
+RUN cd /home/laikaboss/laikaboss/code && \
+  python3 setup.py build && \
+  python3 setup.py install --user --prefix= && \
+  cp /home/laikaboss/laikaboss/code/laika_version /opt/venvs/laikaboss/laika_version
+
+RUN cd /home/laikaboss/ && \
+    mkdir -p /opt/venvs/laikaboss/lib/python3.6/site-packages/tools && \
+    chown -R laikaboss /opt/venvs/laikaboss/lib/python3.6/site-packages/libtiff/ && \
+    chown laikaboss /opt/venvs/laikaboss/lib/python3.6/site-packages/ && \
+    python3 -m pip freeze > /opt/venvs/laikaboss/laika_pip_freeze && \
+    apt list --installed > /opt/venvs/laikaboss/laika_os_pkgs && \
+    apt-get install -y locales; locale-gen;  localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
+
+# Clean up and run ldconfig
+RUN ldconfig && \
+  apt-get remove -y --purge automake build-essential libtool && \
+  apt-get autoremove -y --purge && \
+  apt-get clean -y && \
+  rm -rf /var/lib/apt/lists/*  && \
+  chown -R laikaboss /home/laikaboss && \
+  chown -R laikaboss /etc/laikaboss && \
+  rm -rf /var/run/laikaboss/dependencies/ && \
+  rm -rf /var/run/laikaboss/scripts/ && \
+  rm -rf /var/lib/apt/lists/* && \
+  rm -rf /home/laikaboss/laikaboss && \
+  rm -rf /home/root/.*
+
+RUN mkdir -p /etc/laikaboss/secrets/redis /etc/laikaboss/secrets/apache /etc/laikaboss/secrets/postgres/
+
+# touching the files tells docker they are files and not directories if they are mounted 
+RUN touch /etc/laikaboss/laika_cluster.conf \
+  /etc/laikaboss/secrets/redis/server.key \
+  /etc/laikaboss/secrets/redis/server.crt \
+  /etc/laikaboss/secrets/redis/cacert.crt \
+  /etc/laikaboss/secrets/redis/redis_pass \
+  /etc/laikaboss/secrets/apache/server.key \
+  /etc/laikaboss/secrets/apache/server.crt \
+  /etc/laikaboss/laika_cluster.conf \
+  /etc/laikaboss/secrets/apache/cacert.crt \
+  /etc/laikaboss/secrets/local_creds \
+  /etc/laikaboss/secrets/htpasswd.db \
+  /etc/laikaboss/secrets/redis_pass \
+  /etc/laikaboss/secrets/server.crt \
+  /etc/laikaboss/secrets/server.key \
+  /etc/laikaboss/secrets/cacert.crt \
+  /etc/laikaboss/secrets/db_password \
+  /etc/laikaboss/secrets/postgres/db_password \
+  /etc/laikaboss/secrets/lb_client_secret_file \
+  /etc/laikaboss/secrets/s3_access_key \
+  /etc/laikaboss/secrets/s3_secret_key \
+  /etc/laikaboss/secrets/s3_creds
+
+COPY entrypoint.sh /opt/venvs/laikaboss/scripts/
+RUN chmod 755 /opt/venvs/laikaboss/scripts/entrypoint.sh
+
+USER laikaboss
+ENV HOME /home/laikaboss
+ENV USER laikaboss
+WORKDIR /opt/venvs/laikaboss/
+
+EXPOSE 5558
+EXPOSE 8123
+
+ENTRYPOINT ["/opt/venvs/laikaboss/scripts/entrypoint.sh"]
+#CMD ["/bin/bash"]

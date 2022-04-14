@@ -1,4 +1,7 @@
 # Copyright 2015 Lockheed Martin Corporation
+# Copyright 2020 National Technology & Engineering Solutions of Sandia, LLC 
+# (NTESS). Under the terms of Contract DE-NA0003525 with NTESS, the U.S. 
+# Government retains certain rights in this software.
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +26,10 @@ class DECODE_BASE64(SI_MODULE):
         moduleResult = [] 
         try:
             decoded = base64.b64decode(scanObject.buffer)
-            moduleResult.append(ModuleObject(buffer=decoded, externalVars=ExternalVars(filename="d_base64_%s" % len(decoded))))
+            contentType = scanObject.contentType if "base64" not in scanObject.contentType else ""
+            moduleResult.append(ModuleObject(buffer=decoded, 
+                    externalVars=ExternalVars(filename="d_base64_%s" % len(decoded),
+                    contentType=contentType, charset=scanObject.charset)))
             return moduleResult
         except:
             raise

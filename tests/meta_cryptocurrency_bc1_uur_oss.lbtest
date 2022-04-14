@@ -1,0 +1,56 @@
+[
+    {
+        "comment": "uur",
+        "config": {},
+        "data": "eJyVkcFuwyAMhu95Cu9aoapNQhN6m7TDdt8L0OCkFAINUGj69KNpK027TUYI+7ctf+YTtbak+Ophthdw2KGMKGCcQXMfAEcuNQFjA0I48rBkddyARyPgIENnpfEQbFalh5XBtAKepZUcz87mVtkVwqH3ezh024m7jXfONddexZnqXV3pWZjEHFI2hNst9XQU07oo3rV/NrUGH7Vd47Xrr0qZqZvKE8YYlRiiC+0mGy1Ff8IksKabq9Cqvgznxt8SDYq9FcX3EaG3GTZJM7xmQk/gaBNGdAS4wzsoZIYF4UWwOMIuWrJO/QWpqpNgD5IPk872F4mdyD35wMW/DoFtWdV017QsP/JNWVtXtGFtDjesrMuKjWTZjvR5LP78iCeVsS9bFz/Gg6c6",
+        "error_validation": 1,
+        "errors": [],
+        "ext_metadata": {},
+        "filename": "bitcoin_extortion2.txt",
+        "ignore_pattern": "^\\.\"scan_result\"\\[[0-9]+\\]\\.(\"uuid\"|\"rootUID\"|\"scanTime\"|\"parent\")",
+        "name": "bitcoin_bc1-bitcoin_extortion2.txt",
+        "result": {
+            "scan_result": [
+                {
+                    "charset": "",
+                    "contentType": [],
+                    "depth": 0,
+                    "ephID": "",
+                    "fileType": [],
+                    "filename": "bitcoin_extortion2.txt",
+                    "flags": [
+                        "crypto:bitcoin"
+                    ],
+                    "level": 2,
+                    "moduleMetadata": {
+                        "META_CRYPTOCURRENCY": {
+                            "bitcoin": [
+                                "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq",
+                                "bc1qc7slrfxkknqcq2jevvvkdgvrt8080852dfjewde450xdlk4ugp7szw5tk9"
+                            ]
+                        }
+                    },
+                    "objectHash": "fd933ef8cecd4829a928f1cbd084eda7",
+                    "objectSize": 480,
+                    "order": 0,
+                    "origRootUID": "",
+                    "parent": "",
+                    "parent_order": -1,
+                    "rootUID": "a9380007-4f1e-4c8c-abaf-79141f347523",
+                    "scanModules": [
+                        "META_CRYPTOCURRENCY"
+                    ],
+                    "scanTime": 1581970385,
+                    "source": "test",
+                    "sourceModule": "",
+                    "uniqID": "",
+                    "uuid": "a9380007-4f1e-4c8c-abaf-79141f347523"
+                }
+            ],
+            "source": "test"
+        },
+        "runtime": 0.0019049644470214844,
+        "runtime_validation": 0.0,
+        "scan_modules": "META_CRYPTOCURRENCY"
+    }
+]

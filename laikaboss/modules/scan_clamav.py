@@ -67,7 +67,7 @@ class SCAN_CLAMAV(SI_MODULE):
             if max_bytes <= 0:
                 clam_result = self.clam.scan_stream(scanObject.buffer)
             else:
-                clam_result = self.clam.scan_stream(str(buffer(scanObject.buffer, 0, max_bytes)))
+                clam_result = self.clam.scan_stream(scanObject.buffer[:max_bytes])
 
             # Process a result
             if clam_result:

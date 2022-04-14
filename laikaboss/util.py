@@ -1,4 +1,7 @@
 # Copyright 2015 Lockheed Martin Corporation
+# Copyright 2020 National Technology & Engineering Solutions of Sandia, LLC 
+# (NTESS). Under the terms of Contract DE-NA0003525 with NTESS, the U.S. 
+# Government retains certain rights in this software.
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,6 +15,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # 
+from future import standard_library
+standard_library.install_aliases()
+from past.builtins import basestring, unicode
+from builtins import object
 import yara
 import random
 import string
@@ -20,8 +27,21 @@ import logging
 import syslog
 import time
 import os
+import shutil
+import tempfile
+import datetime
+import time
+import socket
+from minio import Minio
+from contextlib import contextmanager
 from laikaboss.objectmodel import QuitScanException, GlobalScanTimeoutError, GlobalModuleTimeoutError
 from laikaboss import config
+
+_environ_prefix = "LAIKA_"
+_environ_custom_config = "LAIKA_CUSTOM_SITE_CONFIG"
+
+#jinja substitutions may have substitutions - but limit recursiveness
+_max_jinja_recursion = 5
 
 # Set up logging variables
 log_delimiter="|"
@@ -34,7 +54,7 @@ def init_logging():
     globals()['moduleLogLevel'] = getattr(syslog, config.moduleloglevel)
     globals()['scanLogLevel'] = getattr(syslog, config.scanloglevel)
     globals()['logResultFromSource'] = config.logresultfromsource
-    syslog.openlog(logIdentity, 0, logFacility)
+    syslog.openlog(str(logIdentity), 0, logFacility)
 
 # Keeping this here for legacy purposes. It's now deprecated.
 def init_yara():
@@ -45,6 +65,12 @@ char_set = string.ascii_uppercase + string.digits + string.ascii_lowercase
 
 # Set up lazy loading yara rules
 yara_on_demand_rules = {}
+
+# Top-level temporary directory (once found/created)
+top_temp_dir = None
+
+# How much of the file to rescan with yara if first scan had too many matches
+yara_rescan_bytes = 1000000
 
 def is_compiled(rule):
     '''
@@ -74,9 +100,13 @@ def yara_on_demand(rule, theBuffer, externalVars={}, maxBytes=0):
         return matches
     except (QuitScanException, GlobalScanTimeoutError, GlobalModuleTimeoutError):
         raise
-    except:
-        logging.exception("util: yara on demand scan failed with rule %s" % (rule))
-        raise
+    except Exception as e:
+        if not maxBytes and "internal error: 30" in str(e):
+            logging.warning("Yara scan had too many matches, re-running with first %s bytes of file" % yara_rescan_bytes)
+            return yara_on_demand(rule, theBuffer, externalVars, maxBytes=yara_rescan_bytes)
+        else:
+            logging.exception("util: yara on demand scan failed with rule %s" % (rule))
+            raise
 
 def listToSSV(alist):
     '''
@@ -92,15 +122,27 @@ def listToSSV(alist):
 
 def getObjectHash(buffer):
     '''
-    Uses hashlib to get an md5 of the raw object buffer
+    Uses hashlib to get a hash of the raw object buffer
 
     Arguments:
     buffer -- raw object buffer
 
     Returns:
-    string containing the md5 digest of the buffer
+    string containing the hash digest of the buffer
     '''
-    return hashlib.md5(buffer).hexdigest()
+    algorithms_list = []
+    if hasattr(hashlib, 'algorithms_available'):
+        algorithms_list = hashlib.algorithms_available
+    elif hasattr(hashlib, 'algorithms'):
+        algorithms_list = hashlib.algorithms
+    if not hasattr(config, 'objecthashmethod'):
+         config.objecthashmethod = 'md5'
+    if config.objecthashmethod not in algorithms_list:
+         logging.warn("Object hash method of '" + config.objecthashmethod + "' not supported, defaulting to 'md5'")
+         config.objecthashmethod = 'md5'
+    hasher = hashlib.new(config.objecthashmethod)
+    hasher.update(buffer)
+    return hasher.hexdigest()
 
 def log_result(result, returnOutput=False):
     '''
@@ -130,7 +172,7 @@ def log_result(result, returnOutput=False):
             scanTime = str(scanTime)[:7]
         else:
             scanTime = 0
-        for uid, scanObject in result.files.iteritems():
+        for uid, scanObject in result.files.items():
             parentFilename = ""
             parentUID = ""
             if uid != result.rootUID:
@@ -181,11 +223,14 @@ def clean_field(field, last=False):
     Returns:
     A string ready for use in a log entry
     '''
-    if type(field) not in [str, list, unicode]:
+    # Force field to native unicode type
+    if isinstance(field, unicode):
+        field = unicode(field)
+    if not isinstance(field, (basestring, list)):
         field = str(field)
-    elif type(field) is list:
+    elif isinstance(field, list):
         field = listToSSV(set(field))
-    elif type(field) is unicode:
+    elif not isinstance(field, str):
         try:
             field = field.encode('ascii', 'backslashreplace')
         except (QuitScanException, GlobalScanTimeoutError, GlobalModuleTimeoutError):
@@ -254,7 +299,7 @@ def log_module(module_status, module_name, module_time, scanObject, result, msg=
             if parentUID in result.files:
                 parentFilename = result.files[parentUID].filename
 
-        log = "MODULE %s%s%s%s%s%s%s%s%s%s%s" % \
+        log = "MODULE %s%s%s%s%s%s%s%s%s%s%s%s" % \
                (
                    clean_field(module_status),
                    clean_field(processID),
@@ -266,6 +311,7 @@ def log_module(module_status, module_name, module_time, scanObject, result, msg=
                    clean_field(scanObject.filename),
                    clean_field(parentUID),
                    clean_field(parentFilename),
+                   clean_field(result.source),
                    clean_field(msg, last=True)
                )
         syslog.syslog(moduleLogLevel, "%s"%(log))
@@ -302,13 +348,14 @@ def log_module_error(module_name, scanObject, result, error):
         parentFilename = result.files[parentUID].filename if parentUID in result.files else ""
         
     try:
-        log = "ERROR %s%s%s%s%s%s" % \
+        log = "ERROR %s%s%s%s%s%s%s" % \
                (
                    clean_field(processID),
                    clean_field(module_name),
                    clean_field(UID),
                    clean_field(parentUID),
                    clean_field(parentFilename),
+                   clean_field(result.source),
                    clean_field(error, last=True)
                )
         syslog.syslog(moduleLogLevel, "%s"%(log))
@@ -499,7 +546,7 @@ def get_all_module_metadata(result, scanModule):
     which have metadata available.
     '''
     moduleMeta = {}
-    for uid, scanObject in result.files.iteritems():
+    for uid, scanObject in result.files.items():
         mm = scanObject.getMetadata(scanModule)
         if mm:
             moduleMeta[uid] = mm
@@ -577,6 +624,40 @@ def get_root_metadata(result, scanModule=None):
     else: 
         return rootObject.moduleMetadata
 
+@contextmanager
+def laika_temp_dir(large=False):
+    '''
+    Returns a context manager which can be used to create temporary directories. This ensures
+    that each module uses a separate, non-world-writeable temporary directory, but that all
+    laikaboss users can use the same top-level temp directory.
+
+    Returns:
+    A context manager for a string containing a temporary directory name. This directory and 
+    its children are deleted upon exiting the context manager.
+    '''
+    global top_temp_dir
+    tmpDir = None
+    if not top_temp_dir:
+        if hasattr(config, 'tempdir'):
+            top_temp_dir = config.tempdir
+        elif hasattr(config, 'large_tempdir'):
+            top_temp_dir = config.large_tempdir
+        else:
+            top_temp_dir = tempfile.mkdtemp(prefix='laika_tmp_')
+        if not os.path.isdir(top_temp_dir):
+            os.mkdir(top_temp_dir)
+            os.chmod(top_temp_dir, 0o1777)
+        tempfile.tempdir = top_temp_dir
+    try:
+        if large and hasattr(config, 'large_tempdir') and os.path.isdir(config.large_tempdir):
+            tmpDir = tempfile.mkdtemp(prefix='laika_tmp_', dir=config.large_tempdir)
+        else:
+            tmpDir = tempfile.mkdtemp(prefix='laika_tmp_', dir=top_temp_dir)
+        yield tmpDir
+    finally:
+        if tmpDir:
+           shutil.rmtree(tmpDir)
+
 def uniqueList(lst):
     '''
     
@@ -624,7 +705,7 @@ def get_option(args, argskey, configkey, default=None):
     argskey     --  The key for the option's value within the Laika
                     framework's arguments.
     configkey   --  The key for the option's value within the overall
-                    configuration.
+                    configuration. If its a list, will be checked in order
     default     --  (Optional) The default value to return if the user-specified
                     value is not found. Default is None.
 
@@ -632,11 +713,62 @@ def get_option(args, argskey, configkey, default=None):
     The user-specified value if found, or the default value.
 
     """
+
     value = default
+
+    if configkey and not isinstance(configkey, list):
+       configkey = [configkey]
+
     if argskey in args:
-        value = args[argskey]
-    elif hasattr(config, configkey):
-        value = getattr(config, configkey)
+       value = args[argskey]
+    elif configkey:
+      for key in configkey:
+         if hasattr(config, key):
+            value = getattr(config, key)
+            break
+
     return value
+
+class laika_submission_encoder(object):
+
+    def __init__(self, submission_dir, queue, externalVars):
+
+        self.submission_dir = submission_dir
+        self.queue = queue
+        self.externalVars = externalVars
+
+    def get_output_filename(self, create_parent_dirs = True):
+
+        dir_path = os.path.join(self.submission_dir, self.queue)
+
+        if create_parent_dirs and not os.path.isdir(dir_path):
+            os.makedirs(dir_path)
+
+        now = datetime.datetime.utcnow()
+
+        val = now.strftime("%Y-%m-%d_%H:%M:%SZ") + '-' + str(self.externalVars.get_submitID()) + ".submit"
+
+        path = os.path.join(dir_path,val)
+
+        return path
+
+def toBool(v, default = None):
+
+    if v is not None:
+       if isinstance(v, bool):
+          return v
+
+       if isinstance(v, basestring):
+           v = v.lower().strip()
+           if v in ['yes', 'true', 'on', 'enabled', '1']:
+              return True
+           elif v in ['no', 'false', 'off', 'disabled', '0']:
+              return False
+
+    if default is None:
+       raise ValueError("value is not a bool")
+
+    return default
+
 
 init_logging()

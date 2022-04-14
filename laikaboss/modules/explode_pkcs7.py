@@ -13,6 +13,7 @@
 # limitations under the License.
 # 
 #This modules extracts metadata from x509 certificates
+from builtins import str
 import sys, hashlib, traceback, logging
 from M2Crypto import SMIME, X509, m2, BIO
 
@@ -44,7 +45,7 @@ class EXPLODE_PKCS7(SI_MODULE):
             input_bio = BIO.MemoryBuffer(buffer)
 
             #Check for PEM or DER
-            if buffer[:1] == "0":
+            if buffer[:1] == b"0":
                 #DER
                 p7 = SMIME.PKCS7(m2.pkcs7_read_bio_der(input_bio._ptr()), 1)
             else:
@@ -71,7 +72,10 @@ class EXPLODE_PKCS7(SI_MODULE):
             
             ugly_error_string = str(exc_value)
             #nicer_error_string = string.split(string.split(ugly_error_string,":")[4])[0]
-            nicer_error_string = ugly_error_string.split(":")[4].split()[0]
+            try:
+                nicer_error_string = ugly_error_string.split(":")[4].split()[0]
+            except IndexError:
+                nicer_error_string = ugly_error_string
                         
             scanObject.addFlag("pkcs7:err:"+nicer_error_string)
             

@@ -1,0 +1,226 @@
+## To get started make sure you cp ./laika_cluster.conf /etc/laikaboss/laika_cluster.conf and modify the properties
+
+version: "3"
+
+volumes:
+   web_data:
+
+services:
+
+    laikadq:
+        image: docker.example.com:1234/laikaboss/laikaboss:latest
+        volumes:
+            - /data/laikaboss/submission-queue/:/var/laikaboss/submission-queue
+            - /data/laikaboss/submission-error/:/var/laikaboss/submission-error
+            - /data/laikaboss/storage-queue/:/var/laikaboss/storage-queue
+            - /data/laikaboss/storage-error/:/var/laikaboss/storage-error
+            - /data/laikaboss/laikadq:/var/laikaboss/
+            - /var/log/laikaboss:/var/log/laikaboss
+            - /etc/laikaboss/laika_cluster.conf:/etc/laikaboss/laika_cluster.conf
+            - /etc/laikaboss/secrets:/etc/laikaboss/secrets
+            - /etc/laikaboss/modules/geoip:/etc/laikaboss/modules/geoip
+            - /var/laika_version:/var/laika_version
+            - /etc/yara/:/etc/yara
+            - /dev/log:/dev/log
+            - /workdir:/home/laikaboss/workdir
+        command: -q --id-file /var/laikaboss/laikad_redis_id_file -d
+        logging:
+            driver: "json-file"
+            options:
+                max-size: "10m"
+                max-file: "2"
+     # This service is deprecated in favor of laikadq, but you can still use it
+     # by uncommenting this block
+     #laikad:
+        #image: docker.example.com:1234/laikaboss/laikaboss:latest
+        #ports:
+        #    - "0.0.0.0:5558:5558"
+        #    - "0.0.0.0:5559:5559"
+        #volumes:
+        #    - /data/laikaboss/submission-queue/:/var/laikaboss/submission-queue
+        #    - /data/laikaboss/submission-error/:/var/laikaboss/submission-error
+        #    - /data/laikaboss/storage-queue/:/var/laikaboss/storage-queue
+        #    - /data/laikaboss/storage-error/:/var/laikaboss/storage-error
+        #    #- /data/laikaboss/tmp:/var/laikaboss/tmp
+        #    #- /data/laikaboss/laikadq/:/var/laikaboss/
+        #    #- /etc/laikaboss/:/etc/laikaboss/
+        #    - /etc/laikaboss/laika_cluster.conf:/etc/laikaboss/laika_cluster.conf
+        #    - /etc/laikaboss/secrets:/etc/laikaboss/secrets
+        #    - /var/log/laikaboss:/var/log/laikaboss
+        #    - /var/laika_version:/var/laika_version
+        #    - /etc/yara/:/etc/yara
+        #    - /dev/log:/dev/log
+        #    - /workdir:/home/laikaboss/workdir
+        #command: -d --id-file /var/laikaboss/laikad_id_file -d
+        #logging:
+        #    driver: "json-file"
+        #    options:
+        #        max-size: "10m"
+        #        max-file: "2"
+ 
+    submitstoraged:
+        image: docker.example.com:1234/laikaboss/laikaboss:latest
+        restart: unless-stopped
+        volumes:
+            - /var/laika_version:/var/laika_version
+            - /var/log/laikaboss:/var/log/laikaboss
+            - /data/laikaboss/storage-queue:/var/laikaboss/storage-queue
+            - /data/laikaboss/storage-error:/var/laikaboss/storage-error
+            - /var/laikaboss:/var/laikaboss
+            - /etc/laikaboss/laika_cluster.conf:/etc/laikaboss/laika_cluster.conf
+            - /etc/laikaboss/secrets:/etc/laikaboss/secrets
+            - /dev/log:/dev/log
+            - /workdir:/home/laikaboss/workdir
+        command: '-s'
+        logging:
+            driver: "json-file"
+            options:
+                max-size: "10m"
+                max-file: "2"
+
+    laikamail:
+        image: docker.example.com:1234/laikaboss/laikaboss:latest
+        command: -m --tls-key /etc/laikaboss/secrets/server.key --tls-cert /etc/laikaboss/secrets/server.crt --address 0.0.0.0 -p 1025 --tls start-tls
+        volumes: 
+            - /data/laikaboss/submission-queue/:/var/laikaboss/submission-queue
+            - /data/laikaboss/submission-error/:/var/laikaboss/submission-error
+            - /etc/laikaboss/laika_cluster.conf:/etc/laikaboss/laika_cluster.conf
+            - /etc/laikaboss/secrets:/etc/laikaboss/secrets
+            - /var/log/laikaboss:/var/log/laikaboss
+            - /var/laikaboss:/var/laikaboss
+            - /var/laika_version:/var/laika_version
+            - /workdir:/home/laikaboss/workdir
+        ports:
+            - "0.0.0.0:25:1025"
+        logging:
+            driver: "json-file"
+            options:
+               max-size: "10m"
+               max-file: "2"
+
+    laikarestd:
+        image: docker.example.com:1234/laikaboss/laikaboss:latest
+        restart: unless-stopped
+        volumes:
+            - /var/laika_version:/var/laika_version
+            - /etc/laikaboss/laika_cluster.conf:/etc/laikaboss/laika_cluster.conf
+            - /etc/laikaboss/secrets:/etc/laikaboss/secrets
+            - /var/log/laikaboss:/var/log/laikaboss
+            - /var/laikaboss/:/var/laikaboss/
+            - /data/laikaboss/submission-queue:/var/laikaboss/submission-queue
+            - /data/laikaboss/submission-error:/var/laikaboss/submission-error
+            - web_data:/var/www/html/webui/
+            - /workdir:/home/laikaboss/workdir
+            - /dev/log:/dev/log
+        ports:
+            - "127.0.0.1:8123:8123" # Don't listen on all interfaces. Laikarestd is fronted via apache
+        command: '-r -d'
+        environment:
+            - LAIKRESTD_BIND=0.0.0.0:8123
+        logging:
+            driver: "json-file"
+            options:
+                max-size: "10m"
+                max-file: "2"
+
+    laikacollector:
+        image: docker.example.com:1234/laikaboss/laikaboss:latest
+        restart: unless-stopped
+        volumes:
+            - /var/laika_version:/var/laika_version
+            - /etc/laikaboss/laika_cluster.conf:/etc/laikaboss/laika_cluster.conf
+            - /etc/laikaboss/secrets:/etc/laikaboss/secrets
+            - /var/log/laikaboss:/var/log/laikaboss
+            - /var/laikaboss:/var/laikaboss
+            - /data/laikaboss/submission-queue/:/var/laikaboss/submission-queue
+            - /data/laikaboss/submission-error/:/var/laikaboss/submission-error
+            - /dev/log:/dev/log
+            - /workdir:/home/laikaboss/workdir
+        command: -c -d
+        logging:
+            driver: "json-file"
+            options:
+                max-size: "50m"
+                max-file: "2"
+
+    minio:
+        image: minio/minio:RELEASE.2021-06-14T01-29-23Z
+        ports:
+            - "127.0.0.1:9000:9000"
+        command:  server /data/
+        environment:
+            - MINIO_ROOT_USER_FILE=/run/secrets/s3_access_key
+            - MINIO_ROOT_PASSWORD_FILE=/run/secrets/s3_secret_key
+        volumes:
+            - /data/laikaboss/minio:/data
+            - /etc/laikaboss/secrets/cacert.crt:/root/.minio/certs/CAs/cacert.crt
+            - /etc/laikaboss/secrets/s3_access_key:/run/secrets/s3_access_key
+            - /etc/laikaboss/secrets/s3_secret_key:/run/secrets/s3_secret_key
+        logging:
+            driver: "json-file"
+            options:
+                max-size: "50m"
+
+    redis:
+        image: redis:6.0.5
+        volumes:
+            - /etc/laikaboss/secrets/redis/:/etc/laikaboss/secrets/redis/
+            - /data/laikaboss/redis:/bitnami/redis/data
+        ports:
+            - "0.0.0.0:6379:6379"
+        environment:
+            - REDIS_PASS_FILE=/etc/laikaboss/secrets/redis/redis_pass
+        # laikarestd can't contact to the public name of this box
+        # turn this off if redis is on its own box or in its own compose file
+        #network_mode: host
+        #ssl version of redis
+        command: [
+         "bash", "-c",
+          '
+          docker-entrypoint.sh 
+          --appendonly no --aof-use-rdb-preamble yes --save 300 10 --bind 0.0.0.0 --tls-port 6379 --port 0 --tls-auth-clients no --tls-ca-cert-file /etc/laikaboss/secrets/redis/cacert.crt --tls-key-file /etc/laikaboss/secrets/redis/server.key --tls-cert-file /etc/laikaboss/secrets/redis/server.crt --tls-replication no  --requirepass  "$$(cat $$REDIS_PASS_FILE)" --repl-timeout 1000 --repl-backlog-size 2gb --client-output-buffer-limit slave 0 0 0 --repl-diskless-load swapdb
+          '
+        ]
+
+        logging:
+            driver: "json-file"
+            options:
+                max-size: "50m"
+
+    frontend:
+        build:
+            context: ./Docker/apache
+        image: docker.example.com:1234/laikaboss/laikaboss/apache:latest
+        ports: 
+            - "0.0.0.0:8080:80"
+            - "0.0.0.0:443:443"
+            - "0.0.0.0:9002:9002"
+        volumes:
+            - web_data:/usr/local/apache2/htdocs/
+            - /etc/laikaboss/secrets/apache/server.key:/usr/local/apache2/conf/server.key
+            - /etc/laikaboss/secrets/apache/server.crt:/usr/local/apache2/conf/server.crt
+            - /etc/laikaboss/secrets/apache/cacert.crt:/usr/local/apache2/conf/server-ca.crt
+            - /var/log/laikaboss:/var/log/laikaboss
+        logging:
+            driver: "json-file"
+            options:
+               max-size: "50m"
+
+#    database:
+#        image: bitnami/postgresql:11-debian-9
+#        restart: unless-stopped
+#        ports:
+#          - '0.0.0.0:5432:5432'
+#        environment:
+#          - POSTGRESQL_PASSWORD_FILE=/etc/db_password
+#          - POSTGRESQL_USERNAME=laikaboss
+#          - POSTGRESQL_DATABASE=laikaboss
+#        volumes:
+#         - /etc/laikaboss/secrets/postgres/db_password:/etc/db_password
+#         - /data/laikaboss/postgres/data:/bitnami/postgresql/data
+#         - /data/laikaboss/postgres/conf:/bitnami/postgresql/conf
+#         - /var/log/postgres:/opt/bitnami/postgresql/logs
+#        logging:
+#           driver: "json-file"
+#           options:
+#             max-size: "50m"                 
