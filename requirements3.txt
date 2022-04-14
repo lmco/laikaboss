@@ -34,7 +34,6 @@ file:dependencies/binwalk.tar.gz
     # via -r requirements3.in
 biplist==1.0.3
     # via -r requirements3.in
-#castleblack @ file:./dependencies/castleblack/
 file:dependencies/castleblack.tar.gz
     # via -r requirements3.in
 certifi==2021.10.8
@@ -260,13 +259,9 @@ pep517==0.12.0
     # via pip-tools
 pexpect==4.8.0
     # via -r requirements3.in
-pillow==8.4.0
-    # via -r requirements3.in
 pip-tools==6.4.0
     # via -r requirements3.in
 progressbar33==2.4
-    # via -r requirements3.in
-protobuf==3.11.3
     # via -r requirements3.in
 psutil==5.9.0
     # via -r requirements3.in
@@ -300,8 +295,6 @@ pycparser==2.21
     # via
     #   -r requirements3.in
     #   cffi
-pycrypto==2.6.1
-    # via -r requirements3.in
 pyexiftool==0.4.13
     # via -r requirements3.in
 pyflakes==2.4.0
@@ -392,7 +385,6 @@ six==1.16.0
     #   imapclient
     #   javatools
     #   nose2
-    #   protobuf
     #   pymemcache
     #   python-dateutil
     #   ssdeep

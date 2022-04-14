@@ -86,9 +86,6 @@ RUN ln -s llvm-config-10 llvm-config
 # base items - and items which take a long time to build and rarely change
 COPY requirements3.txt /var/run/laikaboss/
 
-# due to a bug in setuptools the package gets named UNKNOWN if installed from a directory and not a tarball
-RUN /bin/tar -cvzf /var/run/laikaboss/dependencies/castleblack.tar.gz -C /var/run/laikaboss/dependencies/ castleblack
-
 # Requires a pip upgrade
 RUN pip3 install pip --user --upgrade
 

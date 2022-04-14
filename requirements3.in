@@ -2,7 +2,7 @@ file:dependencies/binwalk.tar.gz
 file:dependencies/GetNETGUIDs.tar.gz
 file:dependencies/redis-py.zip
 file:dependencies/python-slimta.zip
-file:dependencies/castleblack/
+file:dependencies/castleblack.tar.gz
 pefile
 bcrypt
 biplist
@@ -24,7 +24,6 @@ nose2
 numpy
 olefile
 pexpect
-Pillow
 progressbar33
 ptyprocess
 pyClamd
@@ -47,7 +46,6 @@ yara-python
 Flask
 oletools
 pdfminer.six
-pycrypto
 watchdog
 macholib
 pyparsing
@@ -61,7 +59,6 @@ minio
 mock
 pycdlib
 splunk-sdk
-protobuf<=3.11.3
 defusedxml
 msoffcrypto-tool
 lxml

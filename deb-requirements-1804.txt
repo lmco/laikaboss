@@ -48,8 +48,6 @@ python-sklearn
 python-numpy
 python-scipy
 libre2-dev
-libprotobuf-dev
-python-protobuf
 telnet
 unace-nonfree
 libzbar0
