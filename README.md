@@ -1,5 +1,98 @@
 # Laika BOSS: Object Scanning System
-Laika is an object scanner and intrusion detection system that strives to achieve the following goals:
+
+## Major changes from Lockheed Martin main tree
+ 
+- Updates Lockheed Martin code from python 2 to python 3.
+- Simple cluster deployment  using Docker
+- Integrated mail server (Slimta)
+- Authenticated Rest API and GUI 
+- Moved from ZeroMQ to Redis for work queue
+- Support multiple queues and prioritized queuing
+- Testing framework for modules
+- It also includes SNL 15+ new written modules for parsing content this release,  along with the 30+ new modules released in 2020.
+- Includes 3rd party open source LB modules written by others around the web – which haven’t (as of yet been) merged into LM’s tree
+- Enhancements to LM and 3rd party modules based around attempted decrypting of compressed docs, and document formats using a known list of passwords and brute forcing passwords from text in the email message
+ 
+
+### Currently unsupported/known issues
+ 
+- No inline email blocking with integrated email server
+- No Redis integration with Laikamilter/Sendmail
+- Docker image is Ubuntu 18.04 – which is python 3.6 only (which is EOL).    
+- Buffer bloat/on disk caching at each level causes latency
+- Needs Kubernetes configuration/distribution - cluster is just deploying docker images across multiple systems
+- Needs more framework and GUI tests
+
+The underlying functionality of some modules and enhancements are based on other open-source packages - see the ADDITIONAL_LICENSES and requirements3.txt files for attribution/credit.
+| Module                  | Description                                                                                                                                    | SNL Enhancements                                                                                                                                         | Source                      |
+|:------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------|:----------------------------|
+| DISPOSITIONER           | Provides a definitive Accept or Deny                                                                                                           | includes disposition_reason in metadata                                                                                             | Upstream + Modifications    |
+| EXPLODE_ACE             | Extracts ACE Compressed files                                                                                                                  |                                                                                                                                                          | SNL                         |
+| EXPLODE_BINWALK         | File Carver                                                                                                                                    |                                                                                                                                                          | SNL                         |
+| EXPLODE_BZ2             | Decodes BZ2 compressed files                                                                                                                   |                                                                                                                                                          | SNL                         |
+| EXPLODE_CAB             | Explodes CAB files                                                                                                                             |                                                                                                                                                          | SNL                         |
+| EXPLODE_EMAIL           |                                                                                                                                                | Improve support of per header encoded strings                                                                                                            | Upstream + Modifications    |
+| EXPLODE_ENCRYPTEDOFFICE | Decodes Encrypted Office Docs                                                                                                                  | Flags that it was encrypted, Supports a list of passwords to try against the archive, supports trying all passwords in the text other included documents | SNL                         |
+| EXPLODE_GZIP            | Extracts GZIP Compressed files                                                                                                                 | Adds bytelimits, filelimits and more metadata                                                                                                            | Upstream + Modifications    |
+| EXPLODE_HEXASCII        | Converts hex encoded strings to ascii strings                                                                                                  |                                                                                                                                                          | SNL                         |
+| EXPLODE_ISO             | Extracts files from ISO Files                                                                                                                  |                                                                                                                                                          | SNL                         |
+| EXPLODE_MACHO           | Decodes Mac Executable Format - Mach-O and FAT files, and splits FAT files into seperate Mach-O files for further processing                   |                                                                                                                                                          | SNL                         |
+| EXPLODE_MACRO           | Decompresses Office Macros                                                                                                                     | Detects Stomped PCODE (obfuscation Technique)                                                                                                            | SNL                         |
+| EXPLODE_MSG             | Explode outlook MSG file                                                                                                                       |                                                                                                                                                          | SNL                         |
+| EXPLODE_MULTIPARTFORM   | Explode key/value pairs from HTTP Multipart Forms                                                                                              |                                                                                                                                                          | SNL                         |
+| EXPLODE_OFFICEXML       | Explode Office XML Encoded (WordML, *ML)                                                                                                       |                                                                                                                                                          | SNL                         |
+| EXPLODE_OLE             |                                                                                                                                                | small bugfix                                                                                                                                             | Upstream                    |
+| EXPLODE_OLENATIVE       | Alternate method of extracting OLE Objects                                                                                                     |                                                                                                                                                          | SNL                         |
+| EXPLODE_PACKAGE         | MS Office                                                                                                                                      |                                                                                                                                                          | SNL                         |
+| EXPLODE_PDF             | https://github.com/jshlbrd/laikaboss-modules                                                                                                   | Supports a list of passwords to try against the archive, supports trying all passwords in the text of documents                                          | Third Party + Modifications |
+| EXPLODE_PDF_TEXT        | Extracts PDF Text Blobs from PDF's                                                                                                             | Supports a list of passwords to try against the archive, supports trying all passwords in the text of documents                                          | SNL                         |
+| EXPLODE_PERSISTSTORAGE  | Extracting embedded objects within files - typically office documents which contain a shockwave flash file                                     |                                                                                                                                                          | SNL                         |
+| EXPLODE_PKCS7           |                                                                                                                                                | small bugfix                                                                                                                                             | Upstream                    |
+| EXPLODE_PLIST           | Apple Configuration Decoder                                                                                                                    |                                                                                                                                                          | SNL                         |
+| EXPLODE_QR_CODE         | Extracts QR Codes                                                                                                                              |                                                                                                                                                          | SNL                         |
+| EXPLODE_RAR2            | New version to replace upstream Explode_rar                                                                                                    | Support Decryption from a list of know passwords, or all items from extracted text structure                                                             | SNL                         |
+| EXPLODE_RE_SUB          | Regex replace in buffers                                                                                                                       |                                                                                                                                                          | SNL                         |
+| EXPLODE_RTF             |                                                                                                                                                |                                                                                                                                                          | SNL                         |
+| EXPLODE_SEVENZIP        | Decodes 7zip compressed buffers                                                                                                                | Support Decryption from a list of know passwords, or all items from extracted text structure                                                             | SNL                         |
+| EXPLODE_TAR             | Decodes tar buffers                                                                                                                            | Decodes metadata around file permissions                                                                                                                 | SNL                         |
+| EXPLODE_TNEF            | Microsoftâ€™s Transport Neutral Encapsulation Decoder used by MS Exchange                                                                        |                                                                                                                                                          | SNL                         |
+| EXPLODE_ZIP             | Extracts zip files                                                                                                                             | Support Decryption from a list of know passwords, or all items from extracted text structure                                                             | Upstream + Modifications    |
+| LOG_SPLUNK              | Appends to a log file of results in JSON format                                                                                                |                                                                                                                                                          | SNL                         |
+| LOOKUP_GEOIP            | Uses Geoip Lookup in Maxmind GeoLite2-City datatabase mmdb file                                                                                |                                                                                                                                                          | SNL                         |
+| META_CRYPTOCURRENCY     | locates cryptocurrency addresses in text                                                                                                       |                                                                                                                                                          | SNL                         |
+| META_DMARC              | Parses DMARC Files                                                                                                                             |                                                                                                                                                          | SNL                         |
+| META_DOTNET             | Pulls out .net metadata from executables - https://github.com/cdiraimondi/laikaboss-modules                                                    | handles tmp files centrally for easier cleanup                                                                                                           | Third Party                 |
+| META_EMF                | Parse Metadata from EMF Images                                                                                                                 |                                                                                                                                                          | SNL                         |
+| META_EXIFTOOL           |                                                                                                                                                | Prefilter blacklist of fields to remove too much noise in results                                                                                        | Upstream + Modifications    |
+| META_HTTPFORMGET        | Extract key/value pairs from a GET Form submission - decodesÂ the x-www-form-urlencoded format                                                  |                                                                                                                                                          | SNL                         |
+| META_EMAIL              |                                                                                                                                                | Supports keeping track of header ordering, check if sent to spam mailbox, improved per header string decoding                                            | Upstream + Modifications    |
+| META_IQY                | IQY - Link File Format                                                                                                                         |                                                                                                                                                          | SNL                         |
+| META_ISO                | Extracts ISO files                                                                                                                             |                                                                                                                                                          | SNL                         |
+| META_LNK                | Extracts data from windows shortcuts                                                                                                           | access, creation, and unique ids in metadata                                                                                                             | SNL                         |
+| META_MACRO              | Extracts Metadata from Office Macro Files                                                                                                      |                                                                                                                                                          | SNL                         |
+| META_MAGIC              | Extracts first few bytes of a buffer as hex into metadata                                                                                      |                                                                                                                                                          | SNL                         |
+| META_OLE                | Extracts metadata about OLE files                                                                                                              | CLISD of all components                                                                                                                                  | SNL                         |
+| META_ONENOTE            | Extracts Text, and Metadata from onenote files                                                                                                 |                                                                                                                                                          | SNL                         |
+| META_OOXML_RELS         | Extracts RelationshipsÂ from Office Open XML Â files                                                                                             |                                                                                                                                                          | SNL                         |
+| META_OOXML_URLS         | Extracts RelationshipsÂ from Office Open XML Â files                                                                                             |                                                                                                                                                          | SNL                         |
+| META_PDF_STRUCTURE      | Extracts information from PDF's such as author, dimenstions of components, etc                                                                 |                                                                                                                                                          | SNL                         |
+| META_PDFURL             | Extracts URL's from PDF's                                                                                                                      |                                                                                                                                                          | SNL                         |
+| META_PE                 | Extracts metadata from PE's including hashes of all sections, and metadata                                                                     | hash PE Sections - compare against a known list of malicious PE Sections, symbols, Â and language                                                         | Upstream + Modifications    |
+| META_PS_COMMANDS        | Extracts powershell Commands                                                                                                                   |                                                                                                                                                          | SNL                         |
+| META_SCANINFO           | Keeps track of statistics about scans, including how long each scan took                                                                       |                                                                                                                                                          | SNL                         |
+| META_TIFF               | Extracts Metadata about TIFF files, and sub TIFF files                                                                                         |                                                                                                                                                          | SNL                         |
+| META_X509               | Extracts information about certificates                                                                                                        | Improve error handling, and extraction of components                                                                                                     | Upstream + Modifications    |
+| META_ZIP                | Extracts info about zips suitable for zip file fingerprinting                                                                                  | Detects zipslip vunerbility, metasploit zip timestamp exploit,Â uses xyz                                                                                  | SNL                         |
+| SCAN_HTML               | Extracts links, password fields, image anchors and display info, language, redirects, security policies, content-type, Percent Javascript, etc |                                                                                                                                                          | SNL                         |
+| SCAN_YARA               | scans with yara                                                                                                                                | Provide String which matched for context, and offset in string                                                                                           | Upstream + Modifications    |
+| SCAN_VBA                | Ole_tools vb tools - finds obfuscated strings                                                                                                  |                                                                                                                                                          | SNL                         |
+| STORE_FILE              | Utility module for using dispatcher dumping only particular files to disk                                                                      |                                                                                                                                                          | SNL                         |
+| SUBMIT_STORAGE_S3       | Submits sample, scan results, and Extracted files to storage in an S3 repository                                                               |                                                                                                                                                          | SNL                         |
+
+
+## Description
+
+ Laika is an object scanner and intrusion detection system that strives to achieve the following goals:
 
 + **Scalable**
 	+ Work across multiple systems
@@ -96,7 +189,7 @@ The Laika BOSS installation scripts have only been tested on Ubuntu 18.04 (vm or
 + Writing new modules
 See the EXPLODE\_HELLOWORLD module (in `laikaboss/modules/explode_helloworld.py`) for an example of how to write a module.
 
-#### running LB
+#### Running LB
 From the directory containing the framework code, you may run the standalone scanner, laika.py against any file you choose. If you move this file from this directory you'll have to specify various config locations. By default it uses the configurations in the ./etc directory.
 
 We recommend using [jq](http://stedolan.github.io/jq/) to parse Laika output.
@@ -143,7 +236,7 @@ The Laika framework and associated modules are released under the terms of the A
     ldap_account_prefix=cn
     ldap_group_prefix=cn
     ldap_valid_groups=["group1", "group2", "group3"]
-    #leave laika_system as a user its a built in account for lookup up newness values from laikadq when running scans
+
     LAIKA_AUTH_VALID_USERS=["laika_system"]
     ```
 1. Copy etc/dist/laika_cluster.conf /etc/laikaboss/laika_cluster.conf
@@ -180,14 +273,18 @@ The Laika framework and associated modules are released under the terms of the A
 1. Create at least 2 servers which handle mail for redundancy - these servers can be co-located with any of the other services
    - SMTP is the most important box for redundancy - because if SMTP is down, it will CAUSE email bounces.  
    The docker compose file for an email box only needs to contain the services laikamail and laikacollector
-1. Optional:  Install multiple laikadq worker hosts - they only need to have the services laikadq and submitstoraged installed
-1. Configure your primary email server to send BCC emails to scan@<your host> on your mail hosts
-1. docker-compose up -d
-#leave laika_system as a user its a built in account if you don't have ldap setup
+1. If you need a non-ldap account to log into the system - the user laika_system is enabled by default in the laika_cluster.conf file. The randomaly generated password is located in this file /etc/laikaboss/secrets/local_creds.  You can change the attribute below to just point to an empty JSON list of [].
 LAIKA_AUTH_VALID_USERS=["laika_system"]
+1. Optional:  Install multiple laikadq worker hosts - they only need to have the services laikadq and submitstoraged installed
+1. Configure your primary email server to send BCC emails to scan@(your host) on your mail hosts
+1. docker-compose up -d
 
 ###### MAINTENANCE
-1. A sample requirements3.txt has been included which pins modules to known working versions.  To update it - you'll need to mount the source code in a container and recreate it - with the latest versions. This command will 
-   pip-compile --output-file=requirements3.txt requirements3.in
-Rerun the tests
-   docker-compose run  https://example.com:1234/laikaboss/laikaboss laikadq -t
+1. A sample requirements3.txt has been included which pins modules to known working versions.  
+   To update it - you'll need to mount the source code in a container and recreate it - with the latest versions.
+
+   `pip-compile --output-file=requirements3.txt requirements3.in`    
+
+   Then after rebuilding the container rerun the tests    
+   
+   `docker-compose run  https://example.com:1234/laikaboss/laikaboss laikadq -t`
