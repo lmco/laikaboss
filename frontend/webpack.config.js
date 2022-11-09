@@ -20,7 +20,7 @@ module.exports = env => {
             hot: true,
             // open: true,
             historyApiFallback: true,
-            contentBase: path.join(__dirname, './dist/'),
+            static: path.join(__dirname, './dist/'),
             headers: {
                 "Access-Control-Allow-Origin": "*",
             }

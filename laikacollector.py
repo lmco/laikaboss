@@ -42,7 +42,8 @@ configs = {}
 default_configs = {
     'redis_url' : 'redis://127.0.0.1:6379/0',
     'redis_work_queue': 'laikacollector',
-    'queue_threshold': 25,
+    'queue_threshold': 60,
+    'mem_threshold': 1 * 1024 ** 1, # value in GB
     'queue_wait': 10,
     'max_size': 1024*1024*50,
     'submission_delay': 0,
@@ -69,6 +70,7 @@ def init_config(conf_file, opts):
 def process_file_list(files, config, queue_name):
 
      class mprops:
+
         def __init__(self, **entries):
            self.__dict__.update(entries)
 
@@ -198,6 +200,15 @@ def queue_ready(obj, queue_name=None, **kwargs):
       logging.exception("queue_ready conn/busy sleeping %d seconds" % (_wait_on_redis_conn_err))
       time.sleep(_wait_on_redis_conn_err)
       return False
+ 
+   if not isinstance(mem_usage, int):
+       mem_usage = 0
+
+   if mem_usage >= obj.mem_threshold:
+      logging.info('[+] Current remote queue:%s length of %d and mem usage %d of hit threshold of %dB memory used, disabling queue for %s seconds' % (remote_queue, current_ql, mem_usage, obj.mem_threshold, obj.queue_wait))
+      _queue_states[remote_queue] = {'wait_until': now + obj.queue_wait}
+      return False
+
 
    if current_ql >= obj.queue_threshold:
       logging.info('[+] Current remote queue:%s length of %d and mem usage %d of hit threshold of %d items, disabling queue for %s seconds' % (remote_queue, current_ql, mem_usage, obj.queue_threshold, obj.queue_wait))
@@ -363,6 +374,11 @@ def main():
                     action="store", type="int",
                     dest="max_size",
                     help="specify the max size for input files. Set to -1 for unlimited. Default:" + str(default_configs["max_size"]))
+  parser.add_option("--mem-threshold",
+                    action="store", type="int",
+                    dest="mem_threshold",
+                    help="specify the max size in bytes for queue. Set to -1 for unlimited. Default:" + str(default_configs["mem_threshold"]))
+ 
   parser.add_option("--submission-dir",
                     action="store", type="string",
                     dest="submission_dir",
@@ -422,6 +438,8 @@ def main():
 
   queue_wait = int(getConfig('queue_wait'))
 
+  mem_threshold = int(getConfig('mem_threshold'))
+
   if "LAIKA_HOSTNAME" in os.environ:
      hostname = os.environ["LAIKA_HOSTNAME"]
 
@@ -449,7 +467,7 @@ def main():
 
   cb.init(queues=local_queues)
 
-  extra_meta = {'hostname': hostname, 'redis_client': redis_client, 'block_for_resp': True, 'remove_after_processing': True, 'ext_source': ext_source, 'file_format': ext_format, 'queue_threshold': queue_threshold, 'queue_wait': queue_wait, 'queue_timeout': queue_timeout, 'queue_mapping': queue_mapping, 'max_size':max_size}
+  extra_meta = {'hostname': hostname, 'redis_client': redis_client, 'block_for_resp': True, 'remove_after_processing': True, 'ext_source': ext_source, 'file_format': ext_format, 'queue_threshold': queue_threshold, 'queue_wait': queue_wait, 'queue_timeout': queue_timeout, 'queue_mapping': queue_mapping, 'max_size':max_size, 'mem_threshold':mem_threshold}
 
   logging.info('start up configs %s' % (str(extra_meta)))
 

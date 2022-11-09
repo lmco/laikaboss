@@ -80,6 +80,10 @@ class LaikaRestAuth(object):
     def _get_ldap_connection(self):
         """Creates an ldap configuration for use in LDAP queries"""
         timeout = 5
+
+        if "ldap_uri" not in self.ldap_config:
+            return None
+
         try:
             timeout = int(self.ldap_config.get("ldap_timeout_secs", "5"))
         except ValueError:
@@ -124,7 +128,7 @@ class LaikaRestAuth(object):
                     logging.error(e)
                     return False
 
-        return username in self.auth_valid_users
+        return username and username in self.auth_valid_users
 
     def session_already_exists(self, request):
         """ Checks if the provided user already has a session
@@ -342,28 +346,35 @@ class LaikaRestAuth(object):
                 result = conn.simple_bind_s("%s" % (bind_dn), password)
                 # if execution made it this far, then authentication via ldap was successful
                 self._put_redis_cache(cache_key, 'true')
+                return True
             except ldap.INVALID_CREDENTIALS as e:
                 logging.exception(e)
-                raise AuthAttemptedButFailed("Authentication failed")
+                raise AuthAttemptedButFailed("Authentication failed with bindn:%s" %(bind_dn))
             except ldap.NO_SUCH_OBJECT as e:
                 logging.exception(e)
-                raise AuthAttemptedButFailed("Authentication failed")
+                raise AuthAttemptedButFailed("Authentication failed binddn:%s" % (bind_dn))
             except ldap.LDAPError as e:
                 logging.exception(e)
-                raise AuthAttemptedButFailed("Authentication failed")
+                raise AuthAttemptedButFailed("Authentication failed bindn:%s" % (bind_dn))
             except Exception as e:
                 logging.exception(e)
-                raise AuthenticationFailureError("Something unexpected happened")
+                raise AuthenticationFailureError("Something unexpected happened bindn:%s" % (bind_dn))
         except:
             # Authentication via ldap was unsuccessful
             self._put_redis_cache(cache_key, 'false')
             raise
+
+        return False
 
 
     def get_initial_ldap_conn(self):
         """ Create or a global LDAP connection used for groups.
             If The connection gets too old, refresh it.
         """
+
+        if "ldap_uri" not in self.ldap_config:
+            return None
+
         ldap_auth_dn = self.ldap_config["ldap_auth_dn"]
         ldap_auth_dn_pw = self.ldap_config["ldap_auth_dn_pw"]
         if not self.ldap_conn or self.ldap_conn_age + self.ldap_refresh_interval < time.time():
@@ -388,14 +399,14 @@ class LaikaRestAuth(object):
             (tuple): username, password
         """
         auth_parts = auth_string.split()
-        if len(auth_parts) is not 2:
+        if len(auth_parts) != 2:
             raise AuthenticationFailureError("Invalid basic auth format")
         basic_auth_encoded = auth_parts[-1]
         decoded_creds = base64.b64decode(basic_auth_encoded).decode('utf-8')
         if ":" not in decoded_creds:
             raise AuthenticationFailureError("Invalid basic auth format")
         creds = decoded_creds.split(":")
-        if len(creds) is not 2:
+        if len(creds) != 2:
             raise AuthenticationFailureError("Invalid basic auth format")
 
         return creds[0], creds[1]
@@ -414,53 +425,56 @@ class LaikaRestAuth(object):
         Returns:
             True if the user was in a required group
         """
+
         # Certain users are allowed to bypass being in a valid LDAP group
         if self._check_valid_users(username):
             logging.debug("User: {} was allowed to bypass ldap groups".format(username))
             return True
-        # load site ldap info
-        ldap_account_base = self.ldap_config["ldap_account_base"]
-        group_attribute = self.ldap_config["ldap_group_attribute"]
-        ldap_account_prefix = self.ldap_config["ldap_account_prefix"]
-        group_prefix = self.ldap_config["ldap_group_prefix"]
 
-        search_filter="{}={}".format(ldap_account_prefix, username)
-        try:
-           results = conn.search_s(ldap_account_base, ldap.SCOPE_SUBTREE, search_filter, [ group_attribute ])
-        except ldap.FILTER_ERROR as e:
-           raise AuthenticationFailureError("ldap filter error, ldap_account_base:'{}', search_filter:'{}', group_attribute:'{}'".format(ldap_account_base, search_filter, group_attribute))
+        if 'ldap_uri' in self.ldap_config:
+            # load site ldap info
+            ldap_account_base = self.ldap_config["ldap_account_base"]
+            group_attribute = self.ldap_config["ldap_group_attribute"]
+            ldap_account_prefix = self.ldap_config["ldap_account_prefix"]
+            group_prefix = self.ldap_config["ldap_group_prefix"]
 
-        if len(results) is not 1:
-            raise AuthenticationFailureError("Failed to perform metagroup search")
-        results = results[0]
-        if not isinstance(results, tuple):
-            raise AuthenticationFailureError("Failed to perform metagroup search")
-        if results[0].lower() != "{},{}".format(search_filter, ldap_account_base.lower()):
-            raise AuthenticationFailureError("Failed to perform metagroup search")
-        if not isinstance(results[1], dict):
-            raise AuthenticationFailureError("Failed to perform metagroup search")
-        if group_attribute not in results[1]:
-            raise AuthenticationFailureError("Failed to perform metagroup search")
-        if not isinstance(results[1][group_attribute], list):
-            raise AuthenticationFailureError("Failed to perform metagroup search")
+            search_filter="{}={}".format(ldap_account_prefix, username)
+            try:
+               results = conn.search_s(ldap_account_base, ldap.SCOPE_SUBTREE, search_filter, [ group_attribute ])
+            except ldap.FILTER_ERROR as e:
+               raise AuthenticationFailureError("ldap filter error, ldap_account_base:'{}', search_filter:'{}', group_attribute:'{}'".format(ldap_account_base, search_filter, group_attribute))
 
-        user_memberof_groups = results[1][group_attribute]
-        # Lower case all the metagroups
-        user_memberof_groups = [group.lower() for group in user_memberof_groups]
+            if len(results) != 1:
+                raise AuthenticationFailureError("Failed to perform ldap group search")
+            results = results[0]
+            if not isinstance(results, tuple):
+                raise AuthenticationFailureError("Failed to perform ldap group search")
+            if results[0].lower() != "{},{}".format(search_filter, ldap_account_base.lower()):
+                raise AuthenticationFailureError("Failed to perform ldap group search")
+            if not isinstance(results[1], dict):
+                raise AuthenticationFailureError("Failed to perform ldap group search")
+            if group_attribute not in results[1]:
+                raise AuthenticationFailureError("Failed to perform ldap group search")
+            if not isinstance(results[1][group_attribute], list):
+                raise AuthenticationFailureError("Failed to perform ldap group search")
 
-        regex = "(?:{}=(?P<prefix>[^,]+).*)".format(group_prefix).encode('utf-8')
-        # Remove everything that isn't the actual group name
-        user_memberof_groups = [ re.search(regex, lgroup).group("prefix").decode('utf-8') for lgroup in user_memberof_groups ]
+            user_memberof_groups = results[1][group_attribute]
+            # Lower case all the ldap groups
+            user_memberof_groups = [group.lower() for group in user_memberof_groups]
 
-        valid_groups = json.loads(self.ldap_config["ldap_valid_groups"])
-        # Lower case all the valid metagroups
-        valid_groups = [vgroup.lower() for vgroup in valid_groups]
-        for valid_group in valid_groups:
-            if valid_group in user_memberof_groups:
-                logging.debug("user {} in group {}".format(username, valid_group))
-                return True
+            regex = "(?:{}=(?P<prefix>[^,]+).*)".format(group_prefix).encode('utf-8')
+            # Remove everything that isn't the actual group name
+            user_memberof_groups = [ re.search(regex, lgroup).group("prefix").decode('utf-8') for lgroup in user_memberof_groups ]
 
-        # The user was not found in any of the applications metagroups
+            valid_groups = json.loads(self.ldap_config["ldap_valid_groups"])
+            # Lower case all the valid ldap groups
+            valid_groups = [vgroup.lower() for vgroup in valid_groups]
+            for valid_group in valid_groups:
+                if valid_group in user_memberof_groups:
+                    logging.debug("user {} in group {}".format(username, valid_group))
+                    return True
+
+        # The user was not found in any of the applications ldap groups
         raise AuthenticationFailureError("User %s was not found to be in a valid ldap group nor on the trusted id list" % (username))
 
     def check_for_basic_auth(self, request):
@@ -485,23 +499,36 @@ class LaikaRestAuth(object):
             raise AuthMethodNotInUse("Not using basic auth")
 
         username, password = self.extract_basic_auth_creds(auth_string)
+
+        if username:
+           username = username.strip()
+
+        if password:
+           password = password.strip()
+
+        if username:
+           request.environ["REMOTE_USER"] = username # keep in access-logs even on failure
+
         if not username or not password or username == 'None' or username == 'None':
             logging.error("Tried to basic auth with username: {} but failed".format(username))
             raise AuthAttemptedButFailed("Null username and/or password")
-        conn = self._get_ldap_connection()
-        ldap_account_base = self.ldap_config["ldap_account_base"]
-        authed_user_account_base = "%s=%s,%s" % (self.ldap_config["ldap_account_prefix"], username, ldap_account_base)
 
         if self.check_local_identity(username, password):
            return username
 
-        try:
-            self.check_identity(conn, authed_user_account_base, password)
-        except AuthAttemptedButFailed as e:
-            request.environ["REMOTE_USER"] = username # keep in access-logs even on failure
-            raise AuthAttemptedButFailed("{} attempted basic auth but failed to verify with LDAP".format(username))
+        conn = self._get_ldap_connection()
+        if conn:
+           ldap_account_base = self.ldap_config["ldap_account_base"]
+           authed_user_account_base = "%s=%s,%s" % (self.ldap_config["ldap_account_prefix"], username, ldap_account_base)
 
-        return username
+           try:
+                ret = self.check_identity(conn, authed_user_account_base, password)
+                if ret:
+                    return username
+           except AuthAttemptedButFailed as e:
+                raise AuthAttemptedButFailed("{} attempted basic auth but failed to verify with LDAP".format(username))
+
+        raise AuthAttemptedButFailed("{} attempted auth but failed to verify".format(username))
 
     def check_for_token(self, request):
         """ Check for a valid JWT token.

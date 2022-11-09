@@ -240,7 +240,8 @@ class SCAN_HTML(SI_MODULE):
             data = content[middle_idx+1:].replace(b"\n", b"").replace(b" ", b"")
             data = urllib.parse.unquote_to_bytes(data) #Can be url encoded
             if is_base64:
-                data = base64.b64decode(data)
+                # Always add extra padding just in case it's missing
+                data = base64.b64decode(data + b"==")
                 media_types.remove(b'base64')
 
             # make a threshold for data object size?

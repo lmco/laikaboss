@@ -371,11 +371,11 @@ def main():
             
                 test_cases.append(test)
 
-            if len(tests) >= 1: 
+            if len(tests) > 1: 
                laikaboss.test.print_stderr("Warning multiple tests in a single file splits files into multiple files on refresh - and isn't supported")
                sys.exit(1)
             else:
-               outfilename = os.path.join(options.outdir, os.path.basename(f))
+               outfilename = os.path.join(options.outdir, os.path.basename(file))
 
             with open(outfilename, "w") as f:
                 json.dump(test_cases, f, sort_keys=True, indent=4, separators=(',', ': '))

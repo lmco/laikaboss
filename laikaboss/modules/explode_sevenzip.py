@@ -85,16 +85,15 @@ class EXPLODE_SEVENZIP(SI_MODULE):
                     sevenzip_size = subprocess.check_output(["7z", "l", "-p", temp.name], stderr=subprocess.STDOUT)
                     sevenzip_size = sevenzip_size.split(b'\n')
                     try:
-                       sevenzip_size = int(sevenzip_size[len(sevenzip_size)-2].split()[0])
+                        sevenzip_size = int(sevenzip_size[len(sevenzip_size)-2].split()[0])
                     except ValueError as e:
-                       sevenzip_size = int(sevenzip_size[len(sevenzip_size)-2].split()[2])
-                    
+                        sevenzip_size = int(sevenzip_size[len(sevenzip_size)-2].split()[2])
                     scanObject.addMetadata(self.module_name, "Sevenzip_Byte_Size", sevenzip_size)
                 except subprocess.CalledProcessError as e:
                     if b"encrypted" in e.output or b"Wrong password" in e.output:
                         is_encrypted = True
                 except (ValueError, IndexError) as e:
-                    pass #Could not get size
+                    sevenzip_size = 0 #Could not get size
 
                 if byte_limit and sevenzip_size > byte_limit:
                     logging.debug("EXPLODE_SEVENZIP: skipping file due to byte limit")

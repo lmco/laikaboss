@@ -54,7 +54,7 @@ RUN apt-get update && \
   libssl1.0-dev
 
 # For installing a newer version of node and npm than what Ubuntu defaults to.
-RUN curl -fsSL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+RUN curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
 
 RUN apt-get update
 
@@ -66,14 +66,15 @@ RUN apt-get install -y \
 RUN groupadd -r laikaboss -g 21043 && \
   useradd -r -u 21043 -g laikaboss -d /home/laikaboss -s /sbin/nologin -c "Nonroot User" laikaboss && \
   mkdir /home/laikaboss && \
-  #echo "%laikaboss ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/laikaboss && \
   chown -R laikaboss:laikaboss /home/laikaboss
 
 ENV PYTHONUSERBASE /opt/venvs/laikaboss
 ENV PATH="/opt/venvs/laikaboss/bin:${PATH}"
 
-COPY dependencies/ /var/run/laikaboss/dependencies/
+# Update setuptools
+RUN pip3 install setuptools --upgrade --user
 
+COPY dependencies/ /var/run/laikaboss/dependencies/
 
 COPY scripts/ /var/run/laikaboss/scripts/
 
@@ -83,14 +84,14 @@ RUN  cd /var/run/laikaboss/ && \
      /var/run/laikaboss/scripts/install-pkg-deps.sh deb-requirements-1804.txt
 
 RUN ln -s llvm-config-10 llvm-config
+
 # base items - and items which take a long time to build and rarely change
-COPY requirements3.txt /var/run/laikaboss/
+COPY requirements3.txt requirements3.in /var/run/laikaboss/
 
 # Requires a pip upgrade
-RUN pip3 install pip --user --upgrade
+RUN pip3 install --user pip==21.3.1
+RUN pip3 install --user pip-tools
 
-# Update setuptools
-RUN pip3 install setuptools --upgrade --user 
 
 RUN cd /var/run/laikaboss/ && \
     python3 -m pip install --user --upgrade -r /var/run/laikaboss/requirements3.txt
@@ -130,13 +131,16 @@ COPY scripts /opt/venvs/laikaboss/scripts
 
 COPY frontend/ /home/laikaboss/laikaboss/frontend/
 
+# Build the frontend
 RUN cd /home/laikaboss/laikaboss/frontend && \
     rm -rf /home/laikaboss/laikaboss/frontend/node_modules && \
     npm i && \
     npm run build && \
+    mkdir -p /opt/venvs/laikaboss/lib/python3.8/site-packages/libtiff && \
     mkdir -p /var/www/html/webui-export && \
     mkdir -p /var/www/html/webui && \
     npm run copy && \
+    chown -R laikaboss:laikaboss /opt/venvs/laikaboss/lib/python3.8/site-packages/libtiff && \
     chown -R laikaboss:laikaboss /var/www/html/webui-export && \
     chown -R laikaboss:laikaboss /var/www/html/webui
 
@@ -154,6 +158,8 @@ RUN cd /home/laikaboss/ && \
     python3 -m pip freeze > /opt/venvs/laikaboss/laika_pip_freeze && \
     apt list --installed > /opt/venvs/laikaboss/laika_os_pkgs && \
     apt-get install -y locales; locale-gen;  localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
+
+#RUN echo "%laikaboss ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/laikaboss
 
 # Clean up and run ldconfig
 RUN ldconfig && \

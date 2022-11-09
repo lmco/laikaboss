@@ -362,7 +362,9 @@ class MachO_Parse(object):
     ctype = human-readable cpu_type
     stype = cpu_subtype '''
     def getCPUSubtype(self, ctype, stype):
-        if 'ARM' in ctype:
+        if 'ARM64' in ctype:
+            return data.CPU_SUBTYPE_ARM.get(stype)
+        elif 'ARM' in ctype:
             return data.CPU_SUBTYPE_ARM.get(stype)
         elif 'HPPA' in ctype:
             return data.CPU_SUBTYPE_HPPA.get(stype)

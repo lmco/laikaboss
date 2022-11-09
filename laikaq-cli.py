@@ -152,6 +152,9 @@ def main():
 
   if action == 'list':
      print(redis_client.list())
+  
+  if action == 'info':
+     print(redis_client.getQueueInfo(queue))
 
 if __name__ == '__main__':
   main()

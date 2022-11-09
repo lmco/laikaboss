@@ -1,4 +1,6 @@
-# Laika BOSS: Object Scanning System
+
+Laika BOSS: Object Scanning System
+Laika is an object scanner and intrusion detection system that strives to achieve the following goals:
 
 ## Major changes from Lockheed Martin main tree
  
@@ -7,7 +9,7 @@
 - Integrated mail server (Slimta)
 - Authenticated Rest API and GUI 
 - Moved from ZeroMQ to Redis for work queue
-- Support multiple queues and prioritized queuing
+- Support multiple named queues and prioritized queuing
 - Testing framework for modules
 - It also includes SNL 15+ new written modules for parsing content this release,  along with the 30+ new modules released in 2020.
 - Includes 3rd party open source LB modules written by others around the web – which haven’t (as of yet been) merged into LM’s tree
@@ -73,8 +75,8 @@ The underlying functionality of some modules and enhancements are based on other
 | META_MAGIC              | Extracts first few bytes of a buffer as hex into metadata                                                                                      |                                                                                                                                                          | SNL                         |
 | META_OLE                | Extracts metadata about OLE files                                                                                                              | CLISD of all components                                                                                                                                  | SNL                         |
 | META_ONENOTE            | Extracts Text, and Metadata from onenote files                                                                                                 |                                                                                                                                                          | SNL                         |
-| META_OOXML_RELS         | Extracts RelationshipsÂ from Office Open XML Â files                                                                                             |                                                                                                                                                          | SNL                         |
-| META_OOXML_URLS         | Extracts RelationshipsÂ from Office Open XML Â files                                                                                             |                                                                                                                                                          | SNL                         |
+| META_OOXML_RELS         | Extracts Relationships from Office Open XML files                                                                                             |                                                                                                                                                          | SNL                         |
+| META_OOXML_URLS         | Extracts Relationships from Office Open XML files                                                                                             |                                                                                                                                                          | SNL                         |
 | META_PDF_STRUCTURE      | Extracts information from PDF's such as author, dimenstions of components, etc                                                                 |                                                                                                                                                          | SNL                         |
 | META_PDFURL             | Extracts URL's from PDF's                                                                                                                      |                                                                                                                                                          | SNL                         |
 | META_PE                 | Extracts metadata from PE's including hashes of all sections, and metadata                                                                     | hash PE Sections - compare against a known list of malicious PE Sections, symbols, Â and language                                                         | Upstream + Modifications    |
@@ -195,22 +197,16 @@ From the directory containing the framework code, you may run the standalone sca
 We recommend using [jq](http://stedolan.github.io/jq/) to parse Laika output.
 
 ##### Licensing
-The Laika framework and associated modules are released under the terms of the Apache 2.0 license.
+The Laika framework and associated modules are released under the terms of the Apache 2.0 license unless specified in the module or its dependencies
 
-##### config abstraction
-1. Download GeoLite2-City.mmdb from https://dev.maxmind.com/geoip/geolite2-free-geolocation-data
-1. mkdir -p /etc/laikaboss/modules/geoip/
-1. Put the geoip db at the location /etc/laikaboss/modules/geoip/GeoLite2-City.mmdb 
-   (the docker compose will mount the /etc/laikaboss/modules/geoip directory into the container)
-1. Hand edit <laikaboss src>/etc/dist/laika_cluster.conf including all site specific changes
-   Make sure you uncomment the hostname, and cluster hostnames and set the values appropriately
-   hostname=blah.example.com
 ##### Quick install for cluster configuration
 ###### Prereqs
 1. Download the laikaboss source repo 
+1. Download the latest Docker and Docker-compose, do not use the OS default
 1. install python3 package
 1. install pip for python3
-1. pip3 install secrets future
+1. pip3 install secrets future jinja2 passlib pyOpenSSL 
+1. set up BCC from your border MTA to scan@your_laikaboss_email_server_domain
 
 ####### Install
 1. Create local directories and accounts by calling
@@ -220,11 +216,10 @@ The Laika framework and associated modules are released under the terms of the A
 1. Hand edit (laikaboss src)/etc/dist/laika_cluster.conf including all site specific changes
    In Docker make sure you uncomment the hostname and set hostname
 
-   hostname = lbhost.example.com
-   laika_head_node_short = lbhost
-   laika_head_node = lbhost.example.com
-
-    ```
+   ```
+    hostname = lbhost.example.com
+    laika_head_node_short = lbhost
+    laika_head_node = lbhost.example.com
     ldap_uri=ldaps://ldap.example.com:636
     ldap_account_base=ou=people,dc=example,dc=com
     ldap_group_attribute=memberOf
@@ -240,51 +235,113 @@ The Laika framework and associated modules are released under the terms of the A
     LAIKA_AUTH_VALID_USERS=["laika_system"]
     ```
 1. Copy etc/dist/laika_cluster.conf /etc/laikaboss/laika_cluster.conf
-1. Run the script python3 <laikaboss src repo>/setup-secrets.py
-    In addition to ldap you can use the default username and password generated in this file /etc/laikaboss/secrets/local_creds
-1. Build the latest docker container
-   <source code repo>/env.sh
-   <source code repo>/Docker/make-container3.sh
+1. Run the script python3 (laikaboss src repo)/setup-secrets.py
+    In addition to ldap authentication to the web GUI - you can use the default username and password generated in this file /etc/laikaboss/secrets/local_creds
+1. Build the latest docker container(s)
+```
+   cd (source code repo)
+      (source code repo)/env.sh
+      (source code repo)/Docker/make-container3.sh
 1. Build the latest apache container
-   <source code repo>/env.sh
-   <source code repo>/Docker/apache/make-container.sh
-1. cd <source code repo>
+   (source code repo)/env.sh
+   (source code repo)/Docker/apache/make-container.sh
+1. cd (source code repo)
 1. docker compose up
-1. Go to https://<yourhost>:443 and login with your ldap username and password (or the default password in /etc/laikaboss/secrets/local_creds)
+1. Go to https://(yourhost):443 and login with your ldap username and password (or the default password in /etc/laikaboss/secrets/local_creds)
     * you will have to accept the self-signed cert which was issued
 1. Change the env.sh image name to something you want to use at your site
 1. Rebuild the LB and apache containers
 1. Push docker images to a central repository hosted at your site so you can pull them down to other cluster nodes by name.
 1. Modify the docker-compose.xml file to use the new image tags.
+
 ###### Post Configuration
 1. Get a real certificate for your system and install it in /etc/laikaboss/secrets/server.crt and /etc/laikaboss/secrets/server.key in pem format, and /etc/laikaboss/secrets/cacert.crt (you can append multiple files into the same ca file)
-   apache, redis, and the email server (for starttls)  all use that certificate 
+   apache, redis, and the email server (for starttls) use the same path to the certificates - on different machines you can change the cert, but make sure the ca cert list has all of the needed certs.
 1. Make sure docker is running on start up
    sudo systemctl enable docker 
 1. Test the email service against your box hosting laikamail service - using s-nail/mailx examples: https://www.systutorials.com/sending-email-using-mailx-in-linux-through-internal-smtp/
-   echo "test message" | s-nail -s "test app" -S smtp="127.0.0.1:25" -S from="test@example.com" scan@localhost   #(or scan@<fqhostname> - what the recipients param is set to in the configs"
+   echo "test message" | s-nail -s "test app" -S smtp="127.0.0.1:25" -S from="test@example.com" scan@localhost   #(or scan@(fqhostname) - what the recipients param is set to in the configs"
 1. Install a log monitoring agent and monitor file 
    /var/log/laikaboss/laikaboss_splunk.log
 1. Set up a local firewall blocking open ports from off of the system or cluster
    Required ports available outside the cluster are 443(https), and port 25(smtp with start-tls)
    You could make port 9002 available if you wish to make minio accessible directly
    Within the cluster port 9002(minio S3 and minio GUI), 443(https), 6379(redis over SSL)
-1. On redundant servers you must copy the /etc/laikaboss folder including any relevant keys/password etc in /etc/laikaboss/secrets, create the local laikaboss account and run the setup-host.sh script to create the necessary directories and permissions.
+1. On redundant servers you must copy the /etc/laikaboss folder including any relevant keys/password etc in /etc/laikaboss/secrets, make sure you run the setup-host.sh script to create any missing directories and file permissions.
 1. Create at least 2 servers which handle mail for redundancy - these servers can be co-located with any of the other services
-   - SMTP is the most important box for redundancy - because if SMTP is down, it will CAUSE email bounces.  
-   The docker compose file for an email box only needs to contain the services laikamail and laikacollector
-1. If you need a non-ldap account to log into the system - the user laika_system is enabled by default in the laika_cluster.conf file. The randomaly generated password is located in this file /etc/laikaboss/secrets/local_creds.  You can change the attribute below to just point to an empty JSON list of [].
+   - SMTP is the most important box for redundancy - because if SMTP is down, it will CAUSE email bounces back to your site MTA - which often bounce back to the orig email sender. 
+   The docker compose file for an email/SMTP boxes only needs to contain the services laikamail and laikacollector
+1. If you need a non-ldap account to log into the system - the user laika_system is enabled by default in the laika_cluster.conf file. The randomly generated password is located in this file /etc/laikaboss/secrets/local_creds - it is also used by the newness module.  You can change the attribute below to just point to an empty JSON list of [].
 LAIKA_AUTH_VALID_USERS=["laika_system"]
-1. Optional:  Install multiple laikadq worker hosts - they only need to have the services laikadq and submitstoraged installed
-1. Configure your primary email server to send BCC emails to scan@(your host) on your mail hosts
+1. Optional:  Install multiple laikadq worker hosts - they only need to have the services laikadq and submitstoraged installed.  They need to be able to talk to redis, and the S3 server, and the webservice endpoints on laikarestd/apache.
+1. Configure your primary email server to send BCC emails to scan@(your host) on your mail hosts.  If your host is wrong, it may decline the email per the ACL's set in laika_cluster.conf file
 1. docker-compose up -d
-
+###### USEFUL tips
+1. Test the email service against your box hosting laikamail service - using s-nail/mailx examples: https://www.systutorials.com/sending-email-using-mailx-in-linux-through-internal-smtp/
+`echo "test message" | s-nail -s "test app" -S smtp="127.0.0.1:25" -S from="test@example.com" scan@localhost   #(or scan@(fqhostname) - what the recipients param is set to in the configs"`
+1.  Debugging steps
+    1. Is the mail server up and listening from off the host - it will immediate come back if it can't connect hit control+] to exit if a connection succeeds or with netcat
+       ``` 
+       telnet lbmailsersver 25
+       nc -zv lbmailserver 22
+       ```
+    1. Look for dead containers or containers which keep getting restarted
+       ```
+       docker container ls -f 'status=exited' -f 'status=dead' -f 'status=created'
+       docker container ls -l
+       ```
+    1. Make sure the containers are running needed to accept and submit mail. Grab the submitID of the message and the name of the submission file 
+       ```
+       docker-compose container ls laikamail
+       docker-compose container ls laikacollector
+       ```
+    1. Check the submission queue and error directories
+       ```
+       /data/laikaboss/submission-queue/email 
+       /data/laikaboss/submission-error/
+       ```
+    1. Do the storage and redis servers work - submit a file to the GUI for scanning on the laikarestd/GUI host OR just sanity check storage and queue services and look for dead containers - make sure the containers are running needed to process the sample
+       ```
+       docker container ls -f 'status=exited' -f 'status=dead' -f 'status=created'`
+       docker-compose container ls laikarestd # used for REST submissions including GUI, and newess
+       docker-compose container ls laikacollector # used for REST submissions including GUI, and newess
+       docker-compose container ls storage # used for s3 file storage 
+       docker-compose container ls redis # used for all sync and sync cluster scanning, and newness cache
+       ```
+    1. Check their logs next using the log directory above and check the submission queue and error directories - Check their logs next using the log directory - grab the submitID of the sample and the name of the submission file 
+       ```
+       /data/laikaboss/submission-queue/WebUI
+       /data/laikaboss/submission-error/
+       ```
+    1. Are workers processing your work
+       ```
+       docker-compose container ls laikadq
+       docker-compose container ls submitstoraged # only if its a storage issue
+       ```
+    1. Check their logs next using the log directory above - lookup the submitID and or filename of sample - use this to find the rootUID
+       Check the logs for the rootUID to track where it fails
+    1. Is the log being created.
+       Check the output logs for summary=False, and possibly summary=True entries by RootUID
+    1. Is your splunk forwarder agent running and able to read the log files  
+       Check /opt/splunkforwarder/var/log/splunk.log
+    1. Check splunk logs by the necessary index in splunk by using the rootUID
+    1. Check the gui by looking up the rootUID in the GUI
 ###### MAINTENANCE
 1. A sample requirements3.txt has been included which pins modules to known working versions.  
    To update it - you'll need to mount the source code in a container and recreate it - with the latest versions.
-
-   `pip-compile --output-file=requirements3.txt requirements3.in`    
-
-   Then after rebuilding the container rerun the tests    
-   
-   `docker-compose run  https://example.com:1234/laikaboss/laikaboss laikadq -t`
+   ```
+   . (source code repo)/env.sh
+   go into the container by running the command below
+   docker-compose run -it laikadq /bin/bash'
+   update the dependencies
+   cd /var/laikaboss/run; pip-compile --output-file=requirements3.txt requirements3.in`
+   docker container ls -a # get your relevant (latest?) container id
+   docker cp <container id>:/var/run/laikaboss/requirements.txt <container id>:/var/run/laikaboss/requirements3.txt <path to your source code repo>
+   ```
+   for a major updates in packages or OS's also use the --upgrade flag
+   Then after rebuilding the container rerun the tests      
+   `docker-compose run laikadq -t`
+2. Set up some log rotation scripts
+3. Keep an eye on submission, error or storage directories have too many items
+4. Disk filling
+5. Email bouncing to client - this can happen if laikaboss email servers are inaccessible, or you cc'd to the wrong name - you want rules in the upstream MTA to prevent bounces going to senders on the internet!  Also have at least 1 redundant smtp server in laikaboss on another host

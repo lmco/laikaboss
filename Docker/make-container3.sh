@@ -12,7 +12,7 @@ fi
 BASE="${LAIKA_IMAGE_BASE}"
 
 TMP=`mktemp -d -t lbdockerXXXX`
-cp ../requirements*.txt ../deb-requirements*.txt $TMP
+cp ../requirements*.txt ../requirements*.in ../deb-requirements*.txt $TMP
 
 cp -r . $TMP
 rsync -av .. $TMP/code --exclude .git --exclude frontend --exclude Docker --exclude scripts --exclude dependencies --exclude tests

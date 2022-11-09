@@ -154,11 +154,19 @@ https://github.com/cdiraimondi/laikaboss-modules
 
 # Dependency List
 
+----------------
 ## dependencies/GetNETGUIDs.tar.gz  
 GetNETGUIDs is required for the META_DOTNET module  
 MIT License  
 https://github.com/cylance/GetNETGUIDs  
 
+----------------
+## binwalk.tar.gz
+Binwalk is required for the EXPLODE_BINWALK module   
+MIT License  
+https://github.com/ReFirmLabs/binwalk  
+
+----------------
 ## castleblack
 Castleblack is a package that can monitor directories for changes to files. Used in laikarestd, laikacollector, and the laikarest client  
 Developed by Sandia National Laboratories, licensed with Apache 2 license
@@ -211,34 +219,44 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 and includes google re2 libs https://github.com/google/re2/
 under BSD-3-Clause License
 
-## python-slimta.zip
+----------------
+## ./dependencies/python-slimta.zip
 python-slimta is required for the laikamail mail server. 
 MIT License  
 https://github.com/slimta/python-slimta  
 
-## rarfile.zip
+----------------
+## ./dependencies/rarfile.zip
 rarfile is required for the EXPLODE_RAR2 module (usually more reliable than EXPLODE_RAR). It has been modified slightly to add support for self-extracting archives.  
 ISC License  
 https://github.com/markokr/rarfile  
 
-## redis-py.zip
+----------------
+## ./dependencies/redis-py.zip
 redis is required to use the laikacollector and laikadq scripts. It has been modified somewhat to support laikaboss.  
 MIT License  
 https://github.com/andymccurdy/redis-py  
+includes unpublished patches from   https://github.com/andymccurdy/redis-py/pull/952 and possibly a few other related items from his tree https://github.com/mnunberg/redis-py/tree/ssl-sentinel                                   
+The changes allow redis sentinel over SSL
+
 
 Microsoft® C++ Runtime Library files
 tests/explode_cab_dlls_uur.lbtest_DLLs.cab
 
+----------------
+frontend/src/components/scanPresentation/JsonTree.vue:40
 https://github.com/myst729/vue-json-tree/blob/master/src/json-tree.vue
 frontend/src/components/scanPresentation/JsonTree.vue:40
 MIT License (MIT)
 Copyright © 2019 Leo Deng
 
+----------------
 laikaboss/modules/meta_java_class.py:# Copyright 2016 Josh Liburdi
 https://github.com/jshlbrd/laikaboss-modules
 apache v2
 Copyright 2016 Josh Liburdi
 
+----------------
 laikaboss/modules/meta_java_manifest.py:# Copyright 2016 Josh Liburdi
 https://github.com/jshlbrd/laikaboss-modules
 apache v2
@@ -288,20 +306,24 @@ https://github.com/lmco/laikaboss/pull/62/commits/816c5d8c07807d8f4159f597c10cdd
 Apache v2
 # Copyright 2017 Kemp Langhorne
 
+----------------
 laikaboss/xyz.py
 https://github.com/lmco/laikaboss/pull/62 
 Contains some Python Software Foundation License code
 
+----------------
 laikaboss/modules/explode_pdf.py
 https://raw.githubusercontent.com/jshlbrd/laikaboss-modules
 Copyright 2016 Josh Liburdi
 
+----------------
 tests/explode_msg_simple_msg_with_two_attachments_uur.lbtest
 contains test email messages from the extract-msg package
 License: GPL
 Author: Destiny Peterson & Matthew Walker
 https://pypi.org/project/extract-msg/
 
+----------------
 * https://github.com/koodaamo/tnefparse/tree/master/tests/examples
 contains examples from tnef parse package
 GNU Lesser General Public License v3 (LGPLv3)
@@ -311,11 +333,13 @@ tests/explode_tnef_simple_with_body_uur.lbtest
 tests/explode_tnef_byte_limit_exceed_2_uur.lbtest
 tests/explode_tnef_with_two_attachments_1_uur.lbtest
 
+----------------
 explode_pdf_uri_filelimit_uur.lbtest
 meta_pdfurl_simpleurl.lbtest
 tests/meta_emf_urr.lbtest
 Public IRS TAX documents used in tests
 
+----------------
 meta_pe_python_26_dll_uur.lbtest
 includes python 2.6 dll
 https://www.python.org/download/releases/2.6/license/

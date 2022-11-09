@@ -161,7 +161,7 @@ rule scaninfo_end_cli
         scan_modules = "META_SCANINFO"
         priority = "85"
     condition:
-        root_object 
+        root_object
 }
 
 rule send_to_storage_email_json_s3

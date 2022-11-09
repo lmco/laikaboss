@@ -4,6 +4,7 @@
 #
 #    pip-compile --output-file=requirements3.txt requirements3.in
 #
+
 aiohttp==3.8.1
     # via geoip2
 aiosignal==1.2.0
@@ -90,7 +91,7 @@ ecdsa==0.17.0
     # via python-jose
 extract-msg==0.30.9
     # via -r requirements3.in
-flake8==4.0.1
+flake8==5.0.4
     # via -r requirements3.in
 flask==2.0.3
     # via
@@ -188,7 +189,7 @@ markupsafe==2.0.1
     # via jinja2
 maxminddb==2.2.0
     # via geoip2
-mccabe==0.6.1
+mccabe==0.7.0
     # via flake8
 minio==7.1.5
     # via -r requirements3.in
@@ -259,6 +260,11 @@ pep517==0.12.0
     # via pip-tools
 pexpect==4.8.0
     # via -r requirements3.in
+pillow==8.4.0
+    # via
+    #   -r requirements3.in
+    #   pillow
+
 pip-tools==6.4.0
     # via -r requirements3.in
 progressbar33==2.4
@@ -289,7 +295,7 @@ pycdlib==1.12.0
     # via -r requirements3.in
 pyclamd==0.4.0
     # via -r requirements3.in
-pycodestyle==2.8.0
+pycodestyle==2.9.1
     # via flake8
 pycparser==2.21
     # via
@@ -297,7 +303,7 @@ pycparser==2.21
     #   cffi
 pyexiftool==0.4.13
     # via -r requirements3.in
-pyflakes==2.4.0
+pyflakes==2.5.0
     # via flake8
 pylzma==0.5.0
     # via -r requirements3.in
@@ -444,7 +450,7 @@ werkzeug==2.0.3
     #   flask
 wheel==0.37.1
     # via pip-tools
-yara-python==4.2.0
+yara-python==4.2.3
     # via -r requirements3.in
 yarl==1.7.2
     # via aiohttp

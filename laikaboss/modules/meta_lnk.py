@@ -25,6 +25,7 @@ try:
 except ImportError:
     import lnkfile
 import uuid
+import base64
 from datetime import datetime
 
 # Import classes and helpers from the Laika framework
@@ -34,57 +35,59 @@ from laikaboss.si_module import SI_MODULE
 
 class META_LNK(SI_MODULE):
 
-  def __init__(self):
+    def __init__(self):
+        self.module_name = "META_LNK"
 
-    self.module_name = "META_LNK"
+    def _run(self, scanObject, result, depth, args):
+        moduleResult = []
 
-  def _run(self, scanObject, result, depth, args):
-
-    moduleResult = []
-
-    link = None
-
-    try:
-      link = lnkfile.lnk_file(io.BytesIO(scanObject.buffer))
-    except Exception as e:
-      logging.exception(e)
-      pass
-
-    if link:
-      try:
-        def add_tracker_data(tree, key):
-          try:
-            u = uuid.UUID(bytes=uuid.UUID(tree[key]).bytes_le)
-            # calculate human-readable datetime
-            tree[key + '_human'] = datetime.fromtimestamp((u.time - 0x01b21dd213814000)*100//1e9).strftime('%Y-%m-%d %H:%M:%S.%f')
-            fmt = "{:012x}".format(u.node)
-            # format mac address
-            tree[key + '_node'] = ":".join(fmt[i:i+2] for i in range(0, len(fmt), 2))
-          except Exception as e:
-            logging.exception(e)
-        meta = {}
+        link = None
 
         try:
-          link.lnk_header['accessed_time_human'] = datetime.fromtimestamp(link.lnk_header['accessed_time'] // 100000000).strftime('%Y-%m-%d %H:%M:%S')
-          link.lnk_header['creation_time_human'] = datetime.fromtimestamp(link.lnk_header['creation_time'] // 100000000).strftime('%Y-%m-%d %H:%M:%S')
-          link.lnk_header['modified_time_human'] = datetime.fromtimestamp(link.lnk_header['modified_time'] // 100000000).strftime('%Y-%m-%d %H:%M:%S')
+            link = lnkfile.lnk_file(io.BytesIO(scanObject.buffer))
         except Exception as e:
-          logging.exception(e)
-          pass
-        meta['header'] = link.lnk_header
+            logging.exception(e)
+            pass
+        if link:
+            try:
+                def add_tracker_data(tree, key):
+                    try:
+                        u = uuid.UUID(bytes=uuid.UUID(tree[key]).bytes_le)
+                        # calculate human-readable datetime
+                        tree[key + '_human'] = datetime.fromtimestamp((u.time - 0x01b21dd213814000)*100//1e9).strftime('%Y-%m-%d %H:%M:%S.%f')
+                        fmt = "{:012x}".format(u.node)
+                        # format mac address
+                        tree[key + '_node'] = ":".join(fmt[i:i+2] for i in range(0, len(fmt), 2))
+                    except Exception as e:
+                        logging.exception(e)
+                meta = {}
 
-        meta['data'] = link.data
+                try:
+                    # LinkParse3 changed the formatting of objects, now it seems that everything is accessible through the json object
+                    tmp_json = link.get_json()
+                    meta['header'] = tmp_json['header']
+                    # lnkparse saves the datetime.datetime object, just need to convert to readable
+                    meta['header']['accessed_time'] = meta['header']['modified_time'].strftime('%Y-%m-%d %H:%M:%S.%f')
+                    meta['header']['creation_time'] = meta['header']['modified_time'].strftime('%Y-%m-%d %H:%M:%S.%f')
+                    meta['header']['modified_time'] = meta['header']['modified_time'].strftime('%Y-%m-%d %H:%M:%S.%f')
+                    meta['data'] = tmp_json['data']
+                except Exception as e:
+                    pass
 
-        if 'DISTRIBUTED_LINK_TRACKER_BLOCK' in link.extraBlocks:
-          add_tracker_data(link.extraBlocks['DISTRIBUTED_LINK_TRACKER_BLOCK'], 'droid_volume_identifier')
-          add_tracker_data(link.extraBlocks['DISTRIBUTED_LINK_TRACKER_BLOCK'], 'birth_droid_volume_identifier')
-          add_tracker_data(link.extraBlocks['DISTRIBUTED_LINK_TRACKER_BLOCK'], 'droid_file_identifier')
-          add_tracker_data(link.extraBlocks['DISTRIBUTED_LINK_TRACKER_BLOCK'], 'birth_droid_file_identifier')
-        meta['extra'] = link.extraBlocks
-        meta['link_info'] = link.loc_information
-        scanObject.addMetadata(self.module_name, "lnk_file", meta)
-      except Exception as e:
-        logging.exception(e)
-        pass
+                #this bit may give wrong info, previous version of lnkparse may have given milliseconds instead of UTC, don't have an example with the fields
+                if 'DISTRIBUTED_LINK_TRACKER_BLOCK' in tmp_json['extra']:
+                      add_tracker_data(tmp_json['extra']['DISTRIBUTED_LINK_TRACKER_BLOCK'], 'droid_volume_identifier')
+                      add_tracker_data(tmp_json['extra']['DISTRIBUTED_LINK_TRACKER_BLOCK'], 'birth_droid_volume_identifier')
+                      add_tracker_data(tmp_json['extra']['DISTRIBUTED_LINK_TRACKER_BLOCK'], 'droid_file_identifier')
+                      add_tracker_data(tmp_json['extra']['DISTRIBUTED_LINK_TRACKER_BLOCK'], 'birth_droid_file_identifier')
+                meta['extra'] = tmp_json['extra'] 
+                meta['link_info'] = tmp_json['link_info'] 
+                meta['target'] = tmp_json['target']
+                meta['data'] = tmp_json['data']
+                scanObject.addMetadata(self.module_name, "lnk_file", meta)
+            except Exception as e:
+                logging.exception(e)
+                pass
 
-    return moduleResult
+        return moduleResult
+

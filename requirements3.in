@@ -10,7 +10,7 @@ beautifulsoup4
 cffi
 # aids beautiful soup in detecting character sets
 chardet
-cryptography>=3.3
+cryptography
 fluent-logger
 future
 gevent
@@ -24,11 +24,12 @@ nose2
 numpy
 olefile
 pexpect
+Pillow
 progressbar33
 ptyprocess
 pyClamd
 pycparser
-pyexiftool<=0.4.13
+pyexiftool
 pylzma
 pymilter
 python-dateutil
@@ -42,7 +43,7 @@ ssdeep
 svn
 tnefparse
 typing
-yara-python
+yara-python==4.2.0
 Flask
 oletools
 pdfminer.six
@@ -68,14 +69,14 @@ M2Crypto
 extract-msg
 natsort
 pyaio
-# requirements for lb-storage-module-which-uses the venv
+# requirements for lb-storage-module which uses the venv
 pyOpenSSL
 ndg-httpsclient
 pyasn1
 Flask-SQLAlchemy
 flask_bootstrap
 SQLAlchemy
-python-ldap<3.4
+python-ldap
 python-gitlab
 gunicorn
 psutil

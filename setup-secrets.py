@@ -28,6 +28,7 @@ default_configs = {
   "apache_ca_certificate":"/etc/laikaboss/secrets/apache/cacert.crt",
   "auth_user_password_db":"/etc/laikaboss/secrets/htpasswd.db",
   "db_password_file":"/etc/laikaboss/secrets/db_password",
+  "db_password_file2":"/etc/laikaboss/secrets/postgres/db_password",
   "newness_password_file":"/etc/laikaboss/secrets/local_creds",
   "lb_client_secret_file":"/etc/laikaboss/secrets/lb_client_secret_file",
   "storage_s3_creds_file":"/etc/laikaboss/secrets/s3_creds",
@@ -50,12 +51,12 @@ def copy(src, dst, overwrite=True):
    if overwrite or not _file_exists(dst):
       shutil.copy(src, dst)
 
-def files_exist(paths):
+def files_exist(paths, fix):
 
     if isinstance(paths, str):
         paths = [paths]
 
-    paths_valid(paths)
+    paths_valid(paths, fix)
 
     for x in paths:
         if _file_exists(x):
@@ -63,7 +64,7 @@ def files_exist(paths):
 
     return False
 
-def paths_valid(path):
+def paths_valid(path, fix=False):
 
     paths = path
     if isinstance(path, str):
@@ -73,6 +74,10 @@ def paths_valid(path):
         if "{{" in x:
             raise ValueError("path: {} is invalid".format(x))
         if os.path.isdir(x):
+            if fix:
+                os.rmdir(x)
+                return False
+
             raise ValueError("Path: {} should be a file but is a directory??".format(path))
 
     return True
@@ -92,7 +97,7 @@ def cert_gen(
     CERT_FILE="selfsigned.crt",
     CA_FILE=None):
 
-    if files_exist([KEY_FILE, CERT_FILE]):
+    if files_exist([KEY_FILE, CERT_FILE], fix=True):
       return
 
     if not serialNumber:
@@ -151,7 +156,7 @@ def cert_gen(
     with open(KEY_FILE, "wt") as f:
         f.write(crypto.dump_privatekey(crypto.FILETYPE_PEM, k).decode("utf-8"))
 
-    if CA_FILE and not files_exist(CA_FILE):
+    if CA_FILE and not files_exist(CA_FILE, fix=True):
        shutil.copyfile(CERT_FILE, CA_FILE)
 
 def prompt_and_populate(question, valid_answers=[], validation_function=False, default_value=False):
@@ -203,7 +208,7 @@ def main():
 
     newness_passwd = None
 
-    if not files_exist(file_name):
+    if not files_exist(file_name, fix=True):
        newness_passwd = secrets.token_urlsafe(nbytes=12)
        with open(file_name, 'w') as f:
               f.write('laika_system:' + newness_passwd)
@@ -211,7 +216,7 @@ def main():
        new = True
        auth_password = default_configs['auth_user_password_db']
 
-       if files_exist(auth_password):
+       if files_exist(auth_password, fix=True):
           new = False
 
        ht = HtpasswdFile(auth_password, new=new)
@@ -237,7 +242,7 @@ def main():
     redis_secret_file = default_configs['redis_secret_file']
     redis_secret_file2 = default_configs['redis_secret_file2']
 
-    if not files_exist(redis_secret_file):
+    if not files_exist(redis_secret_file, fix=True):
        redis_pass = secrets.token_urlsafe(nbytes=12)
        with open(redis_secret_file, 'w') as f:
            f.write(redis_pass)
@@ -247,15 +252,15 @@ def main():
     key = os.path.abspath(default_configs['tls_key_file'])
     crt = os.path.abspath(default_configs['tls_cert_file'])
     ca = os.path.abspath(default_configs['ca_certificate'])
-
-    if not files_exist([key, crt]):
+     
+    if not files_exist([key, crt], fix=True):
         cert_gen(KEY_FILE = key, CERT_FILE=crt, CA_FILE=ca, commonName = options['hostname'])
 
     redis_key = os.path.abspath(default_configs['redis_tls_key_file'])
     redis_crt = os.path.abspath(default_configs['redis_tls_cert_file'])
     redis_ca = os.path.abspath(default_configs['redis_ca_certificate'])
 
-    if not files_exist([redis_key, redis_crt]):
+    if not files_exist([redis_key, redis_crt], fix=True):
        copy(key, redis_key, overwrite=False)
        copy(crt, redis_crt, overwrite=False)
        copy(ca, redis_ca, overwrite=False)
@@ -264,7 +269,7 @@ def main():
     apache_crt = os.path.abspath(default_configs['apache_tls_cert_file'])
     apache_ca = os.path.abspath(default_configs['apache_ca_certificate'])
 
-    if not files_exist([apache_key, apache_crt]):
+    if not files_exist([apache_key, apache_crt], fix=True):
        copy(key, apache_key, overwrite=False)
        copy(crt, apache_crt, overwrite=False)
        copy(ca, apache_ca, overwrite=False)
@@ -278,14 +283,17 @@ def main():
     options['hostname_short'] = short_hostname
 
     file_name = default_configs['db_password_file']
+    file_name2 = default_configs['db_password_file2']
 
-    if not files_exist([file_name]):
+    if not files_exist([file_name], fix=True):
+       secret=secrets.token_urlsafe(nbytes=64)
        with open(file_name, 'w') as f:
-            secret=secrets.token_urlsafe(nbytes=64)
+            f.write(secret)
+       with open(file_name2, 'w') as f:
             f.write(secret)
 
     file_name = default_configs['lb_client_secret_file']
-    if not files_exist([file_name]):
+    if not files_exist([file_name], fix=True):
        with open(file_name, 'w') as f:
             secret=secrets.token_urlsafe(nbytes=64)
             f.write(secret)
@@ -294,7 +302,7 @@ def main():
     secret_file = default_configs['storage_s3_secret_file']
     s3_creds = default_configs['storage_s3_creds_file']
 
-    if not files_exist([access_file, secret_file]):
+    if not files_exist([access_file, secret_file], fix=True):
 
         with open(access_file, 'w') as f:
             access_key=secrets.token_urlsafe(nbytes=64)
@@ -308,7 +316,7 @@ def main():
             blob = access_key + ":" + secret_key
             f.write(blob)
 
-    print("Modify the local laika_cluster.conf file including the hostname attribute and copy to /etc/laikaboss/laika_cluster.conf.   Run the setup-host.sh script next to fix permissions.")
+    print("Modify the local laika_cluster.conf file including the hostname attribute and copy to /etc/laikaboss/laika_cluster.conf then run the setup-host.sh script again to fix permissions.")
 
 if __name__ == "__main__":
     main()

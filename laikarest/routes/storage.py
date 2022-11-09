@@ -218,6 +218,7 @@ def storage_routes(app, config, storage_gui_config, laika_auth, redis_client):
 
         sub_path = sub_path_format_1
 
+
         return found_in_bucket, object_content, method_that_succeeded, sub_path
 
     def send_invalid_rootUID():
@@ -305,7 +306,7 @@ def storage_routes(app, config, storage_gui_config, laika_auth, redis_client):
                 logging.exception(e)
                 results.append(rootUIDResult(rootUID, "Not a valid rootUID"))
                 continue
-            
+
             found_in_bucket, object_content, method_that_succeeded, sub_path = search_json_buckets(uuid_date, rootUID)
 
             if object_content is None or len(object_content) == 0:
@@ -331,7 +332,7 @@ def storage_routes(app, config, storage_gui_config, laika_auth, redis_client):
                 logging.exception(e)
                 results.append(rootUIDResult(rootUID, "Failed to retrieve raw file location"))
                 continue
-            
+
             # Get raw content
             try:
                 root_object_content = storage_helper.query_bucket_for_object(root_bucket_name, root_subpath, storage_format=method_that_succeeded)
@@ -741,7 +742,7 @@ def storage_routes(app, config, storage_gui_config, laika_auth, redis_client):
             return send_invalid_rootUID()
 
         uuid_date_datetime  = datetime.datetime(*[int(item) for item in uuid_date[:-1].split('-')])
-        logging.info('rootUID provided date: {}'.format(uuid_date[:-1]))
+        logging.info('rootUID provided date: {} rootUID: {} '.format(uuid_date[:-1], rootUID))
 
         found_in_bucket, object_content, method_that_succeeded, sub_path = search_json_buckets(uuid_date, rootUID)
 
@@ -752,7 +753,7 @@ def storage_routes(app, config, storage_gui_config, laika_auth, redis_client):
         try:
             scan_result = storage_helper.get_json_from_text(object_content)
         except Exception as e:
-            logging.exception(e)
+            logging.exception("value prefix:'{}' found_in_bucket:'{}' method_that_succeeded:'{}' sub_path:'{}' buckets_searched: {}".format(object_content[:20],found_in_bucket,method_that_succeeded,sub_path, storage_helper.bucket_list_with_rootUIDs))
             return Response(
                 json.dumps({"error": "object content pulled from bucket {} was not valid JSON!".format(found_in_bucket)}),
                 status=500

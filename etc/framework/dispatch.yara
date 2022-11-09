@@ -35,6 +35,7 @@ Laika Dispatcher : 1st pass
     * ext_root_scanTime (int) : timestamp of begining of processing of root object
     * ext_time (int)          : current timestamp, similar to time.now() of yara 3.7+
     * ext_depth (int)         : depth of the current object + 1 (root == 1)
+    * ext_cluster (str)       : name of the cluster for use in dispatching rules
     * ext_args (str)          : args passed to this laikaboss job, flattened into a
       string and demarcated by '|' characters
 */

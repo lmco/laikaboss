@@ -28,6 +28,7 @@ mkdir -p /data/laikaboss/submission-queue
 mkdir -p /data/laikaboss/submission-error
 mkdir -p /data/laikaboss/tmp
 mkdir -p /data/laikaboss/laikadq
+mkdir -p /data/laikaboss/webroot
 mkdir -p /var/log/laikaboss/
 
 touch /var/laika_version
@@ -36,6 +37,7 @@ chown laikaboss:laikaboss /data/laikaboss/storage*
 chown laikaboss:laikaboss /data/laikaboss/submission*
 chown laikaboss:laikaboss /data/laikaboss/laikadq*
 chown laikaboss:laikaboss /data/laikaboss/tmp
+chown -R laikaboss:laikaboss /data/laikaboss/webroot*
 chown laikaboss:laikaboss /var/log/laikaboss/
 
 # redis dirs
@@ -57,10 +59,10 @@ mkdir -p /var/log/postgres/
 chown -R 1001:1001 /var/log/postgres/
 chown -R 1001:1001 /data/laikaboss/postgres/
 mkdir -p /data/laikaboss/postgres/data
-mkdir -p /var/log/postgres/
 
+#this is failing for some reason - saying role laikaboss doesn't exist - and works better without out it in testing
 #install basic laikaboss user account and access control data
-cp ./Docker/postgres/conf/* /data/laikaboss/postgres/conf
+#cp ./Docker/postgres/conf/* /data/laikaboss/postgres/conf
 
 # bitnami postgres containers run as 1001
 chown -R 1001:0 /var/log/postgres/

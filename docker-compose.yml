@@ -2,13 +2,10 @@
 
 version: "3"
 
-volumes:
-   web_data:
-
 services:
 
     laikadq:
-        image: docker.example.com:1234/laikaboss/laikaboss:latest
+        image: docker.example.com:1234/laikaboss/laikaboss-oss:latest
         volumes:
             - /data/laikaboss/submission-queue/:/var/laikaboss/submission-queue
             - /data/laikaboss/submission-error/:/var/laikaboss/submission-error
@@ -22,6 +19,7 @@ services:
             - /var/laika_version:/var/laika_version
             - /etc/yara/:/etc/yara
             - /dev/log:/dev/log
+            - /data/laikaboss/:/var/laikaboss/
             - /workdir:/home/laikaboss/workdir
         command: -q --id-file /var/laikaboss/laikad_redis_id_file -d
         logging:
@@ -29,10 +27,11 @@ services:
             options:
                 max-size: "10m"
                 max-file: "2"
+
      # This service is deprecated in favor of laikadq, but you can still use it
      # by uncommenting this block
      #laikad:
-        #image: docker.example.com:1234/laikaboss/laikaboss:latest
+        #image: docker.example.com:1234/laikaboss/laikaboss-oss:latest
         #ports:
         #    - "0.0.0.0:5558:5558"
         #    - "0.0.0.0:5559:5559"
@@ -48,6 +47,7 @@ services:
         #    - /etc/laikaboss/secrets:/etc/laikaboss/secrets
         #    - /var/log/laikaboss:/var/log/laikaboss
         #    - /var/laika_version:/var/laika_version
+        #    - /data/laikaboss/:/var/laikaboss/
         #    - /etc/yara/:/etc/yara
         #    - /dev/log:/dev/log
         #    - /workdir:/home/laikaboss/workdir
@@ -59,14 +59,14 @@ services:
         #        max-file: "2"
  
     submitstoraged:
-        image: docker.example.com:1234/laikaboss/laikaboss:latest
+        image: docker.example.com:1234/laikaboss/laikaboss-oss:latest
         restart: unless-stopped
         volumes:
             - /var/laika_version:/var/laika_version
             - /var/log/laikaboss:/var/log/laikaboss
             - /data/laikaboss/storage-queue:/var/laikaboss/storage-queue
             - /data/laikaboss/storage-error:/var/laikaboss/storage-error
-            - /var/laikaboss:/var/laikaboss
+            - /data/laikaboss/:/var/laikaboss/
             - /etc/laikaboss/laika_cluster.conf:/etc/laikaboss/laika_cluster.conf
             - /etc/laikaboss/secrets:/etc/laikaboss/secrets
             - /dev/log:/dev/log
@@ -79,7 +79,7 @@ services:
                 max-file: "2"
 
     laikamail:
-        image: docker.example.com:1234/laikaboss/laikaboss:latest
+        image: docker.example.com:1234/laikaboss/laikaboss-oss:latest
         command: -m --tls-key /etc/laikaboss/secrets/server.key --tls-cert /etc/laikaboss/secrets/server.crt --address 0.0.0.0 -p 1025 --tls start-tls
         volumes: 
             - /data/laikaboss/submission-queue/:/var/laikaboss/submission-queue
@@ -87,7 +87,7 @@ services:
             - /etc/laikaboss/laika_cluster.conf:/etc/laikaboss/laika_cluster.conf
             - /etc/laikaboss/secrets:/etc/laikaboss/secrets
             - /var/log/laikaboss:/var/log/laikaboss
-            - /var/laikaboss:/var/laikaboss
+            - /data/laikaboss/:/var/laikaboss/
             - /var/laika_version:/var/laika_version
             - /workdir:/home/laikaboss/workdir
         ports:
@@ -99,17 +99,17 @@ services:
                max-file: "2"
 
     laikarestd:
-        image: docker.example.com:1234/laikaboss/laikaboss:latest
+        image: docker.example.com:1234/laikaboss/laikaboss-oss:latest
         restart: unless-stopped
         volumes:
             - /var/laika_version:/var/laika_version
             - /etc/laikaboss/laika_cluster.conf:/etc/laikaboss/laika_cluster.conf
             - /etc/laikaboss/secrets:/etc/laikaboss/secrets
             - /var/log/laikaboss:/var/log/laikaboss
-            - /var/laikaboss/:/var/laikaboss/
+            - /data/laikaboss/:/var/laikaboss/
             - /data/laikaboss/submission-queue:/var/laikaboss/submission-queue
             - /data/laikaboss/submission-error:/var/laikaboss/submission-error
-            - web_data:/var/www/html/webui/
+            - /data/laikaboss/webroot/:/var/www/html/webui/
             - /workdir:/home/laikaboss/workdir
             - /dev/log:/dev/log
         ports:
@@ -124,14 +124,14 @@ services:
                 max-file: "2"
 
     laikacollector:
-        image: docker.example.com:1234/laikaboss/laikaboss:latest
+        image: docker.example.com:1234/laikaboss/laikaboss-oss:latest
         restart: unless-stopped
         volumes:
             - /var/laika_version:/var/laika_version
             - /etc/laikaboss/laika_cluster.conf:/etc/laikaboss/laika_cluster.conf
             - /etc/laikaboss/secrets:/etc/laikaboss/secrets
             - /var/log/laikaboss:/var/log/laikaboss
-            - /var/laikaboss:/var/laikaboss
+            - /data/laikaboss/:/var/laikaboss/
             - /data/laikaboss/submission-queue/:/var/laikaboss/submission-queue
             - /data/laikaboss/submission-error/:/var/laikaboss/submission-error
             - /dev/log:/dev/log
@@ -196,7 +196,7 @@ services:
             - "0.0.0.0:443:443"
             - "0.0.0.0:9002:9002"
         volumes:
-            - web_data:/usr/local/apache2/htdocs/
+            - /data/laikaboss/webroot/:/usr/local/apache2/htdocs/
             - /etc/laikaboss/secrets/apache/server.key:/usr/local/apache2/conf/server.key
             - /etc/laikaboss/secrets/apache/server.crt:/usr/local/apache2/conf/server.crt
             - /etc/laikaboss/secrets/apache/cacert.crt:/usr/local/apache2/conf/server-ca.crt

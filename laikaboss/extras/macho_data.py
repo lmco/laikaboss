@@ -42,8 +42,22 @@ CPU_SUBTYPE_ARM = {
     5:     'ARM_V4T',
     6:     'ARM_v6',
     7:     'ARM_V5TEJ',
-    9:     'ARM_V7',
     8:     'ARM_XSCALE',
+    9:     'ARM_V7',
+    10: 'CPU_SUBTYPE_ARM_V7F',
+    11: 'CPU_SUBTYPE_ARM_V7S',
+    12: 'CPU_SUBTYPE_ARM_V7K',
+    13: 'CPU_SUBTYPE_ARM_V8',
+    14: 'CPU_SUBTYPE_ARM_V6M',
+    15: 'CPU_SUBTYPE_ARM_V7M',
+    16: 'CPU_SUBTYPE_ARM_V7EM',
+    17: 'CPU_SUBTYPE_ARM_V8M',
+}
+
+ARM64_SUBTYPE = {
+    0: "CPU_SUBTYPE_ARM64_ALL",
+    1: "CPU_SUBTYPE_ARM64_V8",
+    2: "CPU_SUBTYPE_ARM64E",
 }
 
 CPU_SUBTYPE_HPPA = {
@@ -152,6 +166,8 @@ CPU_SUBTYPE_X86 = {
 
 CPU_SUBTYPE_X86_64 = {
     3:     'X86_64_ALL',
+    4: "CPU_SUBTYPE_X86_ARCH1",
+    8: "CPU_SUBTYPE_X86_64_H",
 }
 
 ### File Types ###
@@ -256,6 +272,14 @@ LOAD_CMDS = {
     0x2b:   'LC_DYLIB_CODE_SIGN_DRS', # Code signing DRs copied from linked dylibs
     0x2c:   'LC_ENCRYPTION_INFO_64', # 64-bit encrypted segment information
     0x2d:   'LC_LINKER_OPTION', #linker options in MH_OBJECT files
+    0x2e:   'LC_LINKER_OPTIMIZATION_HINT',
+    0x2f:   'LC_VERSION_MIN_TVOS',
+    0x30:   'LC_VERSION_MIN_WATCHOS',
+    0x31:   'LC_NOTE',
+    0x32:   'LC_BUILD_VERSION',
+    0x80000033: 'LC_DYLD_EXPORTS_TRIE',
+    0x80000034: 'LC_DYLD_CHAINED_FIXUPS', # 0x34 | LC_REQ_DYLD
+    0x80000035: 'LC_FILESET_ENTRY'
 }
 
 ### Section Flags ###

@@ -89,7 +89,7 @@ def enforce_auth(*expected_args, **kwargs):
                             #     return redirect(url_for("login"), code=302)
                             raise Exception("Failed to authenticate.")
                         elif success_username:
-                            raise Exception("Provided user is not in a required metagroup")
+                            raise Exception("Provided user is not in a required ldap group")
                         else:
                             raise Exception("Failed to authenticate.")
                     elif success_username:

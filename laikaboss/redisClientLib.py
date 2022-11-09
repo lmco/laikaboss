@@ -226,7 +226,10 @@ class Client(object):
 
     logging.debug("getting queue length and size on queue: " + queue)
     len1 = self.redis_client.llen(queue)
-    mem_usage = self.redis_client.dbsize()
+    #mem_usage = self.redis_client.dbsize()
+    #logging.error("before mem usage")
+    mem_usage = self.redis_client.memory_usage(queue, 0)
+    #logging.error("after mem usage")
     logging.debug("queue length:" + str(len1) + " queue: "+ queue + " mem usage of " + str(mem_usage) + " bytes")
 
     return len1, mem_usage

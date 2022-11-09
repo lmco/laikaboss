@@ -41,6 +41,7 @@ Redis_url_parts = namedtuple('Redis_url_parts', "scheme,hostname,path,port,query
 
 def _put_file_minio_bucket(minio_client, bucket, minio_filename, buf):
     """ Attempts to place a file into a Minio bucket.
+
     Args:
         minio_client (Minio): The minio handler object
         bucket (str): The name of the bucket in which to place the file

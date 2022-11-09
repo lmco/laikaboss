@@ -32,7 +32,7 @@ class META_EMAIL(SI_MODULE):
         # Domain regex
         self.domainMatch = re.compile(r"(\b((?=[a-z0-9-]{1,63}\.)(xn--)?[a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,63}\b)")
         # Email Address
-        self.emailMatch = re.compile(r"(\b[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\b)")
+        self.emailMatch = re.compile(r"(\b[a-z0-9._%+-]+@[_a-z0-9.-]+)")
         # IPv4 Address
         self.ipMatch = re.compile(r'(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)')
         # IPv6 Address

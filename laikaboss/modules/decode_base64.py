@@ -25,7 +25,8 @@ class DECODE_BASE64(SI_MODULE):
     def _run(self, scanObject, result, depth, args):
         moduleResult = [] 
         try:
-            decoded = base64.b64decode(scanObject.buffer)
+            # Add extra padding to the end in case the buffer lacks it
+            decoded = base64.b64decode(scanObject.buffer + b"==")
             contentType = scanObject.contentType if "base64" not in scanObject.contentType else ""
             moduleResult.append(ModuleObject(buffer=decoded, 
                     externalVars=ExternalVars(filename="d_base64_%s" % len(decoded),

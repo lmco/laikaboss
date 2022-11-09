@@ -56,3 +56,4 @@ unixodbc-dev
 python3-dbg
 llvm-10*
 perl
+openjdk-11-jdk-headless

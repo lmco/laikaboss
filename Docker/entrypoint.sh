@@ -51,10 +51,17 @@ elif [ "$1" = "-r" ]; then
   if [ -n "$CONFIG_PATH" ]; then
      CFG="$CONFIG_PATH"
   fi
+
+  mkdir -p /var/www/html/webui/
+
+  #webui-export is populated in the copy step of the npm command when the container is created
+  #so it should exist
+  mkdir -p /var/www/html/webui-export/
   mkdir -p /var/laikaboss/tmp/gunicorn
+
   chown laikaboss  /var/laikaboss/tmp/gunicorn
   # copy website code to the apache dir
-  sudo cp -r /var/www/html/webui-export/* /var/www/html/webui
+  cp -r /var/www/html/webui-export/* /var/www/html/webui
   mkdir -p /var/laikaboss/repos
   chown laikaboss -Rf /var/laikaboss/
   ${CMD} /opt/venvs/laikaboss/bin/gunicorn --worker-tmp-dir "/var/laikaboss/tmp/gunicorn" -c $CFG laikarestd:app

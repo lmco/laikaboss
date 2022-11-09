@@ -77,6 +77,10 @@ class StorageHelper:
             else:
                 self.bucket_list_without_rootUIDs.append(bucket)
 
+        if not bucket_list_all:
+            logging.error("no buckets found for this cluster/host combination - is this the correct cluster and host for storage index file {}".format(self.cluster)) 
+            raise ValueError("no buckets found for cluster/host combo in storage index cluster:{} ".format(self.cluster))
+
     def _init_storage_handlers(self):
         """ Based on the configuration file and the host/cluster, initiate storage handlers
         """
