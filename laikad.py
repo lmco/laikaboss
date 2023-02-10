@@ -16,7 +16,6 @@
 
 '''
 laikad
-
 Command line program for running the broker and worker processes for the Laika
 framework. This program becomes the supervisor process that ensures the broker
 and worker processes remain up and alive (replaces those that go missing).
@@ -115,10 +114,8 @@ def get_option(option, default=''):
 def shutdown_handler(proc, signum, frame):
     '''
     Signal handler for shutting down the given process.
-
     Arguments:
     proc    --  The process that should be shutdown.
-
     '''
     logging.debug("Shutdown handler triggered (%d)", signum)
     proc.shutdown()
@@ -463,10 +460,8 @@ class Worker(Process):
         '''
         Wait for work from broker then perform the scan. If timeout occurs, no
         scan is performed and no result is returned.
-
         Arguments:
         poll_timeout    --  The amount of time to wait for work.
-
         Returns:
         The result of the scan or None if no scan was performed.
         '''
@@ -977,4 +972,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
