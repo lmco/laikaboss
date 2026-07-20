@@ -26,7 +26,7 @@ from laikaboss.dispatch import Dispatch, close_modules
 from laikaboss import config
 from laikaboss.util import init_yara, init_logging, log_result
 from laikaboss.clientLib import getJSON, getRootObject, get_scanObjectUID
-from distutils.util import strtobool
+from setuptools._distutils.util import strtobool
 import zlib
 import json
 
